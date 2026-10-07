@@ -19,6 +19,8 @@
 
 ## Still required
 
+Update after bench bring-up: the team reports the 22 kOhm / 33 kOhm / 10 kOhm divider is connected, real flex readings update in Unity, and the virtual index finger follows bending after calibration. The local bridge observed stable 228–232 readings while stationary. This establishes the first sensor-to-Unity milestone; physical vibration and MPU6050 remain untested.
+
 - Play the updated scene in the interactive Unity editor; verify auto preview/manual controls, GUI layout and live simulator connection. Rendered hand poses are verified, but GUI interaction/runtime contacts are not.
 - Wire the actual MPU6050 breakout and verify slow tilt, neutral centering and disconnected/stale behavior. No physical IMU samples have been tested.
 - Verify Unity trigger contacts and the physical arrangement of the primitive hand/blocks in play mode.

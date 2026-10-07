@@ -45,6 +45,8 @@ X and Y are names for junctions on the breadboard, not board pins. Both ground c
 
 First leave the A0 wire unplugged. Power the NodeMCU by USB and measure Y relative to GND while gently bending the sensor. It must remain **below 1.0 V**. This network limits Y to about 0.892 V even when X reaches 3.3 V. Unplug USB, then connect Y to A0.
 
+The team's received **33 kOhm** resistor can replace the 27 kOhm resistor between X and Y. Keep 22 kOhm from X to GND and 10 kOhm from Y to GND. The nominal maximum Y voltage then becomes about **0.767 V** with a 3.3 V supply; still verify wiring and measured voltage.
+
 The ESP8266 chip has a 0–1 V ADC; some NodeMCU boards already attenuate A0. With an onboard divider this extra protection reduces the measured range. If motion is too small for calibration, identify the exact board schematic/A0 range and revise the network with measured voltages. Do not simply remove the protection. [ESP8266 ADC documentation](https://arduino-esp8266.readthedocs.io/en/latest/reference.html#analog-input)
 
 ## 3. Set up Arduino IDE once
@@ -159,6 +161,7 @@ Only after the driver, supply, stop switch and off-hand circuit have been verifi
 3. Enable outgoing commands. Capture open/closed again if necessary. The stop switch must connect D6 to GND in its normal position.
 4. Connect motor supply with the motor still **off-hand**. Click **Arm** only after checking live telemetry and the stop loop.
 5. Use the **Desktop hand depth** slider and index bending to put the virtual index fingertip into a coloured block. Vibration is a contact cue; there is no pressure or resistance mechanism.
+   Unity's **Index contact** indicator shows the selected block even when motor output is disabled. Use it to verify contact first; the indicator alone does not mean a motor command is being applied.
 6. Move away: the cue request should clear. Open the stop switch: output must stop and Fault appear. Close the switch, click **Clear fault**, then explicitly **Arm** again.
 7. Stop the bridge or remove USB: motor output must stop. Restoring the connection must not automatically arm it. Test this with motor power still present off-hand.
 8. Check repeated contacts/releases. Continuous cues are capped at two seconds, accepted commands have leases of at most 100 ms, and missing refresh latches a timeout at 150 ms. After these checks pass, mount the motor with comfortable insulation and strain relief.

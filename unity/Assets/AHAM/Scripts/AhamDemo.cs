@@ -82,6 +82,8 @@ namespace Aham
                 GUI.enabled = true;
             }
             GUILayout.Label("Hand root: " + (hand.requireTrackedRoot ? "external tracker" : "desktop preset (not VR tracking)"));
+            HapticSurface indexContact = hand.tips[1] == null ? null : hand.tips[1].Surface;
+            GUILayout.Label("Index contact: " + (indexContact == null ? "none — bend the finger / adjust hand depth" : indexContact.name));
             GUI.enabled = !preview;
             bool enabled = GUILayout.Toggle(outgoing, "Enable outgoing commands after checking the connection");
             if (enabled != outgoing) { outgoing = enabled; transport.SetOutgoing(outgoing); }
