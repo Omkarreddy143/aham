@@ -8,7 +8,7 @@ AHAM maps physical finger movement to a Unity virtual hand and returns synchroni
 
 **Current build scope: one physical index finger, one flex sensor and one vibration motor.** Complete the [index-finger milestone](docs/index-finger-mvp.md) before expanding to five fingers. No external ADC is needed for this first version.
 
-The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, five servos, Grove GSR, one coin motor and a 5 V / 2 A adapter. Resistors, motor drivers and extra analog inputs are missing. Meta Quest 3 is assigned later. Start with the desktop simulator and NodeMCU USB/I2C probe; move to one index flex sensor after obtaining divider resistors. See [actual hardware and required parts](docs/hardware-bringup.md).
+The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, five servos, Grove GSR, one coin motor reported as **10 mm / 3 V** and a 5 V / 2 A adapter. A 2N2222A is available; its pinout, the received resistor values and motor current remain unverified. A regulated 3 V motor supply, flyback diode and extra analog inputs have not been confirmed available. Meta Quest 3 is assigned later. Start with the desktop simulator and NodeMCU USB/I2C probe; move to one index flex sensor after verifying divider resistors. See [actual hardware and required parts](docs/hardware-bringup.md).
 
 | Component | Status |
 |---|---|

@@ -2,7 +2,7 @@
 
 **Selected scope: one index finger first.** Use the [index-finger milestone](index-finger-mvp.md); external ADCs/ESP32 replacement and four more drivers are later expansion parts, not prerequisites for this version.
 
-Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. No resistors, motor switching parts or extra ADC/multiplexer are available. Meta Quest 3 arrives later; use the Unity desktop path now.
+Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor reported as **10 mm / 3 V**, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. A **2N2222A** has been identified and resistors are visible in the supplied photos; transistor pinout and resistor values are unverified. A flyback diode, regulated 3 V motor supply and extra ADC/multiplexer have not been confirmed available. Meta Quest 3 arrives later; use the Unity desktop path now.
 
 **Default firmware: NodeMCU, one index-finger ADC channel, zero enabled motor outputs.** No hardware has been flashed or physically verified by this repository.
 
@@ -15,7 +15,7 @@ Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685
 | MPU6050 | I2C identification now; orientation fusion later. Cannot supply reliable hand XYZ position or absolute yaw |
 | PCA9685 | I2C identification now; servo signal generator, not a power supply |
 | MG90S x4 / SG90 x1 | Reserve for off-hand mechanism experiments; no servo motion is implemented |
-| One coin motor | Future index cue after its voltage/current and driver are verified |
+| One coin motor, reported 10 mm / 3 V | Index cue after type/current, regulated 3 V supply and driver are verified |
 | Grove GSR | Analog output, competes for A0; postpone logging until more analog inputs are available |
 | PAM8403 | Stereo audio amplifier; leave out of the DC motor circuit |
 | 5 V / 2 A adapter | Do not assume five loaded servos can run from it; assess one servo at a time off-hand |
@@ -29,8 +29,8 @@ The fastest route to five fingers is a **classic ESP32 DevKit** replacement plus
 For one index channel obtain:
 
 - Approximately 22 kOhm fixed resistor for the flex divider, plus 27 kOhm and 10 kOhm for conservative A0 attenuation below. Adjust to actual sensor range.
-- One MOSFET specified for the motor current at a 3.3 V gate, flyback diode, approximately 100 Ohm gate resistor and 100 kOhm gate pulldown. Later obtain five sets total.
-- A supply/regulator matching the motor rating. A coin motor is not automatically rated for 5 V.
+- For the available 2N2222A, obtain a flyback diode, 10 kOhm base pulldown and series-base resistors for selection after checking startup current; follow the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts). If using a MOSFET instead, choose one specified for the motor current at a 3.3 V gate, with approximately 100 Ohm gate resistor and 100 kOhm gate pulldown. These are different circuits. Later obtain five verified driver sets total.
+- An external regulated **3 V** motor supply, or a step-down regulator from the 5 V adapter to 3 V, with adequate verified startup-current capacity. Measure its output before connection. Do not connect the reported 3 V motor directly to 5 V.
 - Normally closed stop switch, jumper wires/connectors, suitable power wiring and a multimeter. A breadboard supplies no connections by itself.
 - For future PCA9685 use, an OE pull-up to 3.3 V (for example 10 kOhm), after checking existing breakout pulls.
 
@@ -79,9 +79,9 @@ D6 connects through a normally closed stop switch to GND. An open/broken loop bl
 
 ## One coin motor after driver parts arrive
 
-If MOSFETs are unavailable, use the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts). The reported NPN is **2N2222A**; manufacturer/package, physical lead order and motor ratings still need confirmation. The pin connections and resistor sizing differ from the MOSFET circuit below. Keep motor output disabled until a suitable circuit is verified.
+If MOSFETs are unavailable, use the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts). The reported NPN is **2N2222A**; manufacturer/package, physical lead order and motor running/startup current still need confirmation. The team reports a **10 mm / 3 V** coin vibrator; verify DC/ERM type before using either switching circuit. Follow the [3 V supply instructions](index-finger-mvp.md#supply-for-the-reported-3-v-motor). The NPN pin connections and resistor sizing differ from the MOSFET circuit below. Keep motor output disabled until a suitable circuit is verified.
 
-- Motor positive -> supply matching its rating.
+- Motor positive -> external regulated 3 V supply for the reported motor.
 - Motor negative -> MOSFET drain; source -> actuator ground.
 - D5 -> approximately 100 Ohm -> gate; gate -> approximately 100 kOhm -> GND.
 - Flyback diode cathode -> motor positive, anode -> drain; verify actual ratings/polarity.
