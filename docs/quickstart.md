@@ -1,8 +1,10 @@
 # Start AHAM now
 
+For the simplest hardware walkthrough, use **[one index finger: step by step](index-finger-step-by-step.md)** and the **[Arduino IDE sketch ZIP](../artifacts/AHAM-Index-Arduino.zip)**. It starts with USB-powered flex sensing and real Unity motion. Vibration is a later verified stage; no 5 V adapter is used in that walkthrough.
+
 **Current hardware goal: one index finger first.** Follow the [index-finger milestone and driver parts](index-finger-mvp.md). You need no external ADC for this version; use A0 for the flex sensor and defer GSR/additional fingers.
 
-The received board is **ESP-12E NodeMCU V3 (ESP8266)**. It has only one ADC input; resistors and motor drivers are still missing. Start with the desktop loop and the USB/I2C probe in [received-hardware bring-up](hardware-bringup.md). Meta Quest 3 arrives later. The repository now includes a desktop Unity project in `unity/` as well as assets to import into an existing project.
+The received board is **ESP-12E NodeMCU V3 (ESP8266)**. It has only one ADC input. A 2N2222A and resistors are now reported, but pinout, resistor values and the completed motor circuit remain unverified. Start with the desktop loop and the USB/I2C probe in [received-hardware bring-up](hardware-bringup.md), or the basic index guide above. Meta Quest 3 arrives later. The repository includes a desktop Unity project in `unity/` as well as assets to import into an existing project.
 
 Download the [complete starter ZIP](../artifacts/AHAM-Starter.zip) and extract it into a working folder. The [Unity import ZIP](../artifacts/AHAM-Unity-Starter.zip) contains only the assets to copy into an existing Unity project; run the host from the complete starter or repository.
 
@@ -77,7 +79,7 @@ After obtaining divider resistors and verifying A0 voltage, build the one-index-
 .\.venv\Scripts\python.exe -m platformio run --project-dir firmware -e nodemcuv2 --target upload --upload-port COM5
 ```
 
-Replace COM5 with your actual board port. The default target is NodeMCU, platform `espressif8266@4.2.1` / Arduino core 3.1.2. Motor output defaults disabled because the kit has no driver. Index is channel 1 (mask 2); other physical channels remain zero. [Board target](https://docs.platformio.org/en/stable/boards/espressif8266/nodemcuv2.html), [pinned platform manifest](https://raw.githubusercontent.com/platformio/platform-espressif8266/v4.2.1/platform.json)
+Replace COM5 with your actual board port. The default target is NodeMCU, platform `espressif8266@4.2.1` / Arduino core 3.1.2. Motor output defaults disabled until its circuit is verified. Index is channel 1 (mask 2); other physical channels remain zero. [Board target](https://docs.platformio.org/en/stable/boards/espressif8266/nodemcuv2.html), [pinned platform manifest](https://raw.githubusercontent.com/platformio/platform-espressif8266/v4.2.1/platform.json)
 
 The alternate `esp32dev` environment remains for a classic ESP32 replacement, pinned to Espressif 6.12.0 / Arduino 2.0.17. Its GPIO/ADC/LEDC APIs differ from NodeMCU. Select the environment explicitly for the board you actually have.
 

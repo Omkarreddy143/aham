@@ -38,6 +38,7 @@ local-data/
 artifacts/*
 !artifacts/AHAM-Starter.zip
 !artifacts/AHAM-Unity-Starter.zip
+!artifacts/AHAM-Index-Arduino.zip
 __pycache__/
 *.pyc
 .venv/

@@ -4,6 +4,7 @@
 
 - PlatformIO builds for `nodemcuv2` and `nodemcu_probe`, Espressif 8266 platform 4.2.1 / Arduino core 3.1.2, using Python 3.12.
 - Retained `esp32dev` build, Espressif platform 6.12.0 / Arduino core 2.0.17. All three environments generated firmware images successfully.
+- Arduino IDE exports `AhamIndex.ino` and `FlexCheck.ino` were converted from sketch format, compiled and linked for NodeMCU using PlatformIO / ESP8266 Arduino core 3.1.2. Both produced firmware images. This verifies compilation, not an Arduino IDE upload or a physical sensor/motor test.
 - Eight Python tests covering active/legacy channel masks, CRC/check vectors, randomized frames, partial streams, corrupt/oversized recovery, simulator lease/replay behavior, stop handling, HTTP validation and a Unity-format UDP round trip.
 - 60 native C++ assertions against the **actual firmware protocol and supervisor headers**, including single-finger calibration, inactive channels, disabled driver outputs, active sensor rail faults, no-sensor arming rejection, duty clamp, stale packets, lease expiry, stop, unsupported pressure, duration cap and clock/sequence wrap.
 - Standalone C# protocol compilation and interoperability with four Python-generated golden frames, active/legacy masks, telemetry field offsets and CRC corruption checks.
@@ -24,4 +25,4 @@
 
 No hardware was flashed or actuated during this software milestone. No physical pressure, resistance or body-ownership result is claimed.
 
-The kit has no divider resistors or motor driver yet. The shipped configuration advertises one index sensor and no enabled motor output; the probe requires all actuator supplies disconnected. Five physical flex channels, GSR acquisition and IMU orientation integration are not implemented on the single-ADC NodeMCU. See the revised hardware guide for the current limits.
+Resistors and a 2N2222A are now reported, but divider values, transistor pinout, motor startup current and the completed circuit remain unverified. The motor is reported as 10 mm / 3 V. The shipped configuration advertises one index sensor and no enabled motor output; the probe requires all actuator supplies disconnected. Five physical flex channels, GSR acquisition and IMU orientation integration are not implemented on the single-ADC NodeMCU. See the revised hardware guide for the current limits.
