@@ -13,6 +13,11 @@ namespace Aham
         public bool outgoingEnabled;
         public string Status { get; private set; }
         private UdpClient receiver, sender;
+        private UdpClient monitorSender;
+        private ushort monitorSequence;
+        private byte[] receivedCue;
+        private long cueReceivedAt;
+        public int ReceivedIndexCue { get { lock (gate) return receivedCue != null && (Stopwatch.GetTimestamp() - cueReceivedAt) / (double)Stopwatch.Frequency < .5 ? receivedCue[1] : -1; } }
         private Thread worker;
         private volatile bool stopping;
         private readonly object gate = new object();
@@ -36,6 +41,7 @@ namespace Aham
                 receiver = new UdpClient(new IPEndPoint(IPAddress.Loopback, telemetryPort));
                 receiver.Client.ReceiveTimeout = 100;
                 sender = new UdpClient(); sender.Connect(IPAddress.Loopback, commandPort);
+                monitorSender = new UdpClient();
                 worker = new Thread(ReadLoop); worker.IsBackground = true; worker.Start();
                 Status = "Waiting for localhost glove telemetry";
             }
@@ -51,6 +57,8 @@ namespace Aham
                     byte[] frame = receiver.Receive(ref remote);
                     WirePacket packet; GloveTelemetry data;
                     if (!IPAddress.IsLoopback(remote.Address) || !AhamProtocol.TryDecode(frame, out packet)) continue;
+                    byte[] cue, cuePatterns;
+                    if (AhamProtocol.TryCue(packet, out cue, out cuePatterns)) { lock (gate) { receivedCue = cue; cueReceivedAt = Stopwatch.GetTimestamp(); } continue; }
                     ImuTelemetry imu;
                     if (AhamProtocol.TryImu(packet, out imu)) { lock (gate) { latestImu = imu; imuReceivedAt = Stopwatch.GetTimestamp(); } continue; }
                     if (!AhamProtocol.TryTelemetry(packet, out data)) continue;
@@ -83,6 +91,14 @@ namespace Aham
             if (!outgoingEnabled || !Fresh || Latest.State != 2 || sender == null) return;
             Send(AhamProtocol.MakeHaptic(sequence++, TimeMs(), duties, patterns));
         }
+        public void SendCueMonitor(byte[] duties, byte[] patterns)
+        {
+            if (!Fresh || monitorSender == null) return;
+            byte[] frame = AhamProtocol.Encode(AhamProtocol.MakeHaptic(monitorSequence++, TimeMs(), duties, patterns));
+            try { monitorSender.Send(frame, frame.Length, new IPEndPoint(IPAddress.Loopback, 8767)); }
+            catch (SocketException) { } // Monitor failure never enables/disables the motor command route.
+            catch (ObjectDisposedException) { }
+        }
         private static uint TimeMs() { return unchecked((uint)(Stopwatch.GetTimestamp() * 1000L / Stopwatch.Frequency)); }
         private void Send(WirePacket packet)
         {
@@ -92,6 +108,6 @@ namespace Aham
         }
         private void OnApplicationPause(bool paused) { if (paused) SendControl(0); }
         private void OnDisable() { SendControl(0); stopping = true; CloseSockets(); if (worker != null) worker.Join(300); lock (gate) { latest = null; latestImu = null; } }
-        private void CloseSockets() { if (receiver != null) receiver.Close(); if (sender != null) sender.Close(); receiver = sender = null; }
+        private void CloseSockets() { if (receiver != null) receiver.Close(); if (sender != null) sender.Close(); if (monitorSender != null) monitorSender.Close(); receiver = sender = monitorSender = null; lock (gate) receivedCue = null; }
     }
 }

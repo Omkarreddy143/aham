@@ -3,6 +3,7 @@ import argparse
 import socket
 import time
 from .protocol import StreamDecoder, TELEMETRY, IMU_TELEMETRY, CONTROL, HAPTIC, control, decode, telemetry, imu_telemetry
+from .cue_monitor import CueMonitor
 
 
 def main():
@@ -12,6 +13,7 @@ def main():
     parser.add_argument("--command-port", type=int, default=8766)
     parser.add_argument("--telemetry-port", type=int, default=8765)
     parser.add_argument("--stats", action="store_true", help="Print one-second raw flex min/max ranges while forwarding to Unity")
+    parser.add_argument("--cue-monitor", action="store_true", help="Observe Unity cues on localhost 8767 and echo to Unity; NEVER send these packets to USB")
     args = parser.parse_args()
     import serial  # Only real-hardware mode requires pyserial.
     commands = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -19,6 +21,7 @@ def main():
     commands.setblocking(False)
     outbound = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     decoder = StreamDecoder()
+    monitor = CueMonitor() if args.cue_monitor else None
     with serial.Serial(args.port, args.baud, timeout=.01, write_timeout=.05) as device:
         # Opening some ESP32 boards resets them. Discard boot chatter, then establish a disarmed session.
         time.sleep(2)
@@ -31,6 +34,10 @@ def main():
         latest_values = None
         try:
             while True:
+                if monitor:
+                    for observed in monitor.poll():
+                        # Echo ONLY to Unity for receipt confirmation. Never write this to device.
+                        outbound.sendto(observed.encode(), ("127.0.0.1", args.telemetry_port))
                 packets = decoder.feed(device.read(min(max(device.in_waiting, 1), 512)))
                 latest = None
                 for packet in packets:
@@ -66,6 +73,9 @@ def main():
                               f"calibrated={bool(latest_values['flags'] & 1)}", flush=True)
                     else:
                         print("RAW 1s | No valid telemetry received; check USB link and uploaded firmware.", flush=True)
+                    if monitor and monitor.latest:
+                        print(f"UNITY CUE MONITOR | index={monitor.latest['duties'][1]}/255 "
+                              f"pattern={monitor.latest['patterns'][1]} | packets={monitor.count} | NOT sent to USB", flush=True)
                     window_start = time.monotonic()
                     raw_min, raw_max = [65535] * 5, [0] * 5
                     sample_count = 0
@@ -92,6 +102,7 @@ def main():
                 pass  # Firmware's lease/stop remain independent of the host.
             commands.close()
             outbound.close()
+            if monitor: monitor.close()
 
 
 if __name__ == "__main__":

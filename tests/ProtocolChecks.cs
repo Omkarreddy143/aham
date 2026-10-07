@@ -48,6 +48,13 @@ public static class ProtocolChecks
         imu.Accel = new short[] {0,0,0}; Check(!ImuTilt.TryAngles(imu, out roll, out pitch), "zero gravity rejected");
         imu.Valid = false; Check(!ImuTilt.TryAngles(imu, out roll, out pitch), "invalid IMU rejected");
         imuPayload[0] = 2; Check(!AhamProtocol.TryImu(new WirePacket {Type=4,Payload=imuPayload}, out imu), "unknown IMU flags rejected");
+        byte[] cueDuty, cuePattern;
+        WirePacket cuePacket = AhamProtocol.MakeHaptic(1, 0, new byte[] {0,100,0,0,0}, new byte[] {0,1,0,0,0});
+        Check(AhamProtocol.TryCue(cuePacket, out cueDuty, out cuePattern) && cueDuty[1] == 100 && cuePattern[1] == 1, "monitor cue");
+        cuePacket.Payload[12] = 1;
+        Check(!AhamProtocol.TryCue(cuePacket, out cueDuty, out cuePattern), "monitor rejects pressure");
+        cuePacket.Payload[12] = 0; cuePacket.Payload[3] = 161;
+        Check(!AhamProtocol.TryCue(cuePacket, out cueDuty, out cuePattern), "monitor rejects excessive duty");
         Console.WriteLine("PASS: signed IMU packet and gravity tilt checks");
     }
 }

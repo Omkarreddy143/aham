@@ -28,6 +28,7 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
             if path.is_file():
                 archive.write(path, path.relative_to(root / 'firmware' / 'arduino'))
     archive.write(root / 'docs' / 'before-resistors.md', 'before-resistors.md')
+    archive.write(root / 'docs' / 'unity-cue-demo.md', 'unity-cue-demo.md')
     archive.write(root / 'docs' / 'images' / 'index-preview.png', 'images/index-preview.png')
     archive.write(root / 'docs' / 'index-finger-step-by-step.md', 'START-HERE.md')
     archive.write(root / 'docs' / 'index-finger-mvp.md', 'index-finger-mvp.md')

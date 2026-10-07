@@ -121,5 +121,15 @@ namespace Aham
             // Pressure target and actuator mode remain zero: vibration-only starter.
             return new WirePacket { Type = Haptic, Sequence = seq, TimeMs = time, Payload = payload };
         }
+        public static bool TryCue(WirePacket packet, out byte[] duties, out byte[] patterns)
+        {
+            duties = patterns = null;
+            if (packet == null || packet.Type != Haptic || packet.Payload.Length != 15) return false;
+            byte[] b = packet.Payload;
+            if (Read16(b, 0) < 1 || Read16(b, 0) > 100 || Read16(b, 12) != 0 || b[14] != 0) return false;
+            for (int i = 0; i < 5; i++) if (b[2 + i] > 160 || b[7 + i] > 3) return false;
+            duties = new byte[5]; patterns = new byte[5];
+            Array.Copy(b, 2, duties, 0, 5); Array.Copy(b, 7, patterns, 0, 5); return true;
+        }
     }
 }

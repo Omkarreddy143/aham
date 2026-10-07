@@ -10,12 +10,31 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "host"))
-from aham.protocol import Packet, crc16, cobs_encode, cobs_decode, decode, StreamDecoder, control, haptic, telemetry, TELEMETRY_PAYLOAD
+from aham.protocol import Packet, crc16, cobs_encode, cobs_decode, decode, StreamDecoder, control, haptic, telemetry, TELEMETRY_PAYLOAD, HAPTIC_PAYLOAD
 from aham.simulator import SimulatedGlove, create_server
 from aham.protocol import IMU_TELEMETRY, IMU_PAYLOAD, imu_telemetry
+from aham.cue_monitor import CueMonitor, cue_values
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_monitor_receives_only_valid_cues_without_serial_route(self):
+        monitor = CueMonitor(port=0)
+        sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            address = monitor.socket.getsockname()
+            packet = haptic(12, 100, [0, 100, 0, 0, 0], [0, 1, 0, 0, 0])
+            sender.sendto(control(1, 0, 1).encode(), address)
+            sender.sendto(b'bad\0', address)
+            sender.sendto(packet.encode(), address)
+            time.sleep(.01)
+            self.assertEqual(monitor.poll(), [packet])
+            self.assertEqual(monitor.latest, dict(duties=[0,100,0,0,0], patterns=[0,1,0,0,0]))
+            self.assertEqual(monitor.count, 1)
+            self.assertEqual(monitor.poll(), [])
+            for body in [packet.payload[:-1], HAPTIC_PAYLOAD.pack(0,*([0]*10),0,0), HAPTIC_PAYLOAD.pack(100,0,161,0,0,0,*([0]*5),0,0), HAPTIC_PAYLOAD.pack(100,*([0]*10),1,0)]:
+                with self.assertRaises(ValueError): cue_values(Packet(2,0,0,body))
+        finally:
+            sender.close(); monitor.close()
     def test_imu_packet_signed_axes_and_invalid_status(self):
         payload = IMU_PAYLOAD.pack(1, -16384, 123, 16384, -32768, 32767, -131)
         data = imu_telemetry(decode(Packet(IMU_TELEMETRY, 9, 10, payload).encode()))

@@ -2,6 +2,8 @@
 
 ## Passed locally
 
+- Unity cue monitor: ten Python tests passed, including monitor UDP receipt, malformed/control packet rejection and cue validation. C# cue parsing and actual Unity script compilation passed. The separate monitor echoes to Unity only and has no serial route. Live contact-triggered nonzero cue receipt still needs the team's interactive demonstration.
+
 - PlatformIO builds for `nodemcuv2` and `nodemcu_probe`, Espressif 8266 platform 4.2.1 / Arduino core 3.1.2, using Python 3.12.
 - Retained `esp32dev` build, Espressif platform 6.12.0 / Arduino core 2.0.17. All three environments generated firmware images successfully.
 - Arduino IDE exports `AhamIndex.ino` and `FlexCheck.ino` were converted from sketch format, compiled and linked for NodeMCU using PlatformIO / ESP8266 Arduino core 3.1.2. Both produced firmware images. This verifies compilation, not an Arduino IDE upload or a physical sensor/motor test.

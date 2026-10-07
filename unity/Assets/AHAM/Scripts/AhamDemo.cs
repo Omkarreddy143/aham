@@ -8,6 +8,8 @@ namespace Aham
         private AhamHandRig hand;
         private float nextCommand;
         private readonly byte[] duties = new byte[5], patterns = new byte[5];
+        private readonly byte[] cueDuties = new byte[5], cuePatterns = new byte[5];
+        private bool cueMonitor = true;
         private bool outgoing;
         private bool preview = true;
         private Vector2 scroll;
@@ -38,15 +40,19 @@ namespace Aham
         {
             if (transport == null || hand == null || Time.unscaledTime < nextCommand) return;
             nextCommand = Time.unscaledTime + .02f;
-            if (preview) return; // Software preview never sends haptic commands.
+            if (preview) { System.Array.Clear(cueDuties, 0, 5); System.Array.Clear(cuePatterns, 0, 5); return; }
             GloveTelemetry data = transport.Latest;
             for (int i = 0; i < 5; i++)
             {
-                bool channelAvailable = data != null && (data.SensorMask & data.MotorMask & (1 << i)) != 0;
-                HapticSurface surface = channelAvailable && hand.RootValid && hand.tips[i] != null ? hand.tips[i].Surface : null;
-                duties[i] = surface == null ? (byte)0 : (byte)Mathf.Clamp(surface.intensity, 0, 160);
-                patterns[i] = surface == null ? (byte)0 : (byte)surface.pattern;
+                bool sensorAvailable = transport.Fresh && data != null && (data.Flags & 1) != 0 && (data.SensorMask & (1 << i)) != 0;
+                HapticSurface surface = sensorAvailable && hand.RootValid && hand.tips[i] != null ? hand.tips[i].Surface : null;
+                cueDuties[i] = surface == null ? (byte)0 : (byte)Mathf.Clamp(surface.intensity, 0, 160);
+                cuePatterns[i] = surface == null ? (byte)0 : (byte)surface.pattern;
+                bool motorAvailable = data != null && (data.MotorMask & (1 << i)) != 0;
+                duties[i] = motorAvailable ? cueDuties[i] : (byte)0;
+                patterns[i] = motorAvailable ? cuePatterns[i] : (byte)0;
             }
+            if (cueMonitor) transport.SendCueMonitor(cueDuties, cuePatterns);
             if (!hand.RootValid) transport.SendControl(0);
             else transport.SendHaptics(duties, patterns);
         }
@@ -84,6 +90,10 @@ namespace Aham
             GUILayout.Label("Hand root: " + (hand.requireTrackedRoot ? "external tracker" : "desktop preset (not VR tracking)"));
             HapticSurface indexContact = hand.tips[1] == null ? null : hand.tips[1].Surface;
             GUILayout.Label("Index contact: " + (indexContact == null ? "none — bend the finger / adjust hand depth" : indexContact.name));
+            cueMonitor = GUILayout.Toggle(cueMonitor, "Monitor Unity cues (no motor output)");
+            GUILayout.Label("Unity index cue: " + cueDuties[1] + "/255 | pattern " + cuePatterns[1]);
+            int receivedCue = transport.ReceivedIndexCue;
+            GUILayout.Label("Bridge received cue: " + (receivedCue < 0 ? "waiting / stale" : receivedCue + "/255"));
             GUI.enabled = !preview;
             bool enabled = GUILayout.Toggle(outgoing, "Enable outgoing commands after checking the connection");
             if (enabled != outgoing) { outgoing = enabled; transport.SetOutgoing(outgoing); }
@@ -95,7 +105,7 @@ namespace Aham
                 GUILayout.Label("Raw flex: " + string.Join(", ", System.Array.ConvertAll(data.Raw, n => n.ToString())));
                 GUILayout.Label("Index bend from sensor: " + (data.Curls[1] / 10f).ToString("F1") + "%");
                 if ((data.Flags & 1) == 0) GUILayout.Label("Finger motion needs calibration: enable commands, then capture straight and bent poses.");
-                GUILayout.Label("Vibration: " + string.Join(", ", System.Array.ConvertAll(data.Vibration, n => n.ToString())));
+                GUILayout.Label("Board applied index PWM: " + data.Vibration[1] + "/255");
                 GUILayout.Label("Active flex mask: " + data.SensorMask + " | motor mask: " + data.MotorMask + " (2 = index only)");
                 if (data.MotorMask == 0) GUILayout.Label("Motor output disabled; sensor/desktop checks only.");
             }
