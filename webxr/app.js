@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three/three.module.min.js';
-import {CHAINS, JOINTS, MATERIALS, curl, indexCue, cueRequest} from './logic.js';
+import {CHAINS, JOINTS, FINGER_LABELS, MATERIALS, fingerStates, handCue, cueRequest} from './logic.js';
+import {emptyHands, readHandPoses} from './tracking.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -10,8 +11,8 @@ renderer.xr.setReferenceSpaceType('local');
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 20);
-camera.position.set(0.33, 0.40, 0.52);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 20);
+camera.position.set(0.40, 0.46, 0.62);
 camera.lookAt(0, -0.02, -0.045);
 const desktopCamera=camera.clone();
 scene.add(new THREE.HemisphereLight(0xe8f6ff, 0x283b2d, 2.2));
@@ -79,19 +80,25 @@ const skin=new THREE.MeshStandardMaterial({color:0xc89071,roughness:0.58});
 const tipMaterial=new THREE.MeshStandardMaterial({color:0xdfab8b,roughness:0.53});
 const jointGeometry=new THREE.SphereGeometry(1,10,8);
 const boneGeometry=new THREE.CylinderGeometry(1,1,1,8);
-const joints=new Map(JOINTS.map(name => {
-  const mesh=new THREE.Mesh(jointGeometry,name.endsWith('tip')?tipMaterial:skin);
-  mesh.visible=false; scene.add(mesh); return [name,mesh];
-}));
-const bones=CHAINS.flatMap(chain => chain.slice(1).map((name,i) => {
-  const mesh=new THREE.Mesh(boneGeometry,skin);
-  mesh.visible=false; scene.add(mesh); return {a:chain[i],b:name,mesh};
-}));
-const palm=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.019,0.066),skin);
-scene.add(palm);
+function createHandRig() {
+  const group=new THREE.Group();scene.add(group);
+  const joints=new Map(JOINTS.map(name => {
+    const mesh=new THREE.Mesh(jointGeometry,name.endsWith('tip')?tipMaterial:skin);
+    mesh.visible=false;group.add(mesh);return [name,mesh];
+  }));
+  const bones=CHAINS.flatMap(chain=>chain.slice(1).map((name,i)=>{
+    const mesh=new THREE.Mesh(boneGeometry,skin);
+    mesh.visible=false;group.add(mesh);return {a:chain[i],b:name,mesh};
+  }));
+  const palm=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),skin);group.add(palm);
+  return {group,joints,bones,palm};
+}
+const rigs={left:createHandRig(),right:createHandRig()};
 const yAxis=new THREE.Vector3(0,1,0), direction=new THREE.Vector3();
 
-function drawHand(poses) {
+function drawHand(poses,rig) {
+  const {group,joints,bones,palm}=rig;
+  group.visible=poses.size>0;
   for(const [name,mesh] of joints) {
     const pose=poses.get(name);
     mesh.visible=!!pose;
@@ -113,21 +120,36 @@ function drawHand(poses) {
     const radius=Math.min(a.radius || 0.007,b.radius || 0.007)*0.9;
     bone.mesh.scale.set(radius,length,radius);
   }
-  const wrist=poses.get('wrist'), knuckle=poses.get('middle-finger-phalanx-proximal');
-  palm.visible=!!wrist && !!knuckle;
+  const wrist=poses.get('wrist'), index=poses.get('index-finger-phalanx-proximal'),
+    little=poses.get('pinky-finger-phalanx-proximal');
+  palm.visible=!!wrist && !!index && !!little;
   if(palm.visible) {
-    palm.position.set((wrist.x+knuckle.x)/2,(wrist.y+knuckle.y)/2,(wrist.z+knuckle.z)/2);
-    // Hand geometry is an approximate joint rig. Bone positions are the real data.
-    palm.quaternion.copy(wrist.orientation || new THREE.Quaternion());
+    const w=new THREE.Vector3(wrist.x,wrist.y,wrist.z);
+    const a=new THREE.Vector3(index.x,index.y,index.z), b=new THREE.Vector3(little.x,little.y,little.z);
+    const center=a.clone().add(b).multiplyScalar(0.5);
+    const z=w.clone().sub(center), x=a.clone().sub(b);
+    const length=z.length(), width=x.length();
+    if(length<0.001 || width<0.001) {palm.visible=false;return;}
+    z.normalize();x.addScaledVector(z,-x.dot(z)).normalize();
+    const y=new THREE.Vector3().crossVectors(z,x).normalize();
+    palm.position.copy(w).add(center).multiplyScalar(0.5);
+    palm.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+    palm.scale.set(width+0.018,0.018,length);
   }
+}
+function drawHands() {
+  for(const hand of ['left','right']) drawHand(hands[hand],rigs[hand]);
 }
 
 let previewTarget=0;
-function previewPoses() {
-  const amount=Number($('preview-curl').value)/100;
-  const root=new THREE.Vector3(targets[previewTarget].x+0.025,0.013,0.017);
+function previewPoses(hand) {
+  const selected=hand===selectedHand();
+  const amounts=FINGER_LABELS.map((_,i)=>selected?Number($('preview-curl-'+i).value)/100:0);
+  const target=selected?previewTarget:(previewTarget+1)%3;
+  const mirror=hand==='right'?1:-1;
+  const root=new THREE.Vector3(targets[target].x+mirror*0.025,0.013,0.017);
   const poses=new Map();
-  const put=(name,x,y,z,radius=0.008) => poses.set(name,{x:x+root.x,y:y+root.y,z:z+root.z,radius,orientation:new THREE.Quaternion()});
+  const put=(name,x,y,z,radius=0.008) => poses.set(name,{x:x*mirror+root.x,y:y+root.y,z:z+root.z,radius,orientation:new THREE.Quaternion()});
   put('wrist',0,0,0.035,0.012);
   CHAINS.slice(1).forEach((chain,i) => {
     const x=-0.026+i*0.021;
@@ -135,35 +157,41 @@ function previewPoses() {
     put(chain[2],x,0,-0.034,0.008);
     let y=0,z=-0.034;
     [0.034,0.024,0.019].forEach((length,j) => {
-      const angle=i===0 ? amount*(j+1)*0.65 : 0.10*(j+1);
+      const angle=amounts[i+1]*(j+1)*0.65;
       y-=Math.sin(angle)*length; z-=Math.cos(angle)*length;
       put(chain[j+3],x,y,z,0.007-j*0.0007);
     });
   });
-  CHAINS[0].slice(1).forEach((name,i) => put(name,-0.04-i*0.013,-0.003-i*0.002,0.015-i*0.014));
+  let thumbX=-0.038,thumbY=0,thumbZ=-0.005;
+  put(CHAINS[0][1],thumbX,thumbY,thumbZ);
+  CHAINS[0].slice(2).forEach((name,i)=>{
+    const angle=amounts[0]*(i+1)*0.65;
+    thumbX-=Math.cos(angle)*0.014;thumbY-=Math.sin(angle)*0.022;thumbZ-=Math.cos(angle)*0.017;
+    put(name,thumbX,thumbY,thumbZ,0.008-i*0.0006);
+  });
   return poses;
 }
 
 // The panel is part of the XR scene; normal HTML is not visible inside immersive VR.
 const panelCanvas=document.createElement('canvas');
-panelCanvas.width=1024; panelCanvas.height=512;
+panelCanvas.width=1024; panelCanvas.height=768;
 const panelContext=panelCanvas.getContext('2d');
 const panelTexture=new THREE.CanvasTexture(panelCanvas);
 panelTexture.colorSpace=THREE.SRGBColorSpace;
-const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.50,0.25),
+const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.55,0.4125),
   new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,side:THREE.DoubleSide}));
-panel.position.set(0,0.18,-0.235); panel.visible=false; stage.add(panel);
+panel.position.set(0,0.30,-0.26); panel.visible=false; stage.add(panel);
 
-let source='desktop-preview', trackingValid=false, poses=new Map(),
-  calculated={duties:[0,0,0,0,0],patterns:[0,0,0,0,0],contact:null},
-  curlValue=null, accepted=null, status={received:null,board:null}, lastPost=0,
+let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new Map(),
+  calculated=handCue(new Map(),[],[]), fingers=fingerStates(new Map()),
+  accepted=null, status={received:null,board:null}, lastPost=0,
   postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,
   xrSupported=false;
 const inverseStage=new THREE.Matrix4();
 const selectedHand=() => $('hand').value;
 
 function readXR(frame) {
-  poses=new Map();
+  hands=emptyHands();
   const session=renderer.xr.getSession();
   if(!session || session.visibilityState!=='visible') return;
   const space=renderer.xr.getReferenceSpace();
@@ -180,38 +208,30 @@ function readXR(frame) {
     stage.rotation.y=Math.atan2(-forward.x,-forward.z);
     positioned=true; stage.updateMatrixWorld(true);
   }
-  const input=Array.from(session.inputSources).find(item => item.hand && item.handedness===selectedHand());
-  if(!input) return;
-  for(const name of JOINTS) {
-    const jointSpace=input.hand.get(name);
-    if(!jointSpace) continue;
-    const pose=frame.getJointPose(jointSpace,space);
-    if(!pose) continue;
-    const p=pose.transform.position, q=pose.transform.orientation;
-    if(![p.x,p.y,p.z,q.x,q.y,q.z,q.w].every(Number.isFinite)) continue;
-    poses.set(name,{x:p.x,y:p.y,z:p.z,radius:pose.radius || 0.008,
-      orientation:new THREE.Quaternion(q.x,q.y,q.z,q.w),emulatedPosition:pose.emulatedPosition});
-  }
+  hands=readHandPoses(frame,space,session.inputSources);
 }
 
 function calculate() {
   const previouslyTracked=trackingValid;
-  const complete=CHAINS[1].every(name => poses.has(name));
-  trackingValid=source==='webxr' && complete;
-  if(previouslyTracked && !trackingValid) sendCue(true);
-  curlValue=complete ? curl(CHAINS[1].slice(1).map(name=>poses.get(name))) : null;
+  const previousFingerValidity=fingers.valid;
+  poses=hands[selectedHand()];
+  fingers=fingerStates(poses);
+  trackingValid=source==='webxr' && fingers.valid.some(Boolean);
+  if((previouslyTracked && !trackingValid) || previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i])) sendCue(true);
   stage.updateMatrixWorld(true);
   inverseStage.copy(stage.matrixWorld).invert();
   const localPoses=new Map();
-  const tip=poses.get('index-finger-tip');
-  if(tip) {
+  for(const chain of CHAINS) {
+    const name=chain.at(-1),tip=poses.get(name);
+    if(!tip) continue;
     const point=new THREE.Vector3(tip.x,tip.y,tip.z).applyMatrix4(inverseStage);
-    localPoses.set('index-finger-tip',{x:point.x,y:point.y,z:point.z,radius:tip.radius});
+    localPoses.set(name,{x:point.x,y:point.y,z:point.z,radius:tip.radius});
   }
-  calculated=indexCue(localPoses,targets,complete);
+  calculated=handCue(localPoses,targets,fingers.valid);
   for(const target of targets) {
-    target.mesh.material.emissive.setHex(target.name===calculated.contact?target.color:0);
-    target.mesh.material.emissiveIntensity=target.name===calculated.contact?0.24:0;
+    const touching=calculated.contacts.includes(target.name);
+    target.mesh.material.emissive.setHex(touching?target.color:0);
+    target.mesh.material.emissiveIntensity=touching?0.24:0;
   }
 }
 
@@ -249,49 +269,58 @@ async function pollStatus() {
 setInterval(pollStatus,200);
 
 function zeroTracking() {
-  poses=new Map(); trackingValid=false; curlValue=null;
-  calculated={duties:[0,0,0,0,0],patterns:[0,0,0,0,0],contact:null};
+  hands=emptyHands();poses=new Map();trackingValid=false;fingers=fingerStates(poses);
+  calculated=handCue(poses,[],[]);
   sendCue(true);
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)zeroTracking();});
 // A stopped XR frame cannot refresh a calculated contact indefinitely.
 setInterval(()=>{
-  if(source==='webxr' && performance.now()-lastFrame>150) {zeroTracking();drawHand(poses);updateUI();}
+  if(source==='webxr' && performance.now()-lastFrame>150) {zeroTracking();drawHands();updateUI();}
 },100);
 
 function updateUI() {
   $('source-badge').textContent=source==='webxr'?'QUEST HAND TRACKING':'DESKTOP PREVIEW';
   $('preview-controls').hidden=source==='webxr';
-  $('pose-value').textContent=source!=='webxr'?'Simulated':trackingValid?'Index pose available':'Index pose missing';
-  $('curl-value').textContent=curlValue===null?'—':Math.round(curlValue*100)+'%';
+  $('all-hands-value').textContent=source==='webxr'?'Right '+hands.right.size+'/25 · Left '+hands.left.size+'/25':'Both hands simulated';
+  $('pose-value').textContent=source!=='webxr'?'Simulated':fingers.valid.filter(Boolean).length+'/5 finger poses available';
+  for(let i=0;i<5;i++) {
+    $('curl-'+i).textContent=fingers.curls[i]===null?'—':Math.round(fingers.curls[i]*100)+'%';
+    $('finger-cue-'+i).textContent=fingers.valid[i]?'Cue '+calculated.duties[i]:'Pose missing';
+    $('finger-cue-'+i).title=calculated.contacts[i] || 'No contact';
+  }
   const wrist=poses.get('wrist');
   if(source==='webxr' && wrist) {
     const euler=new THREE.Euler().setFromQuaternion(wrist.orientation,'YXZ');
     $('wrist-value').textContent=[euler.x,euler.y,euler.z].map(v=>Math.round(THREE.MathUtils.radToDeg(v))+'°').join(' / ');
   } else $('wrist-value').textContent=source==='webxr'?'Unavailable':'Simulated';
-  $('contact-value').textContent=calculated.contact || 'None';
-  $('cue-value').textContent=calculated.duties[1];
-  $('cue-bar').style.width=(calculated.duties[1]/255*100)+'%';
-  $('pattern-value').textContent=calculated.contact ? 'Pattern '+calculated.patterns[1]+' · '+calculated.contact : 'No contact';
-  $('preview-value').textContent=$('preview-curl').value+'%';
+  const touching=[...new Set(calculated.contacts.filter(Boolean))];
+  const peak=Math.max(...calculated.duties);
+  $('contact-value').textContent=touching.join(' · ') || 'None';
+  $('cue-value').textContent=peak;
+  $('cue-bar').style.width=(peak/255*100)+'%';
+  $('pattern-value').textContent=touching.length ? calculated.contacts.map((contact,i)=>contact?FINGER_LABELS[i]+': '+contact:null).filter(Boolean).join(' · ') : 'No contact';
   const acceptedFresh=accepted && performance.now()-accepted.time<1000;
   $('accepted-value').textContent=acceptedFresh?'Packet '+accepted.sequence:'Not connected';
   const statusAge=performance.now()-statusAt;
   const received=status.received && status.received.ageMs+statusAge<500 ? status.received : null;
-  $('received-value').textContent=received?received.duties[1]+'/255 · pattern '+received.patterns[1]:'Not connected';
+  $('received-value').textContent=received?received.duties.join(' / '):'No fresh echo';
   const board=status.board && status.board.ageMs+statusAge<200 ? status.board : null;
-  $('applied-value').textContent=board?board.vibration[1]+'/255 · mask '+board.motor_mask:'Not connected';
+  $('applied-value').textContent=board?board.vibration.join(' / ')+' · mask '+board.motor_mask:'No fresh telemetry';
   const now=performance.now();
   if(now-lastPanel>150) {
     lastPanel=now;
-    panelContext.clearRect(0,0,1024,512);
-    panelContext.fillStyle='rgba(13,35,39,.96)'; panelContext.fillRect(0,0,1024,512);
+    panelContext.clearRect(0,0,1024,768);
+    panelContext.fillStyle='rgba(13,35,39,.96)'; panelContext.fillRect(0,0,1024,768);
     panelContext.fillStyle='#dceee5'; panelContext.font='600 48px Segoe UI';
-    panelContext.fillText('AHAM / FEEDBACK MONITOR',40,65);
-    panelContext.font='32px Segoe UI';
-    const lines=[selectedHand()+' hand · '+$('pose-value').textContent,
-      'Index curl '+$('curl-value').textContent+' · '+(calculated.contact||'No contact'),
-      'Calculated cue '+calculated.duties[1]+'/255 · pattern '+calculated.patterns[1],
+    panelContext.fillText('AHAM / FULL HAND v2',40,65);
+    panelContext.font='30px Segoe UI';
+    const lines=[$('all-hands-value').textContent,
+      'Feedback: '+selectedHand()+' · '+$('pose-value').textContent,
+      'Finger order: Thumb / Index / Middle / Ring / Little',
+      'Curl %: '+fingers.curls.map(value=>value===null?'—':Math.round(value*100)).join(' / '),
+      'Cue /255: '+calculated.duties.join(' / '),
+      'Contact: '+(touching.join(' · ') || 'None'),
       'Bridge received: '+$('received-value').textContent,
       'Board reports: '+$('applied-value').textContent,
       'Monitor-only cues · Servo control pending'];
@@ -337,7 +366,7 @@ $('enter-vr').addEventListener('click',async()=>{
     await renderer.xr.setSession(session);
     source='webxr';zeroTracking();positioned=false;panel.visible=true;
     $('enter-vr').textContent='Exit VR';$('enter-vr').disabled=false;
-    $('xr-status').textContent='VR active. Touch the surfaces with your selected index finger.';
+    $('xr-status').textContent='VR active. Both hands tracked; every fingertip of the feedback hand can touch a surface.';
   } catch(error) {
     if(session) await session.end().catch(()=>{});
     $('xr-status').textContent='Could not start hand tracking: '+error.message;
@@ -345,6 +374,8 @@ $('enter-vr').addEventListener('click',async()=>{
   }
 });
 $('hand').addEventListener('change',zeroTracking);
+$('open-hand').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';});
+$('close-hand').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='100';});
 document.querySelectorAll('[data-target]').forEach(button=>button.addEventListener('click',()=>{
   previewTarget=Number(button.dataset.target);
   document.querySelectorAll('[data-target]').forEach(item=>item.classList.toggle('active',item===button));
@@ -360,8 +391,8 @@ renderer.setAnimationLoop((time,frame)=>{
   if(frame && renderer.xr.isPresenting) {
     source='webxr';lastFrame=performance.now();readXR(frame);
   } else if(!renderer.xr.isPresenting) {
-    source='desktop-preview';poses=previewPoses();
+    source='desktop-preview';hands={left:previewPoses('left'),right:previewPoses('right')};
   }
-  calculate();drawHand(poses);updateUI();sendCue();renderer.render(scene,camera);
+  calculate();drawHands();updateUI();sendCue();renderer.render(scene,camera);
 });
 checkXR();pollStatus();

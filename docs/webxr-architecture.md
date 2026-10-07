@@ -1,15 +1,15 @@
 # Selected AHAM architecture — Quest Browser
 
-The selected revision replaces Unity, flex sensors and MPU6050 as the primary tracking path with Quest 3 optical hand tracking in a WebXR browser app. Feedback remains a separate hardware subsystem. Use one index finger for the first complete demonstration.
+The selected revision replaces Unity, flex sensors and MPU6050 as primary tracking with Quest 3 optical hand tracking in WebXR. The software now tracks both hands and all five fingers; the selected feedback hand maps to five channels. Start physical actuator bring-up with the one available index motor.
 
 ## Modules
 
 | Module | Responsibility | Current implementation |
 |---|---|---|
 | Quest tracking | Estimated wrist orientation and 25 hand-joint poses | WebXR hand joints; actual headset trial pending |
-| Hand view | Render joint positions and connecting bones | Approximate Three.js rig; selected right/left hand |
+| Hand view | Render joint positions and connecting bones | Independent left/right Three.js rigs; 25 joints each |
 | Curl estimate | Display bending from adjacent bone angles | Approximate visual curl; no flex calibration required |
-| Contact cues | Index-tip sphere against material boxes | Smooth 100/pattern 1; Rough 150/2; Soft 80/3; other channels zero |
+| Contact cues | All five tip spheres against material boxes | Smooth 100/pattern 1; Rough 150/2; Soft 80/3 per finger of the selected feedback hand |
 | HTTPS link | Carry wireless headset requests | Temporary Cloudflare tunnel to a loopback HTTP server |
 | Laptop relay | Validate requests and distinguish acceptance from receipt | Strict JSON, monitor UDP 8767, matching echoes on 8877 |
 | Existing USB bridge | Observe board telemetry and echo monitor packets | COM7/230400 baud; monitor packets have no serial output route |
@@ -22,7 +22,7 @@ Returned joints are estimated poses; obscured joints may be emulated. Pose avail
 ```mermaid
 flowchart LR
     H[Quest estimated hand joints] --> V[WebXR hand and scene]
-    V --> C[Index contact cue]
+    V --> C[Five fingertip contact cues]
     C --> S[HTTPS to laptop relay]
     S --> M[Observation monitor]
     M --> D[Matching receipt on browser panel]
@@ -36,7 +36,7 @@ flowchart LR
 
 The browser renders at the headset's supplied frame rate, submits cues at most about 20 times per second, and polls the monitor about five times per second. These are initial prototype rates, not measured latency. HTTP polling avoids new server dependencies. The tunnel adds an internet round trip; this route is suitable for the monitor checkpoint, not established as a responsive servo-control path.
 
-Missing wrist/index joints, a hidden XR session, stopped frames or session end clears the cue. Desktop preview sends zeros. Relay receipt ages out after 500 ms; board telemetry after 200 ms. HTTP acceptance alone never creates a receipt. Echoes must match a recently submitted packet, preventing another application from masquerading as WebXR receipt.
+Missing joints clear the affected finger's cue; missing wrist clears all five channels. A hidden XR session, stopped frames or session end clears both hand poses and all cues. Desktop preview sends zeros. Receipt ages out after 500 ms; board telemetry after 200 ms. HTTP acceptance never creates a receipt. Echoes must match a recently submitted packet, preventing another application from masquerading as WebXR receipt.
 
 Before physical output, implement a local firmware watchdog independent of browser/network behavior, explicit arming, validated channel limits and an independent stop. Current v1 pressure/mode fields must remain zero; pressure is unsupported. Servo resistance needs a defined command and mechanism limits. Stopping servo PWM alone does not guarantee tendon release.
 

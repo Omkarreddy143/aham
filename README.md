@@ -2,7 +2,7 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-The Quest estimates hand orientation and finger joints. The browser renders the virtual hand, detects index-fingertip contact, and calculates a vibration cue. A laptop relay receives that cue. The NodeMCU can remain connected to the laptop by USB while the Quest connects wirelessly.
+The Quest estimates hand orientation and finger joints. The browser renders both hands, detects contact for all five fingertips of the selected feedback hand, and calculates vibration cues. A laptop relay receives those cues. The NodeMCU can remain connected to the laptop by USB while the Quest connects wirelessly.
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.
 
@@ -18,7 +18,7 @@ Later verified output path:
 
 | Part | Status |
 |---|---|
-| WebXR scene | Three contact surfaces; joint rig, index curl and wrist orientation; headset testing required |
+| WebXR scene | Both hands, 25 joints per hand, five independent finger curls/contact cues and wrist orientation; full-hand headset trial required |
 | Desktop preview | Synthetic hand to check the scene; transmits zero output |
 | Feedback monitor | Calculated cue, HTTP acceptance, matching bridge echo and board telemetry shown separately |
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |

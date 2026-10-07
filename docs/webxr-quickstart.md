@@ -47,7 +47,9 @@ Copy the printed `https://…trycloudflare.com` address exactly, **without a tra
 
 Only one process may own COM7. Stop an old bridge or Serial Monitor before opening a new one. This companion echoes monitor cues back to the relay; it never forwards those cues to USB. Keep the motor disconnected and do not arm the board.
 
-Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
+Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both hands render; select **Feedback hand** before entering VR to choose which hand's five channels appear in the monitor. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
+
+After updating from the index-only starter, **exit VR, reload the page, check for FULL HAND v2, then Enter VR again**. The page reports right/left joint counts and separate thumb, index, middle, ring and little finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
 
 Plain `http://<laptop-IP>:8890/` is insufficient for WebXR. HTTPS is required for this wireless route; HTTP localhost is a special development exception. [MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)
 
@@ -58,8 +60,8 @@ For terminals you started, press **Ctrl+C** in each terminal when finished. This
 ## Check tracking before changing the glove
 
 1. With bare hands, first open the [hand sample linked by Meta](https://immersive-web.github.io/webxr-samples/immersive-hands.html). Confirm both hands appear.
-2. Open this prototype in Quest Browser. Watch the index curl, wrist orientation, and joints while opening and closing one hand.
-3. Touch one block at a time with the index finger. Expected software presets are Smooth **100/255**, Rough **150/255**, and Soft **80/255**. Move away and verify zero. These are chosen vibration cues, not measured force.
+2. Open this prototype in Quest Browser. Move both wrists and bend each of the five fingers individually. Watch the right/left joint counts, wrist orientation and each finger's curl value. Clear tracking should provide up to 25 joints per visible hand.
+3. Touch one block at a time with each fingertip of the selected feedback hand. Expected presets per finger are Smooth **100/255**, Rough **150/255**, and Soft **80/255**. Move away and verify zero. The five-channel order is thumb, index, middle, ring, little. These are chosen vibration cues, not measured force.
 4. Hide the hand, interrupt tracking, and leave VR. Verify cues clear to zero on pose/session loss and old receipts become stale. A missing echo must never be presented as a fresh receipt.
 5. Repeat with the actual glove, straps, motors, and cables attached. Keep the flex-sensor backup until this visibility test works reliably. Meta documents reduced accuracy from occlusion and coverings; compatibility with this custom glove is still unverified. [Meta tracking limitations](https://developers.meta.com/vr/design/hands-limitations-mitigations/)
 
@@ -72,7 +74,7 @@ Compare three separate results: **HTTP accepted** means the relay accepted a req
 | Person | Deliverable |
 |---|---|
 | 1: Headset | Establish the wireless HTTPS route, then demonstrate the bare-hand sample and prototype on Quest. |
-| 2: Scene | Verify index curl, wrist orientation, joint rendering, all three contact cues, and zero on tracking/session loss. |
+| 2: Scene | Verify both hands, all five independent curls/contact cues, wrist movement and zero on tracking/session loss. |
 | 3: Laptop/board | Verify the monitor echo separately from HTTP acceptance; record board telemetry with only one COM7 owner. |
 | 4: Glove | Compare bare-hand and fitted-glove tracking; check cable/strap occlusion and retain the flex backup until results pass. |
 

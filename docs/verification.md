@@ -2,6 +2,8 @@
 
 ## Selected WebXR revision
 
+- Full-hand v2: five JavaScript tests passed, including independent cues for all five fingertips, per-finger loss, both 25-joint XR input sets, wrist translation, and preview suppression. The browser preview demonstrated five Smooth cues simultaneously, middle-finger-only contact and the left feedback hand. Both meshes and all five controls render. The team's live Quest session worked for the index starter; full-hand v2 still needs its headset reload/check. [Desktop proof](images/webxr-full-hand.jpg)
+
 - Three.js r180 is vendored with its MIT license. The desktop browser preview produced Smooth 100/pattern 1, Rough 150/pattern 2 and Soft 80/pattern 3 contact cues; preview sends only zero monitor output. Returning to open clears contact.
 - Three JavaScript tests passed for angle-based curl, fingertip contact/tracking loss, and synthetic-output suppression.
 - Seventeen relay tests passed except one skipped Windows symlink test: sixteen passed. Checks include exact submitted-packet echo matching, bounded receipt history, expiry, malformed requests/frames, static-file confinement and exact external HTTPS origin validation. Existing Python checks also passed.

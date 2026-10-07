@@ -1,5 +1,6 @@
 // Fixed channel order shared with the AHAM board protocol.
 export const FINGERS = ['thumb', 'index', 'middle', 'ring', 'pinky'];
+export const FINGER_LABELS = ['Thumb', 'Index', 'Middle', 'Ring', 'Little'];
 export const CHAINS = [
   ['wrist', 'thumb-metacarpal', 'thumb-phalanx-proximal', 'thumb-phalanx-distal', 'thumb-tip'],
   ['wrist', 'index-finger-metacarpal', 'index-finger-phalanx-proximal', 'index-finger-phalanx-intermediate', 'index-finger-phalanx-distal', 'index-finger-tip'],
@@ -43,16 +44,21 @@ export function sphereTouchesBox(point, radius, box) {
   return distance2 <= radius*radius;
 }
 
-export function indexCue(poses, targets, trackingValid) {
+export function fingerStates(poses) {
+  const valid=CHAINS.map(chain => chain.every(name => finitePoint(poses?.get(name))));
+  return {valid, curls:CHAINS.map((chain,i) => valid[i] ? curl(chain.slice(1).map(name=>poses.get(name))) : null)};
+}
+
+export function handCue(poses, targets, fingerValid) {
   const duties = [0,0,0,0,0], patterns = [0,0,0,0,0];
-  const tip = poses?.get('index-finger-tip');
-  if (!trackingValid || !tip) return {duties, patterns, contact: null};
-  const contact = targets.find(target => sphereTouchesBox(tip, tip.radius ?? 0.008, target.box));
-  if (contact) {
-    duties[1] = contact.duty;
-    patterns[1] = contact.pattern;
-  }
-  return {duties, patterns, contact: contact?.name ?? null};
+  const contacts = [null,null,null,null,null];
+  CHAINS.forEach((chain,i) => {
+    const tip=poses?.get(chain.at(-1));
+    if(!fingerValid?.[i] || !tip) return;
+    const contact=targets.find(target=>sphereTouchesBox(tip,tip.radius ?? 0.008,target.box));
+    if(contact) {duties[i]=contact.duty;patterns[i]=contact.pattern;contacts[i]=contact.name;}
+  });
+  return {duties, patterns, contacts};
 }
 
 export function cueRequest(cue, source, hand, trackingValid) {
