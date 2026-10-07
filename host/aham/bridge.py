@@ -61,7 +61,9 @@ def main():
                             for i in range(5) if latest_values["sensor_mask"] & (1 << i)
                         )
                         print(f"RAW 1s | {ranges} | samples={sample_count} | state={latest_values['state']} "
-                              f"fault={latest_values['fault']} | masks={latest_values['sensor_mask']}/{latest_values['motor_mask']}", flush=True)
+                              f"fault={latest_values['fault']} | masks={latest_values['sensor_mask']}/{latest_values['motor_mask']} "
+                              f"| index_bend={latest_values['curls'][1] / 10:.1f}% "
+                              f"calibrated={bool(latest_values['flags'] & 1)}", flush=True)
                     else:
                         print("RAW 1s | No valid telemetry received; check USB link and uploaded firmware.", flush=True)
                     window_start = time.monotonic()
