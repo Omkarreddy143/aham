@@ -1,5 +1,11 @@
 # AHAM — technical architecture and 40-hour build plan
 
+## Selected WebXR revision — 7 October 2026
+
+The team has selected **a wireless WebXR browser app on Meta Quest 3, without Unity**. Quest hand joints replace flex sensors and MPU6050 as primary tracking. Retain vibration/servo hardware for output. Follow the [current architecture and remaining-time checkpoints](docs/webxr-architecture.md) and [WebXR quickstart](docs/webxr-quickstart.md); these supersede the sensing and Unity choices below. The forty-hour event clock continues. Current browser/relay software is monitor only; physical vibration and servo resistance are unverified.
+
+The earlier plan below records the sensor-based fallback and received kit.
+
 AHAM is a bidirectional interface between a physical hand and a virtual hand. Finger movements animate the virtual hand; virtual contact produces physical feedback on the glove. The Makeathon demonstration explores whether synchronized movement and contact cues influence the participant's reported sense of ownership of the virtual hand.
 
 This plan is based on the referenced conversation, **Suggest Project Theme**. The revision below uses the team's actual received inventory and supersedes the original ESP32/power/sensor availability assumptions in the target architecture that follows.

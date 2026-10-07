@@ -1,5 +1,17 @@
 # Starter verification — 7 October 2026
 
+## Selected WebXR revision
+
+- Three.js r180 is vendored with its MIT license. The desktop browser preview produced Smooth 100/pattern 1, Rough 150/pattern 2 and Soft 80/pattern 3 contact cues; preview sends only zero monitor output. Returning to open clears contact.
+- Three JavaScript tests passed for angle-based curl, fingertip contact/tracking loss, and synthetic-output suppression.
+- Seventeen relay tests passed except one skipped Windows symlink test: sixteen passed. Checks include exact submitted-packet echo matching, bounded receipt history, expiry, malformed requests/frames, static-file confinement and exact external HTTPS origin validation. Existing Python checks also passed.
+- Tracking loss queues a zero cue after an in-flight request; client receipts expire by age, and ending VR restores the desktop camera. These paths received code review; actual headset session transitions remain to be exercised.
+- The approved temporary Cloudflare tunnel connected using HTTP2/IPv4. The headset must still demonstrate real hand poses, in-world panel visibility, contact placement, fitted-glove tracking and delay.
+- The public HTTPS page loaded in the laptop browser and its API accepted requests with the configured external origin. A matching preview-zero monitor echo and real board telemetry appeared on the page. The board reported disarmed state, motor mask 0 and zero vibration. CLI DNS lookup of the temporary URL timed out, while browser access worked. [Browser proof](images/webxr-preview.jpg)
+- No new firmware was flashed or actuator output enabled. Current sensor-calibration firmware requires a new actuator-only mode before external tracking can drive hardware. Servo control remains unimplemented.
+
+The earlier Unity and hardware checks below remain a record of the fallback path.
+
 ## Passed locally
 
 - Refined hand/scene: Unity batch compilation and rendering passed. Physics overlap checks verified the actual index-tip collider reaches each of the three selected target colliders at half curl; the open index overlaps none. Rendered open, bent, tilted and contact poses were inspected. Runtime GUI and trigger-event interaction still require the team's Play-mode check.

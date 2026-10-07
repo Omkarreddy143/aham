@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102125">
+  <title>AHAM · Hand to world</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">AHAM<span>HAND TO WORLD</span></a>
+    <span class="mode"><i></i>Feedback monitor · no actuator commands</span>
+  </header>
+  <main>
+    <section class="stage">
+      <div class="intro"><p class="eyebrow">QUEST 3 / WEBXR</p><h1>A hand in your world.</h1><p>Touch a surface. Watch its contact cue return.</p></div>
+      <canvas id="scene" aria-label="3D hand and three contact surfaces"></canvas>
+      <div class="stage-footer"><span>01 Smooth</span><span>02 Rough</span><span>03 Soft</span></div>
+    </section>
+    <aside>
+      <div class="section-top"><p class="eyebrow">THE CONNECTION</p><span id="source-badge">DESKTOP PREVIEW</span></div>
+      <h2>Follow your hand.</h2>
+      <p class="description">In Quest Browser, enter VR and use your index finger. Here on the laptop, try the preview controls.</p>
+      <button id="enter-vr" class="primary" disabled>Checking VR support…</button>
+      <p id="xr-status" class="hint" role="status">Starting the scene…</p>
+      <label class="select-label" for="hand">Tracked hand<select id="hand"><option value="right">Right hand</option><option value="left">Left hand</option></select></label>
+      <div class="readouts">
+        <div><span>Hand pose</span><strong id="pose-value">Preview</strong></div>
+        <div><span>Index curl</span><strong id="curl-value">0%</strong></div>
+        <div><span>Wrist orientation</span><strong id="wrist-value">Preview</strong></div>
+        <div><span>Surface contact</span><strong id="contact-value">None</strong></div>
+      </div>
+      <div class="signal"><span>Calculated index cue</span><strong><b id="cue-value">0</b><small> / 255</small></strong><div class="meter"><div id="cue-bar"></div></div><p id="pattern-value">No contact</p></div>
+      <div class="receipt"><div><span>Relay accepted</span><strong id="accepted-value">Waiting</strong></div><div><span>Bridge received</span><strong id="received-value">Not connected</strong></div><div><span>Board reports</span><strong id="applied-value">Not connected</strong></div></div>
+      <p class="hint">Acceptance, bridge receipt and board output are separate checks. This demo sends cues to the monitor only. Servo control is pending.</p>
+      <div id="preview-controls">
+        <p class="eyebrow">TRY THE SCENE / SIMULATED HAND</p>
+        <label for="preview-curl">Index bend <output id="preview-value">0%</output></label>
+        <input id="preview-curl" type="range" min="0" max="100" value="0">
+        <div class="surface-buttons"><button data-target="0">Smooth</button><button data-target="1">Rough</button><button data-target="2">Soft</button></div>
+        <p class="hint">Preview values are synthetic. The relay receives zero output from preview.</p>
+      </div>
+    </aside>
+  </main>
+  <footer><span>Optical tracking → virtual contact → feedback cue</span><a href="https://immersive-web.github.io/webxr-samples/immersive-hands.html" target="_blank" rel="noopener">Check Quest hand tracking ↗</a></footer>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

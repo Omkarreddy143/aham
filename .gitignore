@@ -39,6 +39,7 @@ artifacts/*
 !artifacts/AHAM-Starter.zip
 !artifacts/AHAM-Unity-Starter.zip
 !artifacts/AHAM-Index-Arduino.zip
+!artifacts/AHAM-WebXR-Starter.zip
 __pycache__/
 *.pyc
 .venv/
