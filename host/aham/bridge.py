@@ -2,7 +2,7 @@
 import argparse
 import socket
 import time
-from .protocol import StreamDecoder, TELEMETRY, CONTROL, HAPTIC, control, decode, telemetry
+from .protocol import StreamDecoder, TELEMETRY, IMU_TELEMETRY, CONTROL, HAPTIC, control, decode, telemetry, imu_telemetry
 
 
 def main():
@@ -44,6 +44,12 @@ def main():
                                 for i, raw in enumerate(values["raw"]):
                                     raw_min[i] = min(raw_min[i], raw)
                                     raw_max[i] = max(raw_max[i], raw)
+                        except ValueError:
+                            pass
+                    elif packet.kind == IMU_TELEMETRY:
+                        try:
+                            imu_telemetry(packet)
+                            outbound.sendto(packet.encode(), ("127.0.0.1", args.telemetry_port))
                         except ValueError:
                             pass
                 if latest:

@@ -27,6 +27,7 @@ constexpr uint8_t sdaPin = 21, sclPin = 22;
 constexpr bool motorDriverVerified = false;
 constexpr uint8_t motorMask = motorDriverVerified ? sensorMask : 0;
 constexpr bool fsrEnabled = false;
+constexpr bool imuEnabled = true; // Auto-detect MPU6050; absence reports invalid IMU status.
 constexpr uint16_t capabilities = (motorMask ? 1 : 0) | (sensorMask << 2) | (motorMask << 7);
 constexpr uint32_t baud = 230400;
 constexpr uint32_t samplePeriodMs = 10;

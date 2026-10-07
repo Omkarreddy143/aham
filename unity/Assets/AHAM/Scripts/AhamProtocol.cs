@@ -23,9 +23,23 @@ namespace Aham
         public uint TimeMs;
     }
 
+    public sealed class ImuTelemetry
+    {
+        public bool Valid;
+        public short[] Accel = new short[3], Gyro = new short[3];
+    }
+
     public static class AhamProtocol
     {
-        public const byte Version = 1, Telemetry = 1, Haptic = 2, Control = 3;
+        public const byte Version = 1, Telemetry = 1, Haptic = 2, Control = 3, Imu = 4;
+        public static bool TryImu(WirePacket p, out ImuTelemetry data)
+        {
+            data = null;
+            if (p == null || p.Type != Imu || p.Payload.Length != 13 || (p.Payload[0] & ~1) != 0) return false;
+            ImuTelemetry result = new ImuTelemetry { Valid = (p.Payload[0] & 1) != 0 };
+            for (int i = 0; i < 3; i++) { result.Accel[i] = unchecked((short)Read16(p.Payload, 1 + i * 2)); result.Gyro[i] = unchecked((short)Read16(p.Payload, 7 + i * 2)); }
+            data = result; return true;
+        }
         public static ushort Read16(byte[] p, int offset) { return (ushort)(p[offset] | p[offset + 1] << 8); }
         public static uint Read32(byte[] p, int offset) { return (uint)(Read16(p, offset) | (uint)Read16(p, offset + 2) << 16); }
         public static void Put16(byte[] p, int offset, ushort value) { p[offset] = (byte)value; p[offset + 1] = (byte)(value >> 8); }

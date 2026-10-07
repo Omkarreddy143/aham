@@ -118,7 +118,7 @@ Keep the bridge terminal running. It should print **DISARMED; calibrate and arm 
 
 1. In Unity Hub, **Add project from disk**, and select **C:\Users\komka\OneDrive\Desktop\Makethon\unity**. Select the unity folder, not Assets or the whole repository. Open with the installed Unity 6000.6.4f1.
 2. Open **Assets -> AHAM -> Scenes -> AhamStarter** and press **Play**.
-3. The status should say **USB glove via local bridge**. Raw flex should look like `0, changing number, 0, 0, 0`.
+3. Turn **Software preview** off. The status should say **USB glove via local bridge**. Raw flex should look like `0, changing number, 0, 0, 0`.
 4. Tick **Enable outgoing commands after checking the connection**. This allows the calibration buttons to send commands.
 5. Hold your index finger comfortably straight and click **Capture open**.
 6. Bend it comfortably and click **Capture closed**. **Calibrated: True** should appear. If False, check repeatable sensor movement/range; the minimum span is about 30 original ADC counts, or 120 scaled protocol counts.

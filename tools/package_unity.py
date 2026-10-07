@@ -26,6 +26,8 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(asset.rglob('*')):
         if path.is_file():
             archive.write(path, path.relative_to(root / 'unity' / 'Assets').as_posix())
+    archive.write(root / 'docs' / 'before-resistors.md', 'AHAM/before-resistors.md')
+    archive.write(root / 'docs' / 'images' / 'index-preview.png', 'AHAM/images/index-preview.png')
     archive.write(root / 'docs' / 'quickstart.md', 'AHAM/QUICKSTART.md')
     archive.write(root / 'docs' / 'hardware-bringup.md', 'AHAM/hardware-bringup.md')
     archive.write(root / 'docs' / 'index-finger-mvp.md', 'AHAM/index-finger-mvp.md')

@@ -1,5 +1,8 @@
 # AHAM
 
+**Start now:** open the `unity` project and press Play. The new default software preview animates the index finger and wrist without hardware. [Before-resistors guide: preview, optional MPU6050 and four-person tasks](docs/before-resistors.md).
+
+
 **A bidirectional haptic interface for a virtual hand.**
 
 AHAM maps physical finger movement to a Unity virtual hand and returns synchronized contact cues through fingertip actuators. The project also explores participants' reported ownership of the virtual hand.
@@ -21,7 +24,7 @@ The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU605
 | NodeMCU probe | Separate text diagnostic for USB, I2C ACKs and MPU identity; commands no servo motion |
 | ESP32 alternative | Retained five-channel build for a classic ESP32 replacement; motor outputs default disabled |
 | Shared binary protocol | Python/C++/C# interoperability checked with common fixtures |
-| Unity desktop project | Open `unity/` in Unity Hub; primitive hand, three contact surfaces and operator controls |
+| Unity desktop project | Open `unity/` in Unity Hub; automatic/manual index and wrist preview, optional MPU6050 slow tilt, contact surfaces and operator controls |
 | USB bridge | Implemented; requires a verified serial device and bench test |
 | VR root tracking | Meta Quest 3 adapter pending; desktop setup works without XR |
 | Pressure, tendon resistance, GSR and participant logger | Not implemented in this starter |
@@ -36,7 +39,7 @@ python host/run.py simulate
 
 Open **http://127.0.0.1:8870**. This is simulation only and cannot drive hardware. See the [quickstart and team assignments](docs/quickstart.md) to calibrate the simulator, import the Unity assets and connect the desktop loop.
 
-For the new desktop project, add the repository's **`unity` folder** to Unity Hub and open it. Run `python host/run.py simulate --controller unity` from the repository root, then choose **AHAM -> Create Desktop Starter Scene** and press Play. [Step-by-step Unity instructions](unity/README.md)
+For the new desktop project, add the repository's **`unity` folder** to Unity Hub and open it. Run `python host/run.py simulate --controller unity` from the repository root, then choose **AHAM -> Create Desktop Starter Scene** and press Play. Turn **Software preview** off to use the simulator or real USB input. [Step-by-step Unity instructions](unity/README.md)
 
 For a teammate's existing project, copy `unity/Assets/AHAM` and its `.meta` file into their Assets folder or extract the Unity import ZIP there.
 

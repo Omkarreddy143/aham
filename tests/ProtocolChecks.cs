@@ -31,5 +31,23 @@ public static class ProtocolChecks
             Check(AhamProtocol.TryTelemetry(packet, out t) && t.SensorMask == sensors[i] && t.MotorMask == motors[i], "active masks including legacy firmware");
         }
         Console.WriteLine("PASS: C# codec interoperability for " + count + " fixtures and corruption checks");
+        byte[] imuPayload = new byte[13]; imuPayload[0] = 1;
+        short[] axes = {-16384, 123, 16384, -32768, 32767, -131};
+        for (int i = 0; i < 6; ++i) AhamProtocol.Put16(imuPayload, 1 + i * 2, unchecked((ushort)axes[i]));
+        WirePacket imuWire; ImuTelemetry imu;
+        Check(AhamProtocol.TryDecode(AhamProtocol.Encode(new WirePacket {Type=4, Payload=imuPayload}), out imuWire) && AhamProtocol.TryImu(imuWire, out imu), "IMU decode");
+        AhamProtocol.TryImu(imuWire, out imu);
+        Check(imu.Accel[0] == -16384 && imu.Gyro[0] == -32768 && imu.Gyro[1] == 32767, "signed IMU axes");
+        float roll, pitch;
+        imu.Accel = new short[] {0,0,16384};
+        Check(ImuTilt.TryAngles(imu, out roll, out pitch) && Math.Abs(roll) < .01 && Math.Abs(pitch) < .01, "upright gravity tilt");
+        imu.Accel = new short[] {0,11585,11585};
+        Check(ImuTilt.TryAngles(imu, out roll, out pitch) && Math.Abs(roll-45) < .1, "roll tilt");
+        imu.Accel = new short[] {-11585,0,11585};
+        Check(ImuTilt.TryAngles(imu, out roll, out pitch) && Math.Abs(pitch-45) < .1, "pitch tilt");
+        imu.Accel = new short[] {0,0,0}; Check(!ImuTilt.TryAngles(imu, out roll, out pitch), "zero gravity rejected");
+        imu.Valid = false; Check(!ImuTilt.TryAngles(imu, out roll, out pitch), "invalid IMU rejected");
+        imuPayload[0] = 2; Check(!AhamProtocol.TryImu(new WirePacket {Type=4,Payload=imuPayload}, out imu), "unknown IMU flags rejected");
+        Console.WriteLine("PASS: signed IMU packet and gravity tilt checks");
     }
 }

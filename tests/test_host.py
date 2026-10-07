@@ -12,9 +12,17 @@ from urllib.error import HTTPError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "host"))
 from aham.protocol import Packet, crc16, cobs_encode, cobs_decode, decode, StreamDecoder, control, haptic, telemetry, TELEMETRY_PAYLOAD
 from aham.simulator import SimulatedGlove, create_server
+from aham.protocol import IMU_TELEMETRY, IMU_PAYLOAD, imu_telemetry
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_imu_packet_signed_axes_and_invalid_status(self):
+        payload = IMU_PAYLOAD.pack(1, -16384, 123, 16384, -32768, 32767, -131)
+        data = imu_telemetry(decode(Packet(IMU_TELEMETRY, 9, 10, payload).encode()))
+        self.assertEqual(data, dict(valid=True, accel=[-16384, 123, 16384], gyro=[-32768, 32767, -131]))
+        self.assertFalse(imu_telemetry(Packet(IMU_TELEMETRY, 0, 0, IMU_PAYLOAD.pack(0, *([0]*6))))['valid'])
+        for body in [payload[:-1], bytes([2]) + payload[1:]]:
+            with self.assertRaises(ValueError): imu_telemetry(Packet(IMU_TELEMETRY, 0, 0, body))
     def test_active_channel_masks_and_legacy(self):
         for capabilities, sensors, motors in [(1, 31, 31), (8, 2, 0), (265, 2, 2), (4093, 31, 31), (0, 0, 0)]:
             payload = TELEMETRY_PAYLOAD.pack(0, 0, 0, *([0] * 5), *([0] * 5), 0, *([0] * 5), capabilities)

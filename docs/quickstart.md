@@ -49,7 +49,7 @@ The standalone project is set to Unity 6000.6.4f1, verified for script compilati
    ```
 
 2. In Unity open **Assets -> AHAM -> Scenes -> AhamStarter**. If the scene is missing, choose **AHAM -> Create Desktop Starter Scene**.
-3. Press **Play**. A primitive hand and three colored contact blocks are constructed at runtime.
+3. Press **Play**. A primitive hand and three colored contact blocks are constructed at runtime. Software preview defaults on; turn it **off** for this simulator exercise. For immediate movement without a host, leave preview on and use the automatic animation or sliders. [Preview and optional MPU6050 steps](before-resistors.md).
 4. The status should identify **SIMULATED GLOVE**.
 5. Enable outgoing commands in Unity; this first sends disarm and establishes a command sequence.
 6. Use the browser simulator to open the hand; click **Capture open** in Unity. Close the simulated hand; click **Capture closed** in Unity.

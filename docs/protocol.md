@@ -9,7 +9,7 @@ Raw bytes are little-endian. COBS-encode the complete raw packet and append one 
 | Raw offset | Field | Size |
 |---|---|---|
 | 0 | Version, currently 1 | uint8 |
-| 1 | Type: telemetry 1, haptic 2, control 3 | uint8 |
+| 1 | Type: telemetry 1, haptic 2, control 3, raw IMU 4 | uint8 |
 | 2 | Sequence | uint16 |
 | 4 | Sender uptime/time counter in milliseconds | uint32 |
 | 8 | Type-specific payload | variable |
@@ -30,11 +30,23 @@ CRC parameters: polynomial `0x1021`, initial value `0xffff`, no reflection, no f
 | 26 | Five currently applied vibration PWM duties uint8 |
 | 31 | Capability bits uint16: bit 0 vibration; bit 1 pressure (unused); bits 2–6 flex mask; bits 7–11 motor mask |
 
-Flags: bit 0 valid calibration; bit 1 stop loop healthy; bit 2 flex readings off ADC rails; bit 3 command lease expired; bit 4 continuous-output limit reached; bit 5 simulated device. No IMU quaternion is included in v1: position/orientation are supplied separately by the VR tracker in a later integration.
+Flags: bit 0 valid calibration; bit 1 stop loop healthy; bit 2 flex readings off ADC rails; bit 3 command lease expired; bit 4 continuous-output limit reached; bit 5 simulated device. No IMU quaternion is included in this 33-byte packet. Optional raw IMU data use a separate type 4 packet. VR hand position remains a later tracker integration.
 
 The simulator's ADC readings and output duties are synthetic, not hardware measurements. The `simulated` bit allows Unity to identify that source. Simulator faults model behavior; actual embedded supervision is independently exercised by native tests.
 
 Channel masks use finger order thumb/index/middle/ring/little, with index = 2. NodeMCU defaults to capabilities 8 (index sensor, no motor); after driver verification it uses 265 (index sensor and motor). Five-channel simulator uses 4093. Inactive readings/curls/output duties are zero and cannot authorize output. For the original v1 fixture/firmware value 1 only, receivers preserve the legacy five-input/five-output interpretation. Other values use explicit masks; capabilities 0 means no channels. Mask additions do not change packet size or CRC framing.
+
+## Optional IMU telemetry: type 4, 13-byte payload
+
+| Payload offset | Field |
+|---|---|
+| 0 | Flags uint8: bit 0 valid sample; all other bits zero |
+| 1 | Acceleration X, Y, Z: three little-endian int16 |
+| 7 | Gyroscope X, Y, Z: three little-endian int16 |
+
+MPU6050 is configured for +/-2 g (16384 LSB/g), +/-250 degrees/s (131 LSB per degree/s), and filtered 100 Hz sensor sampling. Firmware sends this packet approximately every 20 ms with its own sequence counter. An absent sensor produces an invalid packet. The bridge validates and forwards it; Unity considers a valid packet stale after 200 ms. These packets do not authorize motor output or supply flex calibration. Older finger packet sizes remain unchanged.
+
+Unity optionally derives slow pitch/roll from the gravity vector, rejecting norms outside 0.75�1.25 g, then smooths and limits the relative display tilt to +/-60 degrees. This is a slow-motion proxy, not sensor fusion or reliable dynamic orientation; no yaw or XYZ position is calculated. Software preview uses generated pose and blocks motor commands.
 
 ## Haptic command: 15-byte payload
 

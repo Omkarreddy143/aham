@@ -6,7 +6,7 @@
 namespace aham {
 constexpr uint8_t Version = 1;
 constexpr size_t MaxRaw = 64, MaxEncoded = 66;
-enum Type : uint8_t { Telemetry = 1, Haptic = 2, Control = 3 };
+enum Type : uint8_t { Telemetry = 1, Haptic = 2, Control = 3, ImuTelemetry = 4 };
 enum Action : uint8_t { Disarm = 0, Arm = 1, CaptureOpen = 2, CaptureClosed = 3, ClearFault = 4 };
 enum State : uint8_t { Disarmed = 0, Calibrating = 1, Armed = 2, Fault = 3 };
 enum FaultCode : uint8_t { None = 0, Stop = 1, Timeout = 2, UnsupportedPressure = 3, Sensor = 4 };

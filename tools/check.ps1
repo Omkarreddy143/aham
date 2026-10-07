@@ -14,7 +14,7 @@ try {
     } else { Write-Warning 'C++ compiler unavailable; native checks not run.' }
     $csharpCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
     if (Test-Path -LiteralPath $csharpCompiler) {
-        & $csharpCompiler /nologo /out:.build\ProtocolChecks.exe (Join-Path $projectRoot 'unity\Assets\AHAM\Scripts\AhamProtocol.cs') (Join-Path $projectRoot 'tests\ProtocolChecks.cs')
+        & $csharpCompiler /nologo /out:.build\ProtocolChecks.exe (Join-Path $projectRoot 'unity\Assets\AHAM\Scripts\AhamProtocol.cs') (Join-Path $projectRoot 'unity\Assets\AHAM\Scripts\ImuTilt.cs') (Join-Path $projectRoot 'tests\ProtocolChecks.cs')
         if ($LASTEXITCODE -ne 0) { throw 'C# codec compilation failed.' }
         & '.\.build\ProtocolChecks.exe' tests/fixtures/wire.txt
         if ($LASTEXITCODE -ne 0) { throw 'C# codec checks failed.' }

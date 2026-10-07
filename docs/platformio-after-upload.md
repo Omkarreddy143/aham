@@ -56,7 +56,7 @@ Keep this terminal running. It should report **DISARMED; calibrate and arm expli
 ## 5. Open Unity and calibrate
 
 1. Open the repository's **unity** project and **Assets -> AHAM -> Scenes -> AhamStarter**.
-2. Press **Play**. Status must become **USB glove via local bridge**, rather than SIMULATED GLOVE or absent/stale.
+2. Press **Play** and turn **Software preview** off. Status must become **USB glove via local bridge**, rather than SIMULATED GLOVE or absent/stale.
 3. Bend the index sensor: **Raw flex** should show `0, changing value, 0, 0, 0`.
 4. Tick **Enable outgoing commands after checking the connection**.
 5. Hold the index finger comfortably straight -> **Capture open**.

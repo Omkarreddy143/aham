@@ -17,10 +17,14 @@ namespace Aham
         private volatile bool stopping;
         private readonly object gate = new object();
         private GloveTelemetry latest;
+        private ImuTelemetry latestImu;
+        private long imuReceivedAt;
         private long receivedAt;
         private ushort sequence;
         private bool previouslyFresh;
         public GloveTelemetry Latest { get { lock (gate) return latest; } }
+        public ImuTelemetry LatestImu { get { lock (gate) return latestImu; } }
+        public bool ImuFresh { get { lock (gate) return latestImu != null && latestImu.Valid && (Stopwatch.GetTimestamp() - imuReceivedAt) / (double)Stopwatch.Frequency < .2; } }
         public bool Fresh { get { lock (gate) return latest != null && (Stopwatch.GetTimestamp() - receivedAt) / (double)Stopwatch.Frequency < 0.15; } }
 
         private void OnEnable()
@@ -46,7 +50,10 @@ namespace Aham
                     IPEndPoint remote = new IPEndPoint(IPAddress.Any, 0);
                     byte[] frame = receiver.Receive(ref remote);
                     WirePacket packet; GloveTelemetry data;
-                    if (!IPAddress.IsLoopback(remote.Address) || !AhamProtocol.TryDecode(frame, out packet) || !AhamProtocol.TryTelemetry(packet, out data)) continue;
+                    if (!IPAddress.IsLoopback(remote.Address) || !AhamProtocol.TryDecode(frame, out packet)) continue;
+                    ImuTelemetry imu;
+                    if (AhamProtocol.TryImu(packet, out imu)) { lock (gate) { latestImu = imu; imuReceivedAt = Stopwatch.GetTimestamp(); } continue; }
+                    if (!AhamProtocol.TryTelemetry(packet, out data)) continue;
                     lock (gate) { latest = data; receivedAt = Stopwatch.GetTimestamp(); }
                 }
                 catch (SocketException) { if (stopping) return; }
@@ -84,7 +91,7 @@ namespace Aham
             catch (ObjectDisposedException) { outgoingEnabled = false; }
         }
         private void OnApplicationPause(bool paused) { if (paused) SendControl(0); }
-        private void OnDisable() { SendControl(0); stopping = true; CloseSockets(); if (worker != null) worker.Join(300); lock (gate) latest = null; }
+        private void OnDisable() { SendControl(0); stopping = true; CloseSockets(); if (worker != null) worker.Join(300); lock (gate) { latest = null; latestImu = null; } }
         private void CloseSockets() { if (receiver != null) receiver.Close(); if (sender != null) sender.Close(); receiver = sender = null; }
     }
 }

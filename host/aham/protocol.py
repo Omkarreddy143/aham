@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import struct
 
 VERSION, TELEMETRY, HAPTIC, CONTROL = 1, 1, 2, 3
+IMU_TELEMETRY = 4
+IMU_PAYLOAD = struct.Struct("<B6h")
 DISARM, ARM, CAPTURE_OPEN, CAPTURE_CLOSED, CLEAR_FAULT = range(5)
 HEADER = struct.Struct("<BBHI")
 TELEMETRY_PAYLOAD = struct.Struct("<BHB5H5HH5BH")
@@ -137,3 +139,12 @@ def telemetry(packet: Packet) -> dict:
                 fault=values[2], curls=list(values[3:8]), raw=list(values[8:13]), fsr=values[13],
                 vibration=list(values[14:19]), capabilities=capabilities,
                 sensor_mask=sensor_mask, motor_mask=motor_mask)
+
+
+def imu_telemetry(packet: Packet) -> dict:
+    if packet.kind != IMU_TELEMETRY or len(packet.payload) != IMU_PAYLOAD.size:
+        raise ValueError("Not IMU telemetry")
+    values = IMU_PAYLOAD.unpack(packet.payload)
+    if values[0] & ~1:
+        raise ValueError("Unknown IMU flags")
+    return dict(valid=bool(values[0] & 1), accel=list(values[1:4]), gyro=list(values[4:7]))

@@ -4,7 +4,7 @@
 
 **Latest status:** the team reports uploading the full Unity-compatible sketch using PlatformIO. Use [the post-upload steps](platformio-after-upload.md). The previously reported 3 V motor rating is now questioned as possibly 5 V; verify the supplier rating before any motor-power test. Neither USB input voltage nor the linked tutorial establishes the received motor's rating.
 
-Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor reported as **10 mm / 3 V**, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. A **2N2222A** has been identified and resistors are visible in the supplied photos; transistor pinout and resistor values are unverified. A flyback diode, regulated 3 V motor supply and extra ADC/multiplexer have not been confirmed available. Meta Quest 3 arrives later; use the Unity desktop path now.
+Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor reported as **10 mm / 3 V**, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. A **2N2222A** has been identified; the team says usable divider resistors arrive after 6 PM. Transistor pinout and resistor values are unverified. A flyback diode, regulated 3 V motor supply and extra ADC/multiplexer have not been confirmed available. Meta Quest 3 arrives later; use the Unity desktop path now.
 
 **Default firmware: NodeMCU, one index-finger ADC channel, zero enabled motor outputs.** No hardware has been flashed or physically verified by this repository.
 
@@ -14,7 +14,7 @@ Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685
 |---|---|
 | NodeMCU V3 | USB telemetry/control; only one A0 input |
 | Five flex sensors | Each needs a fixed-resistor divider; start with index after obtaining resistors |
-| MPU6050 | I2C identification now; orientation fusion later. Cannot supply reliable hand XYZ position or absolute yaw |
+| MPU6050 | Optional raw acquisition and slow gravity-based wrist tilt now; physical test pending. Fusion later. Cannot supply reliable hand XYZ position or absolute yaw |
 | PCA9685 | I2C identification now; servo signal generator, not a power supply |
 | MG90S x4 / SG90 x1 | Reserve for off-hand mechanism experiments; no servo motion is implemented |
 | One coin motor, reported 10 mm / 3 V | Index cue after type/current, regulated 3 V supply and driver are verified |
@@ -67,7 +67,7 @@ Avoid D3/D4/D8 for this starter because of boot strapping. Constants are in `fir
 4. Check the breakout voltage labels/schematic; use confirmed 3.3 V-compatible supplies and pull-ups. Connect GND to GND, D2 to SDA, D1 to SCL. Test MPU6050 alone first; then add PCA9685 logic **VCC** at 3.3 V. Leave servo **V+** unpowered and every servo unplugged. Never let SDA/SCL pull-ups rise to 5 V.
 5. Reconnect/reset. MPU should acknowledge at 0x68/0x69 with WHO_AM_I = 0x68. PCA9685 normally acknowledges at 0x40 with unchanged address jumpers; additional addresses may appear. ACK is identification, not full functional validation. [MPU register map](https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map.pdf)
 
-The probe commands no servo PWM. Neither firmware currently transmits IMU orientation or GSR readings.
+The probe commands no servo PWM. The full firmware now transmits separate raw MPU6050 packets for optional slow wrist tilt; the text probe is still identification only. GSR acquisition remains unimplemented. [MPU wiring and desktop tilt steps](before-resistors.md).
 
 ## One flex sensor after resistors arrive
 

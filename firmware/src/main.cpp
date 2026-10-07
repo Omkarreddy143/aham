@@ -7,6 +7,7 @@
 #endif
 #include "BoardConfig.h"
 #include "ActuatorSupervisor.h"
+#include "Mpu6050.h"
 
 aham::Supervisor supervisor(board::sensorMask, board::motorMask);
 aham::StreamDecoder decoder;
@@ -15,6 +16,16 @@ Preferences settings;
 #endif
 uint16_t rawFlex[5] = {}, txSeq = 0;
 uint32_t lastSample = 0;
+Mpu6050 imu;
+uint16_t imuSeq = 0;
+
+void sendImu(uint32_t now) {
+    aham::Packet p; p.type = aham::ImuTelemetry; p.seq = imuSeq++; p.timeMs = now; p.length = 13;
+    p.payload[0] = imu.valid ? 1 : 0;
+    for (int i = 0; i < 6; ++i) aham::put16(p.payload + 1 + i * 2, uint16_t(imu.raw[i]));
+    uint8_t bytes[aham::MaxEncoded]; size_t length = aham::encode(p, bytes);
+    if (Serial.availableForWrite() >= int(length)) Serial.write(bytes, length);
+}
 
 void readSensors() {
     for (int i = 0; i < 5; ++i) {
@@ -88,6 +99,7 @@ void setup() {
     }
 #endif
     readSensors();
+    if (board::imuEnabled) imu.begin(board::sdaPin, board::sclPin);
 }
 void loop() {
     uint32_t now = millis();
@@ -113,6 +125,8 @@ void loop() {
     }
     static uint32_t lastTx = 0;
     if (uint32_t(now - lastTx) >= 10) { lastTx = now; sendTelemetry(now); }
+    static uint32_t lastImu = 0;
+    if (board::imuEnabled && uint32_t(now - lastImu) >= 20) { lastImu = now; imu.update(now); sendImu(millis()); }
 #if defined(ESP8266)
     yield();
 #endif
