@@ -30,7 +30,7 @@ This is already implemented in `BoardConfig.h`, the supervisor and Unity's chann
 
 ## Driver and missing parts
 
-**MOSFETs are unavailable; NPN/PNP transistors are available but their markings and the motor rating are unknown.** An identified NPN transistor can replace the MOSFET for a small DC motor if its current/thermal ratings and available base drive are adequate. Follow the NPN alternative below. Keep motor output disabled until the parts are identified and the circuit is verified.
+**MOSFETs are unavailable; the team has identified an NPN marked 2N2222A.** Its manufacturer/package and the motor voltage/startup current are still unconfirmed. It can replace the MOSFET for a small DC motor if its current/thermal ratings and available base drive are adequate. Follow the NPN alternative below; keep motor output disabled until the remaining parts and circuit are verified.
 
 For a standard brushed **DC/ERM coin motor**, request **one AO3400A N-channel MOSFET on a breadboard-compatible breakout**, or an equivalent single-channel switching board explicitly compatible with a 3.3 V control input and the motor's rated supply/current. AO3400A has specified on-resistance at a 2.5 V gate drive, supporting this choice for NodeMCU control. It is a small SOT-23 part, so request a breakout with headers rather than the bare chip. [Manufacturer datasheet](https://www.aosmd.com/res/data_sheets/AO3400A.pdf)
 
@@ -43,6 +43,10 @@ Follow the [hardware guide](hardware-bringup.md) for the divider and MOSFET circ
 ### NPN alternative with the available parts
 
 Use an NPN as a low-side switch. A P2N2222A-family part is one candidate, subject to the actual manufacturer/package and motor startup current; do not assume every unidentified NPN is equivalent. [Example transistor datasheet](https://www.onsemi.com/download/data-sheet/pdf/p2n2222a-d.pdf)
+
+The reported part is **2N2222A**, an NPN switching transistor. The ST 2N2222A reference uses a TO-18 metal package, whereas the onsemi P2N2222A reference above uses TO-92 plastic. The reported marking alone is insufficient to apply either reference's physical lead order to the received device. Confirm its manufacturer/package using a clear photo or supplier datasheet. [ST 2N2222A datasheet](https://www.st.com/resource/en/datasheet/2n2222a.pdf)
+
+Obtain one 1N5819 flyback diode, a 10 kOhm base-to-emitter pulldown and a selection of series-base resistors, such as 330 Ohm, 470 Ohm and 1 kOhm. The final base-resistor choice remains dependent on motor startup current and adequate transistor switching; it is not selected yet. For illustration only, 470 Ohm gives about 5.5 mA at a 3.3 V output and 0.7 V base-emitter drop, but that does not prove the motor can be fully switched. Never choose a lower resistor merely to force motor startup. Confirm rated motor voltage before any powered test.
 
 | Connection | Destination |
 |---|---|

@@ -79,7 +79,7 @@ D6 connects through a normally closed stop switch to GND. An open/broken loop bl
 
 ## One coin motor after driver parts arrive
 
-If MOSFETs are unavailable, use the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts) after identifying the transistor and motor ratings. The pin connections and resistor sizing differ from the MOSFET circuit below. The latest available NPN/PNP parts are unidentified; keep the motor output disabled until a suitable circuit is verified.
+If MOSFETs are unavailable, use the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts). The reported NPN is **2N2222A**; manufacturer/package, physical lead order and motor ratings still need confirmation. The pin connections and resistor sizing differ from the MOSFET circuit below. Keep motor output disabled until a suitable circuit is verified.
 
 - Motor positive -> supply matching its rating.
 - Motor negative -> MOSFET drain; source -> actuator ground.
