@@ -79,6 +79,8 @@ D6 connects through a normally closed stop switch to GND. An open/broken loop bl
 
 ## One coin motor after driver parts arrive
 
+If MOSFETs are unavailable, use the [NPN alternative](index-finger-mvp.md#npn-alternative-with-the-available-parts) after identifying the transistor and motor ratings. The pin connections and resistor sizing differ from the MOSFET circuit below. The latest available NPN/PNP parts are unidentified; keep the motor output disabled until a suitable circuit is verified.
+
 - Motor positive -> supply matching its rating.
 - Motor negative -> MOSFET drain; source -> actuator ground.
 - D5 -> approximately 100 Ohm -> gate; gate -> approximately 100 kOhm -> GND.

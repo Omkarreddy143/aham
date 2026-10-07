@@ -30,6 +30,8 @@ This is already implemented in `BoardConfig.h`, the supervisor and Unity's chann
 
 ## Driver and missing parts
 
+**MOSFETs are unavailable; NPN/PNP transistors are available but their markings and the motor rating are unknown.** An identified NPN transistor can replace the MOSFET for a small DC motor if its current/thermal ratings and available base drive are adequate. Follow the NPN alternative below. Keep motor output disabled until the parts are identified and the circuit is verified.
+
 For a standard brushed **DC/ERM coin motor**, request **one AO3400A N-channel MOSFET on a breadboard-compatible breakout**, or an equivalent single-channel switching board explicitly compatible with a 3.3 V control input and the motor's rated supply/current. AO3400A has specified on-resistance at a 2.5 V gate drive, supporting this choice for NodeMCU control. It is a small SOT-23 part, so request a breakout with headers rather than the bare chip. [Manufacturer datasheet](https://www.aosmd.com/res/data_sheets/AO3400A.pdf)
 
 For the bare MOSFET breakout circuit, also obtain **one 1N5819 flyback diode, one approximately 100 Ohm gate resistor, and one approximately 100 kOhm gate pulldown**. Confirm actual motor current against driver/diode ratings. A driver board may already include those components; inspect its circuit. [Diode datasheet](https://www.onsemi.com/download/data-sheet/pdf/1n5817-d.pdf)
@@ -37,6 +39,25 @@ For the bare MOSFET breakout circuit, also obtain **one 1N5819 flyback diode, on
 Also obtain flex-divider resistors (approximately 22 kOhm, plus 27 kOhm/10 kOhm for the conservative A0 attenuation described in the hardware guide), a normally closed stop switch, wires and a meter. Confirm motor type, rated voltage/current and the board's A0 voltage range. A 5 V adapter is not automatically suitable for the coin motor. Do not power it directly from a GPIO or the NodeMCU regulator; use a rated actuator supply. PAM8403 is an audio amplifier and is not the chosen driver.
 
 Follow the [hardware guide](hardware-bringup.md) for the divider and MOSFET circuit. Keep actuator supplies disconnected during upload/sensor bring-up.
+
+### NPN alternative with the available parts
+
+Use an NPN as a low-side switch. A P2N2222A-family part is one candidate, subject to the actual manufacturer/package and motor startup current; do not assume every unidentified NPN is equivalent. [Example transistor datasheet](https://www.onsemi.com/download/data-sheet/pdf/p2n2222a-d.pdf)
+
+| Connection | Destination |
+|---|---|
+| NodeMCU D5 | Correctly sized series base resistor, then NPN base B |
+| NPN emitter E | Common supply/NodeMCU ground |
+| NPN collector C | Motor negative |
+| Motor positive | Supply matching the motor's rated voltage |
+| Flyback diode cathode / anode | Motor positive / NPN collector |
+| Base pulldown resistor | Base to emitter/ground |
+
+These are terminal names, **not a physical pin order**. Identify B/C/E from the exact part's datasheet before wiring. Identify the motor type and rated voltage/current too. A clear photo of transistor markings and motor packaging can help; an unmarked motor may need its supplier specification or a controlled measurement.
+
+The base resistor is different from the MOSFET gate resistor. Do not reuse the earlier 100 Ohm gate resistor: at 3.3 V it can demand excessive GPIO current. Size base drive using the actual transistor's saturation data and the motor's startup/load current, keeping GPIO current below the ESP8266's documented 12 mA maximum with margin. If adequate base drive cannot be supplied, use a suitable additional driver stage rather than reducing the resistor blindly. [ESP8266 electrical characteristics](https://documentation.espressif.com/0a-esp8266ex_datasheet_en.html)
+
+PNP requires a different high-side circuit and possibly level shifting; it is not interchangeable with the NPN in this table. A base resistor and flyback diode are still required even though no MOSFET is used. Do not connect an unknown transistor circuit to the glove until its parts and off-hand behavior are verified.
 
 ## Build sequence
 
