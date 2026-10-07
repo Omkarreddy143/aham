@@ -70,5 +70,20 @@ int main(int argc, char** argv) {
     Supervisor seq; uint16_t a[5] = {900,900,900,900,900}, b[5] = {2700,2700,2700,2700,2700};
     seq.sensors(a,true); seq.accept(ctrl(65534,Disarm),0); seq.accept(ctrl(65535,CaptureOpen),0);
     seq.sensors(b,true); seq.accept(ctrl(0,CaptureClosed),0); check(seq.accept(ctrl(1,Arm),0), "sequence wrap accepted");
+    Supervisor single(2, 2);
+    uint16_t singleOpen[5] = {0, 900, 0, 0, 0}, singleClosed[5] = {4095, 2700, 0, 0, 0};
+    single.sensors(singleOpen, true); single.accept(ctrl(0, CaptureOpen), 0);
+    single.sensors(singleClosed, true); single.accept(ctrl(1, CaptureClosed), 0);
+    check(single.calibrated() && single.curl(1) == 1000 && single.curl(0) == 0, "single sensor calibration ignores absent channels");
+    check(single.accept(ctrl(2, Arm), 0), "single sensor can arm");
+    Packet allMotors = vibration(3); memset(allMotors.payload + 2, 160, 5);
+    check(single.accept(allMotors, 1), "single channel accepts complete haptic packet");
+    check(single.duty(1, 1) == 160 && single.duty(0, 1) == 0 && single.duty(4, 1) == 0, "absent motors cannot actuate");
+    singleClosed[1] = 0; single.sensors(singleClosed, true);
+    check(single.fault == Sensor && single.duty(1, 2) == 0, "active single sensor rail still faults");
+    Supervisor noDriver(2, 0); ready(noDriver); noDriver.accept(allMotors, 1);
+    check(noDriver.duty(1, 1) == 0, "unverified driver keeps output zero");
+    Supervisor noSensors(0, 31); noSensors.sensors(a, true); noSensors.loadCalibration(a, b);
+    check(!noSensors.accept(ctrl(1, Arm), 0), "zero sensors cannot arm");
     std::cout << "PASS: " << checks << " native protocol/supervisor checks\n";
 }

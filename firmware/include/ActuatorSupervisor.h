@@ -3,6 +3,7 @@
 
 namespace aham {
 class Supervisor {
+    uint8_t sensorMask, motorMask;
     bool openSet = false, closedSet = false, hasSeq = false;
     uint16_t lastSeq = 0, open[5] = {}, closed[5] = {}, raw[5] = {};
     uint8_t desired[5] = {}, pattern[5] = {};
@@ -13,10 +14,12 @@ class Supervisor {
     void fail(FaultCode code) { zero(); state = Fault; fault = code; }
     bool fresh(uint16_t seq) const { uint16_t delta = uint16_t(seq - lastSeq); return !hasSeq || (delta != 0 && delta < 32768); }
 public:
+    explicit Supervisor(uint8_t sensors = 31, uint8_t motors = 31) : sensorMask(sensors & 31), motorMask(motors & 31) {}
     State state = Disarmed; FaultCode fault = None;
     bool calibrated() const {
-        if (!openSet || !closedSet) return false;
+        if (!sensorMask || !openSet || !closedSet) return false;
         for (int i = 0; i < 5; ++i) {
+            if (!(sensorMask & (1 << i))) continue;
             int span = int(closed[i]) - int(open[i]); if (span < 0) span = -span;
             if (span < 120 || open[i] < 4 || closed[i] < 4 || open[i] > 4091 || closed[i] > 4091) return false;
         }
@@ -28,8 +31,11 @@ public:
     }
     void copyCalibration(uint16_t* a, uint16_t* b) const { memcpy(a, open, sizeof(open)); memcpy(b, closed, sizeof(closed)); }
     void sensors(const uint16_t* values, bool healthyStop) {
-        memcpy(raw, values, sizeof(raw)); stopHealthy = healthyStop; sensorHealthy = true;
-        for (int i = 0; i < 5; ++i) if (raw[i] < 4 || raw[i] > 4091) sensorHealthy = false;
+        memcpy(raw, values, sizeof(raw)); stopHealthy = healthyStop; sensorHealthy = sensorMask != 0;
+        for (int i = 0; i < 5; ++i) {
+            if (!(sensorMask & (1 << i))) { raw[i] = 0; continue; }
+            if (raw[i] < 4 || raw[i] > 4091) sensorHealthy = false;
+        }
         if (state == Armed && !stopHealthy) fail(Stop);
         if (state == Armed && !sensorHealthy) fail(Sensor);
     }
@@ -60,6 +66,7 @@ public:
         lastSeq = p.seq; hasSeq = true; refreshMs = now; leaseMs = lease;
         for (int i = 0; i < 5; ++i) {
             uint8_t next = p.payload[2 + i] > 160 ? 160 : p.payload[2 + i];
+            if (!(motorMask & (1 << i))) next = 0;
             if (next && !desired[i]) start[i] = now;
             desired[i] = next; pattern[i] = p.payload[7 + i];
         }
@@ -67,7 +74,7 @@ public:
     }
     void tick(uint32_t now) { if (state == Armed && uint32_t(now - refreshMs) >= 150) fail(Timeout); }
     uint8_t duty(int i, uint32_t now) const {
-        if (state != Armed || uint32_t(now - refreshMs) >= leaseMs || uint32_t(now - start[i]) >= 2000) return 0;
+        if (i < 0 || i >= 5 || !(motorMask & (1 << i)) || state != Armed || uint32_t(now - refreshMs) >= leaseMs || uint32_t(now - start[i]) >= 2000) return 0;
         uint32_t elapsed = uint32_t(now - start[i]);
         if (pattern[i] == 1 && elapsed % 200 >= 60) return 0;
         if (pattern[i] == 2 && elapsed % 80 >= 35) return uint8_t(desired[i] / 3);
@@ -81,7 +88,7 @@ public:
         return out;
     }
     uint16_t curl(int i) const {
-        if (!calibrated()) return 0;
+        if (i < 0 || i >= 5 || !(sensorMask & (1 << i)) || !calibrated()) return 0;
         int n = (int(raw[i]) - int(open[i])) * 1000 / (int(closed[i]) - int(open[i]));
         return uint16_t(n < 0 ? 0 : n > 1000 ? 1000 : n);
     }

@@ -6,16 +6,18 @@ AHAM maps physical finger movement to a Unity virtual hand and returns synchroni
 
 ## Current status
 
-The first software milestone is implemented: a hardware-free glove simulator, ESP32 vibration firmware, a local USB bridge and importable Unity desktop starter assets. The actual headset integration and hardware validation are pending.
+The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, five servos, Grove GSR, one coin motor and a 5 V / 2 A adapter. Resistors, motor drivers and extra analog inputs are missing. Meta Quest 3 is assigned later. Start with the desktop simulator and NodeMCU USB/I2C probe; move to one index flex sensor after obtaining divider resistors. See [actual hardware and required parts](docs/hardware-bringup.md).
 
 | Component | Status |
 |---|---|
 | Browser glove simulator | Runs without hardware; calibration, material cues, output bars and fault controls |
-| ESP32 firmware | Compiles for classic ESP32 DevKit; five flex inputs, five motor PWM channels and local supervision |
+| NodeMCU firmware | One index ADC channel; missing channels stay zero; motor output disabled until driver verification |
+| NodeMCU probe | Separate text diagnostic for USB, I2C ACKs and MPU identity; commands no servo motion |
+| ESP32 alternative | Retained five-channel build for a classic ESP32 replacement; motor outputs default disabled |
 | Shared binary protocol | Python/C++/C# interoperability checked with common fixtures |
 | Unity starter | Primitive hand, three contact surfaces and operator controls; editor compile/play check still required |
 | USB bridge | Implemented; requires a verified serial device and bench test |
-| VR root tracking | Adapter pending headset/controller model |
+| VR root tracking | Meta Quest 3 adapter pending; desktop setup works without XR |
 | Pressure, tendon resistance, GSR and participant logger | Not implemented in this starter |
 
 ## Start now
@@ -33,7 +35,7 @@ For Unity-controlled simulation, use `python host/run.py simulate --controller u
 ## Development references
 
 - [Wire protocol v1](docs/protocol.md)
-- [Provisional hardware wiring and bring-up](docs/hardware-bringup.md)
+- [Received hardware, missing parts and bring-up](docs/hardware-bringup.md)
 - [Verification record](docs/verification.md)
 - [Full architecture and 40-hour schedule](AHAM-40-hour-plan.md)
 
@@ -51,13 +53,13 @@ Tendon resistance and GSR logging are stretch features. Vibration, local pressur
 
 ## Architecture and schedule
 
-Read the [full architecture and 40-hour build plan](AHAM-40-hour-plan.md) for hardware, software modules, communication, team assignments, validation and fallback decisions.
+Read the [full architecture and 40-hour build plan](AHAM-40-hour-plan.md), including its received-kit revision, for hardware, modules, team assignments and fallback decisions.
 
 The plan assumes a four-person team and includes the approximately three-hour wait for components within the total forty-hour budget.
 
 ## First implementation milestone
 
-By hour 13, demonstrate the complete loop:
+Target the complete loop by hour 13 **if the required divider and motor-driver parts arrive**; use one index finger first:
 
 **Real finger movement → virtual hand → virtual contact → matching fingertip vibration.**
 

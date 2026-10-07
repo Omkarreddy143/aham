@@ -23,6 +23,13 @@ public static class ProtocolChecks
         }
         WirePacket command = AhamProtocol.MakeHaptic(9, 10, new byte[] {0,40,80,120,160}, new byte[] {0,1,2,3,0});
         Check(command.Payload[12] == 0 && command.Payload[13] == 0 && command.Payload[14] == 0, "pressure must remain disabled");
+        ushort[] capabilities = {1, 8, 265, 4093, 0};
+        int[] sensors = {31, 2, 2, 31, 0}, motors = {31, 0, 2, 31, 0};
+        for (int i = 0; i < capabilities.Length; i++) {
+            byte[] payload = new byte[33]; AhamProtocol.Put16(payload, 31, capabilities[i]);
+            WirePacket packet = new WirePacket { Type = 1, Payload = payload }; GloveTelemetry t;
+            Check(AhamProtocol.TryTelemetry(packet, out t) && t.SensorMask == sensors[i] && t.MotorMask == motors[i], "active masks including legacy firmware");
+        }
         Console.WriteLine("PASS: C# codec interoperability for " + count + " fixtures and corruption checks");
     }
 }

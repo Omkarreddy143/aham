@@ -10,11 +10,17 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "host"))
-from aham.protocol import Packet, crc16, cobs_encode, cobs_decode, decode, StreamDecoder, control, haptic, telemetry
+from aham.protocol import Packet, crc16, cobs_encode, cobs_decode, decode, StreamDecoder, control, haptic, telemetry, TELEMETRY_PAYLOAD
 from aham.simulator import SimulatedGlove, create_server
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_active_channel_masks_and_legacy(self):
+        for capabilities, sensors, motors in [(1, 31, 31), (8, 2, 0), (265, 2, 2), (4093, 31, 31), (0, 0, 0)]:
+            payload = TELEMETRY_PAYLOAD.pack(0, 0, 0, *([0] * 5), *([0] * 5), 0, *([0] * 5), capabilities)
+            data = telemetry(decode(Packet(1, 0, 0, payload).encode()))
+            self.assertEqual((data['sensor_mask'], data['motor_mask']), (sensors, motors))
+
     def test_check_vector_and_random_roundtrips(self):
         self.assertEqual(crc16(b"123456789"), 0x29B1)
         rng = random.Random(143)

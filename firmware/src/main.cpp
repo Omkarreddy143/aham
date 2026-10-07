@@ -1,19 +1,33 @@
 #include <Arduino.h>
+#if defined(ESP8266)
+#include <EEPROM.h>
+#include <ESP8266WiFi.h>
+#else
 #include <Preferences.h>
+#endif
 #include "BoardConfig.h"
 #include "ActuatorSupervisor.h"
 
-aham::Supervisor supervisor;
+aham::Supervisor supervisor(board::sensorMask, board::motorMask);
 aham::StreamDecoder decoder;
+#if !defined(ESP8266)
 Preferences settings;
+#endif
 uint16_t rawFlex[5] = {}, txSeq = 0;
 uint32_t lastSample = 0;
 
 void readSensors() {
     for (int i = 0; i < 5; ++i) {
+        if (!(board::sensorMask & (1 << i))) { rawFlex[i] = 0; continue; }
         uint32_t total = 0;
+#if defined(ESP8266)
+        // ESP8266 has one 10-bit ADC. Scale to the existing 12-bit wire range.
+        total = uint32_t(analogRead(board::flexPins[i])) * 4095 / 1023;
+        rawFlex[i] = uint16_t(total);
+#else
         for (int j = 0; j < 8; ++j) total += analogRead(board::flexPins[i]);
         rawFlex[i] = uint16_t(total / 8);
+#endif
     }
     supervisor.sensors(rawFlex, digitalRead(board::stopPin) == LOW);
 }
@@ -21,7 +35,16 @@ void saveCalibration() {
     if (!supervisor.calibrated()) return;
     uint16_t a[5], b[5]; supervisor.copyCalibration(a, b);
     uint16_t pairs[10]; memcpy(pairs, a, sizeof(a)); memcpy(pairs + 5, b, sizeof(b));
+#if defined(ESP8266)
+    // Version, board channel mask and checksum prevent stale/corrupt calibration reuse.
+    uint8_t record[25] = {0xa7, 1, board::sensorMask};
+    memcpy(record + 3, pairs, sizeof(pairs));
+    aham::put16(record + 23, aham::crc(record, 23));
+    for (int i = 0; i < 25; ++i) EEPROM.write(i, record[i]);
+    EEPROM.commit();
+#else
     settings.putBytes("flex", pairs, sizeof(pairs));
+#endif
 }
 void sendTelemetry(uint32_t now) {
     aham::Packet p; p.type = aham::Telemetry; p.seq = txSeq++; p.timeMs = now; p.length = 33;
@@ -32,7 +55,7 @@ void sendTelemetry(uint32_t now) {
         p.payload[26 + i] = supervisor.duty(i, now);
     }
     aham::put16(p.payload + 24, board::fsrEnabled ? uint16_t(analogRead(board::fsrPin)) : 0);
-    aham::put16(p.payload + 31, 1); // Vibration capability only. No pressure commands accepted.
+    aham::put16(p.payload + 31, board::capabilities); // Active channel masks, no pressure.
     uint8_t bytes[aham::MaxEncoded]; size_t length = aham::encode(p, bytes);
     if (Serial.availableForWrite() >= int(length)) Serial.write(bytes, length);
 }
@@ -41,14 +64,29 @@ void setup() {
     digitalWrite(board::servoOePin, HIGH); pinMode(board::servoOePin, OUTPUT);
     pinMode(board::stopPin, INPUT_PULLUP);
     for (int i = 0; i < 5; ++i) {
+        if (board::motorPins[i] == 255) continue;
         digitalWrite(board::motorPins[i], LOW); pinMode(board::motorPins[i], OUTPUT);
+#if defined(ESP8266)
+        analogWrite(board::motorPins[i], 0);
+#else
         ledcSetup(i, 20000, 8); ledcAttachPin(board::motorPins[i], i); ledcWrite(i, 0);
+#endif
     }
+#if defined(ESP8266)
+    WiFi.persistent(false); WiFi.mode(WIFI_OFF);
+    analogWriteRange(255); analogWriteFreq(1000);
+    Serial.begin(board::baud); EEPROM.begin(32);
+    uint8_t record[25]; for (int i = 0; i < 25; ++i) record[i] = EEPROM.read(i);
+    if (record[0] == 0xa7 && record[1] == 1 && record[2] == board::sensorMask && aham::u16(record + 23) == aham::crc(record, 23)) {
+        uint16_t pairs[10]; memcpy(pairs, record + 3, sizeof(pairs)); supervisor.loadCalibration(pairs, pairs + 5);
+    }
+#else
     analogReadResolution(12); analogSetAttenuation(ADC_11db);
     Serial.begin(board::baud); settings.begin("aham", false);
     if (settings.getBytesLength("flex") == sizeof(uint16_t) * 10) {
         uint16_t pairs[10]; settings.getBytes("flex", pairs, sizeof(pairs)); supervisor.loadCalibration(pairs, pairs + 5);
     }
+#endif
     readSensors();
 }
 void loop() {
@@ -65,7 +103,17 @@ void loop() {
         }
     }
     now = millis(); supervisor.tick(now);
-    for (int i = 0; i < 5; ++i) ledcWrite(i, supervisor.duty(i, now));
+    for (int i = 0; i < 5; ++i) {
+        if (board::motorPins[i] == 255) continue;
+#if defined(ESP8266)
+        analogWrite(board::motorPins[i], supervisor.duty(i, now));
+#else
+        ledcWrite(i, supervisor.duty(i, now));
+#endif
+    }
     static uint32_t lastTx = 0;
     if (uint32_t(now - lastTx) >= 10) { lastTx = now; sendTelemetry(now); }
+#if defined(ESP8266)
+    yield();
+#endif
 }

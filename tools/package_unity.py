@@ -27,4 +27,5 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
         if path.is_file():
             archive.write(path, path.relative_to(root / 'unity' / 'Assets').as_posix())
     archive.write(root / 'docs' / 'quickstart.md', 'AHAM/QUICKSTART.md')
+    archive.write(root / 'docs' / 'hardware-bringup.md', 'AHAM/hardware-bringup.md')
 print(output)

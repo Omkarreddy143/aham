@@ -57,7 +57,7 @@ namespace Aham
             GloveTelemetry data = transport == null ? null : transport.Latest;
             if (data == null || !transport.Fresh) return;
             for (int i = 0; i < 5; i++) for (int j = 0; j < 3; j++)
-                if (joints[i, j] != null) joints[i, j].localRotation = Quaternion.Euler(data.Curls[i] / 1000f * (j == 0 ? 55 : 65), 0, 0);
+                if (joints[i, j] != null) joints[i, j].localRotation = Quaternion.Euler(((data.SensorMask & (1 << i)) != 0 ? data.Curls[i] : 0) / 1000f * (j == 0 ? 55 : 65), 0, 0);
         }
     }
 }

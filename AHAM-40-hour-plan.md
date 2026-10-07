@@ -2,7 +2,40 @@
 
 AHAM is a bidirectional interface between a physical hand and a virtual hand. Finger movements animate the virtual hand; virtual contact produces physical feedback on the glove. The Makeathon demonstration explores whether synchronized movement and contact cues influence the participant's reported sense of ownership of the virtual hand.
 
-This plan is based on the referenced conversation, **Suggest Project Theme**. The organizer's uploaded component-list image was not available as readable content, so hardware availability remains an assumption rather than a verified inventory.
+This plan is based on the referenced conversation, **Suggest Project Theme**. The revision below uses the team's actual received inventory and supersedes the original ESP32/power/sensor availability assumptions in the target architecture that follows.
+
+## Received-kit revision — 7 October 2026
+
+Four teammates; headset later: **Meta Quest 3**. Received: ESP-12E NodeMCU V3 (**ESP8266, one ADC**), five flex sensors, MPU6050, PCA9685, MG90S x4, SG90 x1, Grove GSR, glove, one coin motor, PAM8403, breadboard, 5 V / 2 A adapter. Four coin motors are pending. No divider resistors, motor driver, extra ADC/multiplexer or FSR is available.
+
+The immediate deliverable is the desktop loop plus USB/I2C identification, followed by **one index-finger sensor/contact cue** after missing parts arrive. Five-finger physical tracking requires an ESP32 replacement or additional ADC inputs and new acquisition code. GSR competes for the single A0 input; servos cannot yet be treated as force feedback. The 2 A adapter does not establish capacity for five loaded servos. [Wiring, parts request and exact bench steps](docs/hardware-bringup.md)
+
+```mermaid
+flowchart LR
+  F[Index flex plus verified divider] --> N[NodeMCU single ADC]
+  N -->|USB binary telemetry| B[Local bridge]
+  B -->|UDP| U[Unity desktop hand and contacts]
+  U -->|Haptic requests via bridge| S[NodeMCU local supervisor]
+  S -->|Only after driver verification| D[MOSFET and rated motor supply]
+  D --> V[Index coin motor]
+  X[Normally closed stop] --> S
+  Q[Quest 3 tracked root later] --> U
+```
+
+| Event hours, from original start | Revised integration gate |
+|---|---|
+| 0–3 | Desktop simulator/Unity import and component wait; retain completed work |
+| 3–6 | A: NodeMCU USB/probe + I2C; B: Unity simulation; C: glove mounting layout; D: obtain missing parts and verify adapter/motor labels |
+| 6–10 | A/D: one verified flex divider and real USB telemetry; B: index mapping; C: mount without servo tension |
+| 10–13 | Off-hand single motor driver, stop/timeout tests; then index contact loop if hardware prerequisites are met |
+| 13–20 | Expand to five channels only if replacement MCU/ADCs and four motors/drivers arrive. Add Quest 3 when assigned after desktop integration passes |
+| 20–28 | Validate tracking, contact cues, resets and disconnects. Off-hand one-servo experiment only if power/mechanical prerequisites are satisfied |
+| 28–34 | Freeze working scope; rehearse and record the actual delivered loop; exploratory GSR only if analog capacity/time remain |
+| 34–40 | Repeat setup, demo script, backup recording and presentation. State actual channel count and desktop/VR status |
+
+If missing parts remain unavailable at hour 10, freeze the hardware scope at board/I2C checks and demonstrate the five-channel desktop simulator honestly. Reassess at hour 13: a working one-finger physical loop is the fallback; five-finger hardware and mechanical pressure remain conditional targets. These are event-hour gates, not a fresh forty-hour extension.
+
+The detailed architecture below remains the expansion reference. Follow the received-kit wiring guide for today's board, pin map and power constraints.
 
 ## 1. Delivery scope
 

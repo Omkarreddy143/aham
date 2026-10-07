@@ -150,7 +150,7 @@ class SimulatedGlove:
         mapped = [0] * 5
         if self.calibrated():
             mapped = [max(0, min(1000, int((r - a) * 1000 / (b - a)))) for r, a, b in zip(self.raw(), self.open, self.closed)]
-        payload = TELEMETRY_PAYLOAD.pack(self.state, flags, self.fault, *mapped, *self.raw(), 0, *self.outputs(now), 1)
+        payload = TELEMETRY_PAYLOAD.pack(self.state, flags, self.fault, *mapped, *self.raw(), 0, *self.outputs(now), 1 | (31 << 2) | (31 << 7))
         result = Packet(TELEMETRY, self.tx_sequence, now, payload)
         if advance:
             self.tx_sequence = (self.tx_sequence + 1) & 65535

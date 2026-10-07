@@ -14,6 +14,8 @@ namespace Aham
     {
         public byte State, Fault;
         public ushort Flags, Capabilities;
+        public int SensorMask { get { return Capabilities == 1 ? 31 : (Capabilities >> 2) & 31; } }
+        public int MotorMask { get { return Capabilities == 1 ? 31 : (Capabilities >> 7) & 31; } }
         public ushort[] Curls = new ushort[5], Raw = new ushort[5];
         public byte[] Vibration = new byte[5];
         public ushort Fsr;

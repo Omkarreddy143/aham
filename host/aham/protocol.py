@@ -128,6 +128,12 @@ def telemetry(packet: Packet) -> dict:
     values = TELEMETRY_PAYLOAD.unpack(packet.payload)
     if values[0] > 3 or any(x > 1000 for x in values[3:8]):
         raise ValueError("Invalid telemetry values")
+    capabilities = values[19]
+    # Original v1 firmware advertised only bit 0 and had five inputs/outputs.
+    legacy = capabilities == 1
+    sensor_mask = 31 if legacy else (capabilities >> 2) & 31
+    motor_mask = 31 if legacy else (capabilities >> 7) & 31
     return dict(sequence=packet.sequence, time_ms=packet.time_ms, state=values[0], flags=values[1],
                 fault=values[2], curls=list(values[3:8]), raw=list(values[8:13]), fsr=values[13],
-                vibration=list(values[14:19]), capabilities=values[19])
+                vibration=list(values[14:19]), capabilities=capabilities,
+                sensor_mask=sensor_mask, motor_mask=motor_mask)

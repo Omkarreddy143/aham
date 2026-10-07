@@ -34,9 +34,11 @@ namespace Aham
         {
             if (transport == null || hand == null || Time.unscaledTime < nextCommand) return;
             nextCommand = Time.unscaledTime + .02f;
+            GloveTelemetry data = transport.Latest;
             for (int i = 0; i < 5; i++)
             {
-                HapticSurface surface = hand.RootValid && hand.tips[i] != null ? hand.tips[i].Surface : null;
+                bool channelAvailable = data != null && (data.SensorMask & data.MotorMask & (1 << i)) != 0;
+                HapticSurface surface = channelAvailable && hand.RootValid && hand.tips[i] != null ? hand.tips[i].Surface : null;
                 duties[i] = surface == null ? (byte)0 : (byte)Mathf.Clamp(surface.intensity, 0, 160);
                 patterns[i] = surface == null ? (byte)0 : (byte)surface.pattern;
             }
@@ -46,7 +48,7 @@ namespace Aham
         private void OnGUI()
         {
             if (transport == null || hand == null) return;
-            GUILayout.BeginArea(new Rect(15, 15, 440, 380), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(15, 15, 440, 450), GUI.skin.box);
             GUILayout.Label("AHAM / DESKTOP STARTER"); GUILayout.Label(transport.Status);
             GUILayout.Label("Hand root: " + (hand.requireTrackedRoot ? "external tracker" : "desktop preset (not VR tracking)"));
             bool enabled = GUILayout.Toggle(outgoing, "Enable outgoing commands after checking the connection");
@@ -57,6 +59,8 @@ namespace Aham
                 GUILayout.Label("State: " + data.State + " | Fault: " + data.Fault + " | Calibrated: " + ((data.Flags & 1) != 0));
                 GUILayout.Label("Raw flex: " + string.Join(", ", System.Array.ConvertAll(data.Raw, n => n.ToString())));
                 GUILayout.Label("Vibration: " + string.Join(", ", System.Array.ConvertAll(data.Vibration, n => n.ToString())));
+                GUILayout.Label("Active flex mask: " + data.SensorMask + " | motor mask: " + data.MotorMask + " (2 = index only)");
+                if (data.MotorMask == 0) GUILayout.Label("Motor output disabled; sensor/desktop checks only.");
             }
             GUI.enabled = outgoing && transport.Fresh;
             GUILayout.BeginHorizontal();
