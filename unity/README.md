@@ -20,3 +20,7 @@ For the full simulated command loop:
 If Unity reports no fresh telemetry, confirm both programs run on the same laptop, the simulator uses `--controller unity`, and another host is not occupying the UDP ports. If an AHAM menu is missing, inspect the first red Console error; do not move source files around until that error is understood.
 
 For a teammate's existing project, the separate Unity import ZIP still contains only the AHAM assets. It is not a complete project. See [full quickstart](../docs/quickstart.md) and [received-hardware guide](../docs/hardware-bringup.md).
+
+The refined scene uses a shaped palm, rounded articulated fingers, an angled thumb, nails, a wrist cuff, studio lighting and three finished contact targets. Smooth/Rough/Soft buttons align the index with a target; use Desktop hand depth for contact. Calibration, outgoing commands and optional MPU settings are under **Calibration / hardware settings**. Restart Play after updating scripts; no firmware upload is needed.
+
+![Refined Unity scene](../docs/images/refined-scene.png)

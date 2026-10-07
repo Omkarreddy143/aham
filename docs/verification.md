@@ -2,6 +2,8 @@
 
 ## Passed locally
 
+- Refined hand/scene: Unity batch compilation and rendering passed. Physics overlap checks verified the actual index-tip collider reaches each of the three selected target colliders at half curl; the open index overlaps none. Rendered open, bent, tilted and contact poses were inspected. Runtime GUI and trigger-event interaction still require the team's Play-mode check.
+
 - Unity cue monitor: ten Python tests passed, including monitor UDP receipt, malformed/control packet rejection and cue validation. C# cue parsing and actual Unity script compilation passed. The separate monitor echoes to Unity only and has no serial route. Live contact-triggered nonzero cue receipt still needs the team's interactive demonstration.
 
 - PlatformIO builds for `nodemcuv2` and `nodemcu_probe`, Espressif 8266 platform 4.2.1 / Arduino core 3.1.2, using Python 3.12.

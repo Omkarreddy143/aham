@@ -45,7 +45,7 @@ Disconnect USB before wiring. Leave flex sensor, motor, PCA9685 and servos disco
    ```
 
 4. Stop and restart Unity Play mode. **Uncheck Software preview**. Keep **Enable outgoing commands** unchecked.
-5. Enable **Use MPU6050 for slow wrist tilt**. Wait for **MPU6050 data connected**, hold the sensor in a neutral pose, and click **Center wrist in neutral pose**.
+5. Expand **Calibration / hardware settings**, then enable **Use MPU6050 for slow wrist tilt**. Wait for **MPU6050 data connected**, hold the sensor in a neutral pose, and click **Center wrist in neutral pose**.
 6. Tilt the module slowly. The virtual hand should tilt. The flat index finger is expected until the flex divider is built and calibrated.
 
 This uses accelerometer gravity for a two-axis tilt proxy, with smoothing. Module X/Y/Z axes map to the demo's pitch/roll axes; mount in a consistent orientation and recenter. It does not measure hand position, yaw or robust orientation during fast acceleration. Gyroscope samples are transmitted but are not fused into the displayed pose. The code has compiled and packet/tilt calculations are tested; your physical MPU wiring and response still need validation. An absent sensor does not prevent software preview.

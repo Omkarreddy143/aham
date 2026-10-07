@@ -79,3 +79,5 @@ Target the complete loop by hour 13 **if the required divider and motor-driver p
 Local actuator limits, command expiry and a direct mechanical release are required before adding worn mechanical feedback.
 
 Show the calculated return cue with the motor disconnected: [Unity cue monitor demo](docs/unity-cue-demo.md).
+
+![Refined desktop hand and contact targets](docs/images/refined-scene.png)

@@ -13,6 +13,11 @@ namespace Aham
         private bool outgoing;
         private bool preview = true;
         private Vector2 scroll;
+        private bool advanced;
+        private GUIStyle titleStyle,sectionStyle,valueStyle,panelStyle;
+        private Texture2D panelTexture;
+        private HapticSurface[] targets;
+        private float PanelWidth { get { return Mathf.Min(350, Mathf.Max(270, Screen.width*.30f)); } }
         private void Start()
         {
             transport = gameObject.AddComponent<AhamTransport>();
@@ -21,25 +26,20 @@ namespace Aham
             hand.previewEnabled = preview;
             Camera camera = Camera.main;
             if (camera == null) { GameObject cameraObject = new GameObject("Main Camera"); cameraObject.tag = "MainCamera"; camera = cameraObject.AddComponent<Camera>(); }
-            camera.rect = new Rect(.38f, 0, .62f, 1);
-            camera.transform.position = new Vector3(.24f, 1.18f, .36f); camera.transform.LookAt(new Vector3(0, .97f, .08f));
-            camera.backgroundColor = new Color(.06f, .09f, .14f); camera.clearFlags = CameraClearFlags.SolidColor;
-            GameObject lightObject = new GameObject("Demo Light"); Light light = lightObject.AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.2f; light.transform.rotation = Quaternion.Euler(50, -30, 0);
-            CreateSurface("Smooth", -.08f, new Color(.3f, .55f, .75f), 100, 1, 3);
-            CreateSurface("Rough", 0, new Color(.75f, .5f, .25f), 150, 2, 2);
-            CreateSurface("Soft", .08f, new Color(.55f, .4f, .7f), 80, 3, 1);
+            AhamSceneVisuals.Build(camera);
+            targets=Object.FindObjectsByType<HapticSurface>(FindObjectsSortMode.None);
         }
-        private static void CreateSurface(string name, float x, Color color, int duty, int pattern, int priority)
+        private void LateUpdate()
         {
-            GameObject surface = GameObject.CreatePrimitive(PrimitiveType.Cube); surface.name = name;
-            surface.transform.position = new Vector3(x, .92f, .13f); surface.transform.localScale = new Vector3(.067f, .065f, .14f);
-            surface.GetComponent<Renderer>().material.color = color;
-            HapticSurface haptic = surface.AddComponent<HapticSurface>(); haptic.intensity = duty; haptic.pattern = pattern; haptic.priority = priority;
+            Camera camera=Camera.main;
+            if(camera!=null){float left=Mathf.Clamp01((PanelWidth+30)/Screen.width);camera.rect=new Rect(left,0,1-left,1);}
         }
         private void Update()
         {
             if (transport == null || hand == null || Time.unscaledTime < nextCommand) return;
             nextCommand = Time.unscaledTime + .02f;
+            HapticSurface selected=hand.tips[1]==null?null:hand.tips[1].Surface;
+            if(targets!=null)foreach(HapticSurface target in targets)if(target!=null)target.SetContactHighlight(target==selected);
             if (preview) { System.Array.Clear(cueDuties, 0, 5); System.Array.Clear(cuePatterns, 0, 5); return; }
             GloveTelemetry data = transport.Latest;
             for (int i = 0; i < 5; i++)
@@ -56,71 +56,87 @@ namespace Aham
             if (!hand.RootValid) transport.SendControl(0);
             else transport.SendHaptics(duties, patterns);
         }
+        private void EnsureStyles()
+        {
+            if(titleStyle!=null)return;
+            titleStyle=new GUIStyle(GUI.skin.label){fontSize=32,fontStyle=FontStyle.Bold};titleStyle.normal.textColor=new Color(.28f,.86f,.73f);
+            sectionStyle=new GUIStyle(GUI.skin.label){fontSize=13,fontStyle=FontStyle.Bold};sectionStyle.normal.textColor=new Color(.6f,.7f,.75f);
+            valueStyle=new GUIStyle(GUI.skin.label){fontSize=24,fontStyle=FontStyle.Bold};valueStyle.normal.textColor=Color.white;
+            panelTexture=new Texture2D(1,1);panelTexture.SetPixel(0,0,new Color(.035f,.055f,.072f,.97f));panelTexture.Apply();
+            panelStyle=new GUIStyle(GUI.skin.box){padding=new RectOffset(18,18,16,16)};panelStyle.normal.background=panelTexture;
+        }
+        private static void Meter(float value,float maximum,Color color)
+        {
+            Rect rect=GUILayoutUtility.GetRect(1,6,GUILayout.ExpandWidth(true));Color saved=GUI.color;
+            GUI.color=new Color(.15f,.22f,.26f);GUI.DrawTexture(rect,Texture2D.whiteTexture);
+            rect.width*=Mathf.Clamp01(value/maximum);GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=saved;
+        }
         private void OnGUI()
         {
-            if (transport == null || hand == null) return;
-            GUILayout.BeginArea(new Rect(15, 15, Mathf.Min(360, Screen.width * .36f), Screen.height - 30), GUI.skin.box);
-            scroll = GUILayout.BeginScrollView(scroll);
-            GUILayout.Label("AHAM / INDEX FINGER DEMO");
-            bool wantPreview = GUILayout.Toggle(preview, "Software preview: no hardware needed");
-            if (wantPreview != preview)
+            if(transport==null||hand==null)return;EnsureStyles();
+            GUILayout.BeginArea(new Rect(12,12,PanelWidth,Screen.height-24),panelStyle);
+            scroll=GUILayout.BeginScrollView(scroll);
+            GUILayout.Label("AHAM",titleStyle);GUILayout.Label("A hand between two worlds",sectionStyle);GUILayout.Space(12);
+            bool wantPreview=GUILayout.Toggle(preview,"Software preview (no sensor)");
+            if(wantPreview!=preview)
+            {if(wantPreview){transport.SetOutgoing(false);outgoing=false;}preview=wantPreview;hand.previewEnabled=preview;}
+            if(preview)
             {
-                if (wantPreview) { transport.SetOutgoing(false); outgoing = false; }
-                preview = wantPreview; hand.previewEnabled = preview;
+                GUILayout.Label("Generated movement · motor commands blocked");
+                hand.previewAuto=GUILayout.Toggle(hand.previewAuto,"Animate finger and wrist automatically");
+                GUI.enabled=!hand.previewAuto;
+                GUILayout.Label("Index bend");hand.previewIndex=GUILayout.HorizontalSlider(hand.previewIndex,0,1);
+                GUILayout.Label("Wrist tilt");hand.previewPitch=GUILayout.HorizontalSlider(hand.previewPitch,-45,45);
+                GUILayout.Label("Wrist roll");hand.previewRoll=GUILayout.HorizontalSlider(hand.previewRoll,-45,45);GUI.enabled=true;
             }
-            if (preview)
+            else GUILayout.Label(transport.Status);
+            GloveTelemetry data=transport.Latest;
+            GUILayout.Space(12);GUILayout.Label("LIVE FLEX SENSOR",sectionStyle);
+            if(data!=null)
             {
-                GUILayout.Label("SOFTWARE PREVIEW — motor commands blocked");
-                hand.previewAuto = GUILayout.Toggle(hand.previewAuto, "Animate finger and wrist automatically");
-                GUI.enabled = !hand.previewAuto;
-                GUILayout.Label("Index bend"); hand.previewIndex = GUILayout.HorizontalSlider(hand.previewIndex, 0, 1);
-                GUILayout.Label("Wrist tilt"); hand.previewPitch = GUILayout.HorizontalSlider(hand.previewPitch, -45, 45);
-                GUILayout.Label("Wrist roll"); hand.previewRoll = GUILayout.HorizontalSlider(hand.previewRoll, -45, 45);
-                GUI.enabled = true;
+                GUILayout.BeginHorizontal();GUILayout.Label("Raw index: "+data.Raw[1],valueStyle);GUILayout.EndHorizontal();
+                GUILayout.Label("Index bend from sensor: "+(data.Curls[1]/10f).ToString("F1")+"%");
+                Meter(data.Curls[1],1000,new Color(.28f,.86f,.73f));
+                GUILayout.Label("Calibrated: "+((data.Flags&1)!=0));
+                if(!transport.Fresh)GUILayout.Label("Sensor data stale — reconnect USB");
+                if((data.Flags&1)==0)GUILayout.Label("Capture straight and bent poses in settings below.");
             }
-            GUILayout.Label(transport.Status);
-            if (!preview)
-            {
-                hand.useImuTilt = GUILayout.Toggle(hand.useImuTilt, "Use MPU6050 for slow wrist tilt");
-                GUILayout.Label(transport.ImuFresh ? "MPU6050 data connected" : "MPU6050 absent / stale (optional)");
-                GUI.enabled = transport.ImuFresh;
-                if (GUILayout.Button("Center wrist in neutral pose")) hand.CenterImu();
-                GUI.enabled = true;
-            }
-            GUILayout.Label("Hand root: " + (hand.requireTrackedRoot ? "external tracker" : "desktop preset (not VR tracking)"));
-            HapticSurface indexContact = hand.tips[1] == null ? null : hand.tips[1].Surface;
-            GUILayout.Label("Index contact: " + (indexContact == null ? "none — bend the finger / adjust hand depth" : indexContact.name));
-            cueMonitor = GUILayout.Toggle(cueMonitor, "Monitor Unity cues (no motor output)");
-            GUILayout.Label("Unity index cue: " + cueDuties[1] + "/255 | pattern " + cuePatterns[1]);
-            int receivedCue = transport.ReceivedIndexCue;
-            GUILayout.Label("Bridge received cue: " + (receivedCue < 0 ? "waiting / stale" : receivedCue + "/255"));
-            GUI.enabled = !preview;
-            bool enabled = GUILayout.Toggle(outgoing, "Enable outgoing commands after checking the connection");
-            if (enabled != outgoing) { outgoing = enabled; transport.SetOutgoing(outgoing); }
-            GUI.enabled = true;
-            GloveTelemetry data = transport.Latest;
-            if (data != null)
-            {
-                GUILayout.Label("State: " + data.State + " | Fault: " + data.Fault + " | Calibrated: " + ((data.Flags & 1) != 0));
-                GUILayout.Label("Raw flex: " + string.Join(", ", System.Array.ConvertAll(data.Raw, n => n.ToString())));
-                GUILayout.Label("Index bend from sensor: " + (data.Curls[1] / 10f).ToString("F1") + "%");
-                if ((data.Flags & 1) == 0) GUILayout.Label("Finger motion needs calibration: enable commands, then capture straight and bent poses.");
-                GUILayout.Label("Board applied index PWM: " + data.Vibration[1] + "/255");
-                GUILayout.Label("Active flex mask: " + data.SensorMask + " | motor mask: " + data.MotorMask + " (2 = index only)");
-                if (data.MotorMask == 0) GUILayout.Label("Motor output disabled; sensor/desktop checks only.");
-            }
-            GUI.enabled = !preview && outgoing && transport.Fresh;
+            else GUILayout.Label("Connect the USB bridge for real sensor values.");
+            GUILayout.Space(14);GUILayout.Label("VIRTUAL CONTACT",sectionStyle);
+            HapticSurface contact=hand.tips[1]==null?null:hand.tips[1].Surface;
+            GUILayout.Label("Index contact: "+(contact==null?"none":contact.name));
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Capture open")) transport.SendControl(2);
-            if (GUILayout.Button("Capture closed")) transport.SendControl(3);
-            GUILayout.EndHorizontal(); GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Arm")) transport.SendControl(1);
-            if (GUILayout.Button("Disarm")) transport.SendControl(0);
-            if (GUILayout.Button("Clear fault")) transport.SendControl(4);
-            GUILayout.EndHorizontal(); GUI.enabled = true;
-            GUILayout.Label("Desktop hand depth"); hand.desktopDepth = GUILayout.HorizontalSlider(hand.desktopDepth, -.1f, .18f);
-            GUILayout.Label("Pressure output disabled. Curl fingertips down to touch the colored blocks.");
-            GUILayout.EndScrollView(); GUILayout.EndArea();
+            if(GUILayout.Button("Smooth"))hand.desktopSide=-.075f+.0315f;
+            if(GUILayout.Button("Rough"))hand.desktopSide=.0315f;
+            if(GUILayout.Button("Soft"))hand.desktopSide=.075f+.0315f;
+            GUILayout.EndHorizontal();
+            GUILayout.Label("Desktop hand depth");hand.desktopDepth=GUILayout.HorizontalSlider(hand.desktopDepth,-.1f,.18f);
+            GUILayout.Space(12);GUILayout.Label("RETURN CUE",sectionStyle);
+            cueMonitor=GUILayout.Toggle(cueMonitor,"Monitor Unity cues (no motor output)");
+            GUILayout.Label("Unity index cue: "+cueDuties[1]+"/255",valueStyle);
+            Meter(cueDuties[1],255,new Color(.95f,.66f,.29f));
+            int received=transport.ReceivedIndexCue;
+            GUILayout.Label("Bridge received cue: "+(received<0?"waiting / stale":received+"/255")+" · pattern "+cuePatterns[1]);
+            GUILayout.Label("Board applied index PWM: "+(data==null?"—":data.Vibration[1]+"/255"));
+            if(data!=null&&data.MotorMask==0)GUILayout.Label("Physical motor output disabled");
+            GUILayout.Space(12);advanced=GUILayout.Toggle(advanced,"Calibration / hardware settings");
+            if(advanced)
+            {
+                GUI.enabled=!preview;
+                bool enabled=GUILayout.Toggle(outgoing,"Enable outgoing commands");
+                if(enabled!=outgoing){outgoing=enabled;transport.SetOutgoing(outgoing);}
+                GUI.enabled=!preview&&outgoing&&transport.Fresh;
+                GUILayout.BeginHorizontal();if(GUILayout.Button("Capture open"))transport.SendControl(2);if(GUILayout.Button("Capture closed"))transport.SendControl(3);GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();if(GUILayout.Button("Arm"))transport.SendControl(1);if(GUILayout.Button("Disarm"))transport.SendControl(0);if(GUILayout.Button("Clear fault"))transport.SendControl(4);GUILayout.EndHorizontal();GUI.enabled=true;
+                if(!preview)
+                {
+                    hand.useImuTilt=GUILayout.Toggle(hand.useImuTilt,"Use MPU6050 for slow wrist tilt");
+                    GUILayout.Label(transport.ImuFresh?"MPU6050 data connected":"MPU6050 absent / stale (optional)");
+                    GUI.enabled=transport.ImuFresh;if(GUILayout.Button("Center wrist in neutral pose"))hand.CenterImu();GUI.enabled=true;
+                }
+                if(data!=null)GUILayout.Label("State: "+data.State+" | Fault: "+data.Fault+" | masks: "+data.SensorMask+"/"+data.MotorMask);
+            }
+            GUILayout.EndScrollView();GUILayout.EndArea();
         }
     }
 }

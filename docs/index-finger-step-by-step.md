@@ -180,3 +180,5 @@ Only after the driver, supply, stop switch and off-hand circuit have been verifi
 | Fault 2 | Command refresh lost: outgoing commands, bridge and Unity still running? |
 
 Board-code compilation and desktop software checks can be verified without wiring. Actual upload, voltage, finger tracking, motor behavior and Unity contact physics still need physical verification by the team.
+
+Refined scene: **Calibration / hardware settings** contains outgoing commands and Capture open/closed. The Smooth/Rough/Soft buttons align the hand laterally; Desktop hand depth still controls forward/backward placement.

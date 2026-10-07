@@ -12,7 +12,7 @@ This demonstrates **real flex input -> Unity virtual contact -> calculated vibra
    If the assistant already started it on this laptop, leave it running; its log is `.build/judge-cue.log`. No new firmware upload is required.
 
 3. In Unity, stop Play, wait for compilation, and press Play again. Turn **Software preview off** and leave **Use MPU6050 off**. Keep **Monitor Unity cues (no motor output)** checked. Leave outgoing actuator commands unchecked; monitor packets do not require that checkbox or arming.
-4. Bend the real index finger and adjust **Desktop hand depth** until **Index contact** shows a block name.
+4. Click **Smooth**, **Rough** or **Soft** to align the hand with that target, then bend the real index finger and adjust **Desktop hand depth** until **Index contact** shows a block name. The target highlights during contact. Calibration and MPU settings are now under **Calibration / hardware settings**.
 5. Compare these three lines:
 
    | Unity display | Meaning |
