@@ -1,5 +1,7 @@
 # Start AHAM now
 
+**Current hardware goal: one index finger first.** Follow the [index-finger milestone and driver parts](index-finger-mvp.md). You need no external ADC for this version; use A0 for the flex sensor and defer GSR/additional fingers.
+
 The received board is **ESP-12E NodeMCU V3 (ESP8266)**. It has only one ADC input; resistors and motor drivers are still missing. Start with the desktop loop and the USB/I2C probe in [received-hardware bring-up](hardware-bringup.md). Meta Quest 3 arrives later. The repository now includes a desktop Unity project in `unity/` as well as assets to import into an existing project.
 
 Download the [complete starter ZIP](../artifacts/AHAM-Starter.zip) and extract it into a working folder. The [Unity import ZIP](../artifacts/AHAM-Unity-Starter.zip) contains only the assets to copy into an existing Unity project; run the host from the complete starter or repository.
@@ -109,6 +111,6 @@ Regenerate the import ZIP with `python tools/package_unity.py` and the complete 
 | Teammate | Start now | Bring back to integration |
 |---|---|---|
 | A — embedded | Build NodeMCU probe; verify USB, then MPU/PCA I2C with servo V+ disconnected | Addresses, A0 range and divider plan |
-| B — Unity | Import AHAM and run Unity-controlled simulation | Console/scene errors, five-finger mapping and contact results |
-| C — mechanics | Lay out five flex sensors and index motor on the glove; keep servos off-hand | Fit and strain relief without actuating anything |
-| D — integration | Request resistors/driver/stop parts and ESP32 or extra ADCs; test simulator faults | Actual inventory, power measurements and repeatable demo script |
+| B — Unity | Open AHAM and validate index motion/contact, then real USB telemetry | Console/scene errors and index contact results |
+| C — mechanics | Place one index flex and motor; prepare driver/stop wiring; keep servos off-hand | Fit, strain relief and off-hand driver test |
+| D — integration | Request divider/driver/stop parts; verify motor rating and run fault checks | Actual circuit, power measurements and repeatable demo script |

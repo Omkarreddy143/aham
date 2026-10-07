@@ -8,7 +8,7 @@ This plan is based on the referenced conversation, **Suggest Project Theme**. Th
 
 Four teammates; headset later: **Meta Quest 3**. Received: ESP-12E NodeMCU V3 (**ESP8266, one ADC**), five flex sensors, MPU6050, PCA9685, MG90S x4, SG90 x1, Grove GSR, glove, one coin motor, PAM8403, breadboard, 5 V / 2 A adapter. Four coin motors are pending. No divider resistors, motor driver, extra ADC/multiplexer or FSR is available.
 
-The immediate deliverable is the desktop loop plus USB/I2C identification, followed by **one index-finger sensor/contact cue** after missing parts arrive. Five-finger physical tracking requires an ESP32 replacement or additional ADC inputs and new acquisition code. GSR competes for the single A0 input; servos cannot yet be treated as force feedback. The 2 A adapter does not establish capacity for five loaded servos. [Wiring, parts request and exact bench steps](docs/hardware-bringup.md)
+**Selected first hardware deliverable: one physical index finger, one flex sensor and one coin motor.** Complete this loop before expanding. No external ADC is required now; GSR remains disconnected from the occupied A0 input. Follow the [index-finger implementation guide and driver parts](docs/index-finger-mvp.md). Five-finger tracking, Quest 3 tracking and mechanical feedback are later milestones. The 2 A adapter does not establish capacity for five loaded servos.
 
 ```mermaid
 flowchart LR
@@ -28,30 +28,30 @@ flowchart LR
 | 3–6 | A: NodeMCU USB/probe + I2C; B: Unity simulation; C: glove mounting layout; D: obtain missing parts and verify adapter/motor labels |
 | 6–10 | A/D: one verified flex divider and real USB telemetry; B: index mapping; C: mount without servo tension |
 | 10–13 | Off-hand single motor driver, stop/timeout tests; then index contact loop if hardware prerequisites are met |
-| 13–20 | Expand to five channels only if replacement MCU/ADCs and four motors/drivers arrive. Add Quest 3 when assigned after desktop integration passes |
-| 20–28 | Validate tracking, contact cues, resets and disconnects. Off-hand one-servo experiment only if power/mechanical prerequisites are satisfied |
+| 13–20 | Stabilize index motion/contact, verify correct finger mapping, then mount the verified sensor/motor with strain relief |
+| 20–28 | Repeat index contact/release, stop, timeout, reset and disconnect tests. Add Quest 3 only if assigned and the desktop loop is stable |
 | 28–34 | Freeze working scope; rehearse and record the actual delivered loop; exploratory GSR only if analog capacity/time remain |
 | 34–40 | Repeat setup, demo script, backup recording and presentation. State actual channel count and desktop/VR status |
 
-If missing parts remain unavailable at hour 10, freeze the hardware scope at board/I2C checks and demonstrate the five-channel desktop simulator honestly. Reassess at hour 13: a working one-finger physical loop is the fallback; five-finger hardware and mechanical pressure remain conditional targets. These are event-hour gates, not a fresh forty-hour extension.
+If missing divider/driver parts remain unavailable, preserve the desktop demo and board checks without claiming physical haptics. The index-finger loop is the chosen hardware MVP, not merely a fallback. Five-finger hardware and mechanical feedback are expansion work after this milestone passes. These are event-hour gates, not a fresh forty-hour extension.
 
 The detailed architecture below remains the expansion reference. Follow the received-kit wiring guide for today's board, pin map and power constraints.
 
 ## 1. Delivery scope
 
-**At hour 40: one working glove, one Unity scene, five tracked finger curls, independently addressable vibration, and a short body-ownership demonstration. Target one index-fingertip pressure channel as the main enhancement.**
+**At hour 40: one index-finger hardware loop, one Unity desktop scene, calibrated index curl, matching index vibration, verified stop/timeout behavior and a repeatable demonstration.** Hardware completion depends on obtaining and validating the divider and motor-driver parts.
 
-The team has four members and expects components in approximately three hours. This plan counts that wait inside the total forty hours, starting now. It assumes a development PC, an existing rigged hand model, and a headset that can run PC-connected VR; the actual headset/controller model is still unconfirmed. Forty hours means elapsed event time; tasks run concurrently and teammates rotate breaks. It is not forty person-hours.
+The four-person team has received the kit and has a compiled Unity desktop project. The original approximately three-hour component wait remains included in the forty-hour event budget. Meta Quest 3 arrives later. Forty hours means elapsed event time, not forty person-hours; this scope change does not restart the clock.
 
 | Priority | Deliverable | Completion condition |
 |---|---|---|
-| Required | Five-finger curl tracking | Open, half-closed and comfortably closed poses map consistently to the virtual hand |
-| Required | Tracked hand root in VR | Position and rotation come from a verified controller/tracker mount; fingers can move freely |
-| Required | Five independent vibration channels | Each virtual fingertip contact activates its matching physical motor |
+| Required | Index-finger curl tracking | Open, half-closed and comfortably closed index poses map consistently |
+| Later | Tracked hand root in VR | Quest 3 tracking and mounting validated after the desktop loop |
+| Required | One index vibration channel | Index virtual contact activates only the index motor |
 | Required | Three interaction surfaces | Smooth, rough and soft objects produce repeatably different cue patterns |
-| Required | Ownership demonstration | Synchronized motion/contact, a virtual hand appearance change, and participant ratings |
+| Optional after core loop | Exploratory ownership demonstration | Synchronized index motion/contact and separately reported participant ratings |
 | Required | Calibration, fault handling and a backup recording | Repeated setup and reconnect work without unintended actuation |
-| Target enhancement | Index-fingertip pressure | A compliant pad presses and releases repeatably, with local sensor and travel limits |
+| Later | Index-fingertip pressure | A compliant pad presses and releases repeatably, with local sensor and travel limits |
 | Stretch | One-finger tendon resistance | A separate mechanism demonstrably opposes closure and releases reliably |
 | Stretch | GSR logging | Available module produces time-aligned exploratory skin-conductance readings |
 | Later | Five-finger pressure/resistance, wireless, custom PCB | Outside the committed 40-hour scope |
@@ -70,7 +70,7 @@ If only one or two builders are available, commit to tracking, vibration and the
 
 Vibration does not reproduce a solid wall. A pressing pad adds local pressure but does not stop the finger passing through a virtual surface. Tendon resistance is a third, separate function. The demonstration must identify which channels are actually active.
 
-## 3. System architecture
+## 3. Expansion architecture reference
 
 ```mermaid
 flowchart LR
@@ -216,7 +216,9 @@ If firmware is healthy and power remains, command the verified release position 
 
 Use stock rigged models, simple objects and readily fabricated mounts. Do not spend event time on a custom PCB or realistic environment artwork.
 
-## 8. Forty-hour execution schedule
+## 8. Original expansion schedule (superseded)
+
+The received-kit schedule at the top of this document is the current forty-hour plan. The table below records the earlier five-finger/pressure proposal and is not a requirement for the selected index-finger MVP.
 
 Suggested ownership: **A** embedded/electronics; **B** Unity/VR; **C** mechanics/actuator validation; **D** integration, logging, demo and support. With three people, combine D with the other roles and omit stretch work. Rotate breaks while another teammate covers the active integration task.
 

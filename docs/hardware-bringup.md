@@ -1,5 +1,7 @@
 # Received hardware: start with NodeMCU
 
+**Selected scope: one index finger first.** Use the [index-finger milestone](index-finger-mvp.md); external ADCs/ESP32 replacement and four more drivers are later expansion parts, not prerequisites for this version.
+
 Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. No resistors, motor switching parts or extra ADC/multiplexer are available. Meta Quest 3 arrives later; use the Unity desktop path now.
 
 **Default firmware: NodeMCU, one index-finger ADC channel, zero enabled motor outputs.** No hardware has been flashed or physically verified by this repository.

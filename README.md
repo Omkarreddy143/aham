@@ -6,6 +6,8 @@ AHAM maps physical finger movement to a Unity virtual hand and returns synchroni
 
 ## Current status
 
+**Current build scope: one physical index finger, one flex sensor and one vibration motor.** Complete the [index-finger milestone](docs/index-finger-mvp.md) before expanding to five fingers. No external ADC is needed for this first version.
+
 The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, five servos, Grove GSR, one coin motor and a 5 V / 2 A adapter. Resistors, motor drivers and extra analog inputs are missing. Meta Quest 3 is assigned later. Start with the desktop simulator and NodeMCU USB/I2C probe; move to one index flex sensor after obtaining divider resistors. See [actual hardware and required parts](docs/hardware-bringup.md).
 
 | Component | Status |
@@ -36,6 +38,7 @@ For a teammate's existing project, copy `unity/Assets/AHAM` and its `.meta` file
 
 ## Development references
 
+- [Index-finger hardware milestone and driver parts](docs/index-finger-mvp.md)
 - [Wire protocol v1](docs/protocol.md)
 - [Received hardware, missing parts and bring-up](docs/hardware-bringup.md)
 - [Verification record](docs/verification.md)
@@ -45,11 +48,12 @@ Folders: `firmware/` embedded application, `host/` simulator/USB bridge, `unity/
 
 ## Planned prototype
 
-- One glove with five flex-sensor finger-curl channels.
-- VR controller/tracker input for hand-root position and orientation.
-- Five independently controlled fingertip vibration motors.
-- One index-fingertip pressure channel, subject to mechanism and release validation.
-- A Unity scene with material-associated cues and an exploratory body-ownership demonstration.
+- One index flex sensor animating the virtual index finger.
+- One coin motor providing index contact cues through a verified driver.
+- A Unity desktop scene with three material-associated cue patterns.
+- Calibration, physical stop, command expiry and repeatable reconnect behavior.
+
+Later: expand to five fingers, add Quest 3 root tracking, and investigate pressure/resistance after separate mechanism validation.
 
 Tendon resistance and GSR logging are stretch features. Vibration, local pressure and movement resistance are distinct feedback channels; the demonstration will identify the channels actually delivered.
 

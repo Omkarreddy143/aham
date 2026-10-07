@@ -28,4 +28,5 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
             archive.write(path, path.relative_to(root / 'unity' / 'Assets').as_posix())
     archive.write(root / 'docs' / 'quickstart.md', 'AHAM/QUICKSTART.md')
     archive.write(root / 'docs' / 'hardware-bringup.md', 'AHAM/hardware-bringup.md')
+    archive.write(root / 'docs' / 'index-finger-mvp.md', 'AHAM/index-finger-mvp.md')
 print(output)
