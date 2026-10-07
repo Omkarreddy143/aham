@@ -35,7 +35,9 @@ local-data/
 
 # Local test builds, packages and Python caches
 .build/
-artifacts/
+artifacts/*
+!artifacts/AHAM-Starter.zip
+!artifacts/AHAM-Unity-Starter.zip
 __pycache__/
 *.pyc
 .venv/

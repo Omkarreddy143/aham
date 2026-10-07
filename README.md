@@ -20,6 +20,8 @@ The first software milestone is implemented: a hardware-free glove simulator, ES
 
 ## Start now
 
+Download the [complete starter ZIP](artifacts/AHAM-Starter.zip) or the [Unity import ZIP](artifacts/AHAM-Unity-Starter.zip), then follow the [quickstart](docs/quickstart.md).
+
 ```powershell
 python host/run.py simulate
 ```

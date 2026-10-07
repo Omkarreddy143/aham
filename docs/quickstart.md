@@ -2,6 +2,8 @@
 
 The headset is still pending and one teammate has Unity. Start with the desktop loop while hardware arrives. The repository provides an importable Unity asset folder, not a preconfigured headset-specific Unity project.
 
+Download the [complete starter ZIP](../artifacts/AHAM-Starter.zip) and extract it into a working folder. The [Unity import ZIP](../artifacts/AHAM-Unity-Starter.zip) contains only the assets to copy into an existing Unity project; run the host from the complete starter or repository.
+
 ## 1. Review the simulator immediately
 
 From the repository root, with Python 3.10 or newer:
@@ -83,7 +85,7 @@ powershell -ExecutionPolicy Bypass -File tools/check.ps1
 
 The first command exercises Python framing, simulator faults, HTTP validation and the UDP command/telemetry loop. The script also compiles/tests the actual firmware's portable C++ protocol/supervisor and Unity's standalone C# codec if the corresponding local compilers are present. It does not pretend to test Unity physics/rendering without the editor.
 
-Regenerate the import ZIP with `python tools/package_unity.py`. Regenerate shared wire fixtures only after a deliberate protocol change with `python tools/make_fixtures.py`; review the resulting bytes rather than silently accepting a changed contract.
+Regenerate the import ZIP with `python tools/package_unity.py` and the complete source ZIP with `python tools/package_starter.py`. The complete ZIP excludes packaged artifacts to avoid nesting previous ZIPs. Stage new source files before packaging so they are included. Regenerate shared wire fixtures only after a deliberate protocol change with `python tools/make_fixtures.py`; review the resulting bytes rather than silently accepting a changed contract.
 
 ## Immediate team assignments
 
