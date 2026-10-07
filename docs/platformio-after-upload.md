@@ -65,6 +65,22 @@ Keep this terminal running. It should report **DISARMED; calibrate and arm expli
 
 Expected masks: **flex 2 / motor 0**. Stay **Disarmed** for this check. About 30 original ADC counts of repeatable open/bent span are needed; the displayed raw value is scaled to 0–4095. If calibration fails, check measured wiring and board A0 range rather than forcing the sensor further.
 
+### If the raw number changes too fast to read
+
+The firmware samples at 100 Hz. A small near-zero reading without the flex sensor does not establish that a sensor is connected: an ADC can have offset/noise, and a disconnected A0 without its ground resistor can float.
+
+To print a readable **minimum/maximum once per second**, stop the existing bridge first and start this diagnostic variant:
+
+```powershell
+.\.venv\Scripts\python.exe host/run.py bridge --port COM7 --stats
+```
+
+It still forwards the same messages to Unity. Hold the sensor still for five seconds; compare those ranges with comfortable straight/bent poses. Large jumps while stationary need a wiring/ADC check before calibration or smoothing. If the assistant started the diagnostic bridge in the background on this laptop, its output is in **.build/usb-bridge.log**; do not start a second bridge on COM7.
+
+Check the actual resistor values, common ground, breadboard rows and secure sensor connections. With the flex sensor removed but both resistor paths intact, X/Y have a ground reference and should be near ground. Removing the entire A0 connection is a different test and may leave A0 floating.
+
+For a ground-reference check, disconnect USB and remove A0's wire to Y. Connect **only A0 to NodeMCU GND** with a jumper, then reconnect USB and restart the bridge. A0 should now show a stable reading near zero; it need not be exactly zero. Keep disarmed: grounding A0 is a diagnostic test, not a finger measurement. Disconnect USB before restoring the verified divider. Never connect A0 directly to 3V3 to test it. If direct-ground readings still vary widely, inspect the ground jumper, board, USB/power connection and actual flashed code. If they become steady, inspect the sensor divider and flex connections next. A photo showing every connection and measured resistor values is useful here.
+
 ## 6. Adapt the linked motor tutorial
 
 The supplied [YouTube video](https://www.youtube.com/watch?v=ZAsGHhWxwpM) has [written instructions by its creator, Science Buddies](https://www.sciencebuddies.org/science-fair-projects/project-ideas/VirtualReality_p007/virtual-reality/arduino-VR-haptic-glove). Those instructions use an Arduino, **5 V motors**, **N-channel MOSFETs**, and the board's **5 V power rail**. They do not power the motors from the control GPIOs. Their ultrasonic-sensor code also differs from AHAM's Unity contact commands.
