@@ -2,6 +2,8 @@
 
 **Selected scope: one index finger first.** Use the [index-finger milestone](index-finger-mvp.md); external ADCs/ESP32 replacement and four more drivers are later expansion parts, not prerequisites for this version.
 
+**Latest status:** the team reports uploading the full Unity-compatible sketch using PlatformIO. Use [the post-upload steps](platformio-after-upload.md). The previously reported 3 V motor rating is now questioned as possibly 5 V; verify the supplier rating before any motor-power test. Neither USB input voltage nor the linked tutorial establishes the received motor's rating.
+
 Confirmed: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU6050, PCA9685, four MG90S servos, one SG90, Grove GSR, one coin motor reported as **10 mm / 3 V**, PAM8403, glove, breadboard and **5 V / 2 A adapter**. Four more motors are pending. A **2N2222A** has been identified and resistors are visible in the supplied photos; transistor pinout and resistor values are unverified. A flyback diode, regulated 3 V motor supply and extra ADC/multiplexer have not been confirmed available. Meta Quest 3 arrives later; use the Unity desktop path now.
 
 **Default firmware: NodeMCU, one index-finger ADC channel, zero enabled motor outputs.** No hardware has been flashed or physically verified by this repository.

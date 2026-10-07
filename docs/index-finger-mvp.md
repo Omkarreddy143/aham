@@ -2,6 +2,8 @@
 
 The team has selected **one physical index finger, one flex sensor and one coin motor**. Complete this loop before expanding. **No external ADC is needed now**; A0 reads only the flex sensor, with GSR disconnected.
 
+**Latest status:** the full Unity-compatible sketch is uploaded using PlatformIO. Follow [the post-upload steps](platformio-after-upload.md). The earlier 3 V motor report is now questioned as possibly 5 V; confirm the actual supplier rating before motor-power tests. The 3 V supply instructions below apply only if that rating is confirmed.
+
 ```mermaid
 flowchart LR
   F[Index flex and verified divider] --> N[NodeMCU A0]

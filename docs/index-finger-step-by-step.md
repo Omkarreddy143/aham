@@ -1,5 +1,7 @@
 # One index finger: start here
 
+**Already uploaded the full sketch using VS Code / PlatformIO?** Skip the Arduino IDE setup and follow [the short post-upload steps](platformio-after-upload.md). The team currently uses that path. The motor's earlier 3 V report is now questioned as possibly 5 V; confirm its actual rating before applying the motor-power instructions below. Sensor/Unity steps use USB with the motor disconnected and are unaffected.
+
 Goal: bending your real index finger bends the index finger in Unity. After that works, virtual contact can request one motor's vibration. Meta Quest 3, other fingers, GSR, MPU6050, PCA9685 and servos are later steps.
 
 Your board is **ESP-12E NodeMCU V3 / ESP8266**. Use **USB power for the board and flex sensor**. No 5 V adapter is used in this walkthrough. The motor remains disconnected for steps 1–8; that portion does not need a transistor or motor power supply.

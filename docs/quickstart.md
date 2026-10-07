@@ -1,5 +1,7 @@
 # Start AHAM now
 
+**Using PlatformIO and already uploaded?** Follow **[the short post-upload procedure](platformio-after-upload.md)** to connect the real index sensor to Unity. Use `nodemcuv2` for the received ESP8266 board.
+
 For the simplest hardware walkthrough, use **[one index finger: step by step](index-finger-step-by-step.md)** and the **[Arduino IDE sketch ZIP](../artifacts/AHAM-Index-Arduino.zip)**. It starts with USB-powered flex sensing and real Unity motion. Vibration is a later verified stage; no 5 V adapter is used in that walkthrough.
 
 **Current hardware goal: one index finger first.** Follow the [index-finger milestone and driver parts](index-finger-mvp.md). You need no external ADC for this version; use A0 for the flex sensor and defer GSR/additional fingers.

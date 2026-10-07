@@ -30,4 +30,5 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
     archive.write(root / 'docs' / 'hardware-bringup.md', 'AHAM/hardware-bringup.md')
     archive.write(root / 'docs' / 'index-finger-mvp.md', 'AHAM/index-finger-mvp.md')
     archive.write(root / 'docs' / 'index-finger-step-by-step.md', 'AHAM/index-finger-step-by-step.md')
+    archive.write(root / 'docs' / 'platformio-after-upload.md', 'AHAM/platformio-after-upload.md')
 print(output)

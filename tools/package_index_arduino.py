@@ -30,4 +30,5 @@ with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
     archive.write(root / 'docs' / 'index-finger-step-by-step.md', 'START-HERE.md')
     archive.write(root / 'docs' / 'index-finger-mvp.md', 'index-finger-mvp.md')
     archive.write(root / 'docs' / 'hardware-bringup.md', 'hardware-bringup.md')
+    archive.write(root / 'docs' / 'platformio-after-upload.md', 'platformio-after-upload.md')
 print(output)
