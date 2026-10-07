@@ -354,6 +354,22 @@ class WebXRRelayTests(unittest.TestCase):
         self.assertEqual(self.post_grip(self.grip(), {"Origin": "https://other.example"})[0], 403)
         self.assertIsNone(self.status()["resistance"])
 
+    def test_wifi_preview_exposes_accepted_data_separately_from_unconfirmed_receipts(self):
+        self.post(self.cue())
+        self.post_grip(self.grip())
+        code,body,_=self.request("GET","/api/wifi-preview")
+        self.assertEqual(code,200)
+        values=json.loads(body)
+        self.assertEqual(values["cue"]["duties"],[0,120,10,0,160])
+        self.assertEqual(values["grip"]["resistance"],[40,50,55,60,65])
+        self.assertIsNone(self.status()["received"])
+        self.assertEqual(self.request("GET","/api/wifi-preview",headers={"Origin":"https://other.example"})[0],403)
+        time.sleep(.27)
+        values=json.loads(self.request("GET","/api/wifi-preview")[1])
+        self.assertIsNone(values["cue"]);self.assertIsNotNone(values["grip"])
+        time.sleep(.26)
+        self.assertIsNone(json.loads(self.request("GET","/api/wifi-preview")[1])["grip"])
+
 
 class ExternalOriginConfigurationTests(unittest.TestCase):
     INVALID_ORIGINS = (

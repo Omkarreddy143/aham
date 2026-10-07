@@ -9,7 +9,7 @@ Raw bytes are little-endian. COBS-encode the complete raw packet and append one 
 | Raw offset | Field | Size |
 |---|---|---|
 | 0 | Version, currently 1 | uint8 |
-| 1 | Type: telemetry 1, haptic 2, control 3, raw IMU 4 | uint8 |
+| 1 | Type: telemetry 1, haptic 2, control 3, raw IMU 4; optional Wi-Fi preview 5 / receipt 6 | uint8 |
 | 2 | Sequence | uint16 |
 | 4 | Sender uptime/time counter in milliseconds | uint32 |
 | 8 | Type-specific payload | variable |
@@ -81,3 +81,8 @@ All host control/haptic packets share one sequence counter. A delta in 1â€“
 - Simulator dashboard: HTTP `127.0.0.1:8870`.
 
 Run either the simulator or the USB bridge, never both on the same ports. The bridge opens an explicitly chosen serial device and never auto-arms. The dashboard belongs only to the simulator; it has no real-hardware output route.
+## Receive-only Wi-Fi observation extension
+
+The optional `nodemcu_wifi_monitor` firmware and laptop `wifi-monitor` use packet types **5 (preview)** and **6 (receipt)** with the same CRC/COBS envelope. They are distinct from motor HAPTIC/CONTROL packets and carry no actuator command. Type 5's 27-byte payload is little-endian session ID (u32), lease (u16, 100–250 ms), flags (u8), then five u8 values each for vibration (0–160), pattern (0–3), resistance request (0–80%) and captured curl (0–100%). Flag bit 0 means a fresh live right-hand cue; bit 1 means a fresh held-core preview. Inactive fields must be zero.
+
+Type 6's eight-byte payload echoes session ID (u32), preview-payload CRC (u16), motor output mask (u8, always 0), servo output enabled (u8, always 0); its sequence equals the accepted preview sequence. The receiver accepts only the configured laptop IP, rejects duplicate/out-of-order sequences and zeros stored requests after lease expiry. The sender requires a matching pending session, sequence and payload checksum before reporting receipt. CRC/IP filtering is not authentication. This extension is an observation checkpoint and does not enable the existing actuator supervisor or PCA9685. See [Wi-Fi quickstart](wifi-quickstart.md).

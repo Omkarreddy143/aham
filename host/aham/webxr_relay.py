@@ -155,6 +155,8 @@ class Relay:
         self.resistance = None
         self.resistance_at = None
         self.grip_sequence = 0
+        self.submitted = None
+        self.submitted_at = None
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -186,6 +188,9 @@ class Relay:
                 self.recent_cues.pop()
                 raise
             self.sequence = (sequence + 1) & 0xFFFF
+            self.submitted = dict(source=value["source"], hand=value["hand"], trackingValid=value["trackingValid"],
+                                  duties=duties, patterns=patterns, sequence=sequence)
+            self.submitted_at = sent_at
         return sequence
 
     def _prune_recent_cues(self, now):
@@ -260,6 +265,16 @@ class Relay:
         with self.lock:
             self.sender.close()
 
+    def wifi_preview(self):
+        """Accepted data for the receive-only LAN companion, separate from receipts."""
+        with self.lock:
+            now = time.monotonic()
+            cue = (dict(self.submitted, ageMs=int((now-self.submitted_at)*1000))
+                   if self.submitted_at is not None and 0 <= now-self.submitted_at < .250 else None)
+            grip = (dict(self.resistance, ageMs=int((now-self.resistance_at)*1000))
+                    if self.resistance_at is not None and 0 <= now-self.resistance_at < .500 else None)
+            return {"mode": "monitor-only", "cue": cue, "grip": grip}
+
 
 class RelayHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
@@ -308,6 +323,8 @@ class RelayHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/status":
                 self._reply(200, self.server.relay.status())
+            elif path == "/api/wifi-preview":
+                self._reply(200, self.server.relay.wifi_preview())
             else:
                 self._reply(404, {"error": "Unknown endpoint"})
             return

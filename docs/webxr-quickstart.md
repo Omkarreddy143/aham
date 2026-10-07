@@ -91,6 +91,8 @@ Compare three separate results: **HTTP accepted** means the relay accepted a req
 
 After that checkpoint, implement actuator-only firmware and a verified motor driver circuit. Test vibration first. Follow the [servo-resistance plan](servo-resistance-plan.md) for the new request contract and the one-finger bench-first mechanism stage. Servo feedback needs a separate suitable supply and bounded mechanical testing before wearable use. The ESP8266 provides Wi-Fi and has no built-in BLE, so later wireless glove communication should use Wi-Fi or added hardware. [Espressif ESP8266 specifications](https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf), [Espressif provisioning guide](https://docs.espressif.com/_/downloads/esp-jumpstart/en/latest/pdf/)
 
+The [Wi-Fi monitor guide](wifi-quickstart.md) now provides a receive-only PlatformIO environment and laptop sender. Use it to prove Quest-derived data reaches NodeMCU over a 2.4 GHz phone hotspot before adding any physical output. Stop the old USB bridge before flashing; this new firmware prints text at 115200 baud and does not send the old binary sensor telemetry.
+
 ## Optional USB development fallback
 
 This is a fallback, not the selected wireless route. Enable Quest Developer Mode, connect USB, and accept USB debugging in the headset. ADB is available at the path below:

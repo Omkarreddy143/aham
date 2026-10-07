@@ -11,6 +11,10 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Native compilation failed.' }
         & '.\.build\native-tests.exe' tests/fixtures/wire.txt
         if ($LASTEXITCODE -ne 0) { throw 'Native checks failed.' }
+        & $Cpp -std=c++11 -Wall -Wextra -Werror -Ifirmware/include tests/wifi_monitor_tests.cpp -o .build/wifi-monitor-tests.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Wi-Fi native compilation failed.' }
+        & '.\.build\wifi-monitor-tests.exe' tests/fixtures/wifi-monitor.txt
+        if ($LASTEXITCODE -ne 0) { throw 'Wi-Fi firmware interoperability checks failed.' }
     } else { Write-Warning 'C++ compiler unavailable; native checks not run.' }
     $csharpCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
     if (Test-Path -LiteralPath $csharpCompiler) {

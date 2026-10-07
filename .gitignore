@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+**/WifiSecrets.h
 *.pem
 *.key
 
@@ -40,6 +41,7 @@ artifacts/*
 !artifacts/AHAM-Unity-Starter.zip
 !artifacts/AHAM-Index-Arduino.zip
 !artifacts/AHAM-WebXR-Starter.zip
+!artifacts/AHAM-WiFi-Monitor.zip
 __pycache__/
 *.pyc
 .venv/

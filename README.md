@@ -23,6 +23,7 @@ Later verified output path:
 | Desktop preview | Synthetic grab/lift/delivery rehearsal; submits no cues and can monitor Quest |
 | Feedback monitor | Calculated cue, HTTP acceptance, matching bridge echo and board telemetry shown separately |
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |
+| Wi-Fi to NodeMCU | Receive-only UDP companion + PlatformIO receiver compiled; actual hotspot upload/receipt trial next |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
 | Vibration motor | Driver and diode bring-up incomplete; no physical vibration verified |
 | Servo resistance | Five software requests and expiring laptop receipt implemented; physical control pending supply, measured mechanics, release and firmware |
@@ -53,6 +54,7 @@ The received board is **ESP-12E NodeMCU V3 / ESP8266**, rather than ESP32. Quest
 - [Complete repository starter ZIP](artifacts/AHAM-Starter.zip)
 - [WebXR architecture and next checkpoints](docs/webxr-architecture.md)
 - [WebXR quickstart](docs/webxr-quickstart.md)
+- [Wi-Fi receiver ZIP](artifacts/AHAM-WiFi-Monitor.zip) and [2.4 GHz hotspot setup](docs/wifi-quickstart.md)
 - [Game and servo-resistance contract](docs/servo-resistance-plan.md)
 - [Verification record](docs/verification.md)
 - [Original 40-hour plan](AHAM-40-hour-plan.md), with the selected WebXR revision at the top
@@ -69,3 +71,5 @@ node --test tests/webxr-logic.test.mjs tests/webxr-game.test.mjs
 ```
 
 The browser library is pinned and vendored; no npm install or CDN is needed to run this prototype. A Quest session is required to validate actual hand tracking, fitted-glove visibility, contact placement and network delay. Optical pose estimation does not measure tendon force.
+
+For wireless glove **data receipt**, use `nodemcu_wifi_monitor` and the Wi-Fi guide. It prints five vibration and resistance requests at 115200 baud and acknowledges LAN packets. It does not control servos or vibration motors; keep this distinct from the older `nodemcuv2` sensor firmware and its binary USB telemetry.

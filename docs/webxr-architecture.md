@@ -15,6 +15,7 @@ The selected revision replaces Unity, flex sensors and MPU6050 as primary tracki
 | HTTPS link | Carry wireless headset requests | Temporary Cloudflare tunnel to a loopback HTTP server |
 | Laptop relay | Validate requests and distinguish acceptance from receipt | Strict JSON, monitor UDP 8767, matching echoes on 8877 |
 | Existing USB bridge | Observe board telemetry and echo monitor packets | COM7/230400 baud; monitor packets have no serial output route |
+| Wi-Fi data companion | Laptop loopback preview -> private LAN UDP -> ESP receipt | Optional `wifi-monitor`; separate type 5/6 observation packets; no actuator output |
 | Actuator-only firmware | Accept external cues without local flex calibration | Pending; current firmware needs a new mode |
 | Vibration driver | Switch motor current and suppress inductive kick | Pending verified supply, circuit, diode and transistor pinout |
 | Servo mechanism | Produce bounded tendon resistance | Pending; PCA9685/servos do not measure force or ensure release |
@@ -62,4 +63,6 @@ Stop servo expansion before the final two event hours. Rehearse the achieved dem
 
 Retain NodeMCU, glove, coin motors, drivers/diodes and power wiring. Retain PCA9685 and servos for later mechanism work. Flex sensors, divider wiring and MPU6050 become backup sensing. GSR remains outside the first demonstration.
 
-The ESP8266 has Wi-Fi and no built-in BLE. The first route keeps it on USB. A later LAN Wi-Fi actuator route can reduce cables but needs new firmware, reconnect and watchdog validation. Do not power servos from the board's 3.3 V output, or assume the 5 V/2 A adapter can supply five loaded servos.
+The ESP8266 has Wi-Fi and no built-in BLE. The new [Wi-Fi receive-only checkpoint](wifi-quickstart.md) uses a 2.4 GHz hotspot: the laptop polls accepted cue/grip previews on loopback and sends type 5 observation packets to a configured private ESP IPv4 at UDP 4210. Matching type 6 receipts confirm the ESP validated the data. The firmware keeps outputs OFF, rejects wrong peer IP/invalid fields/duplicates and clears stored requests after a 250 ms lease. USB remains for first upload, power and logs; the old bridge must release COM7 before uploading or opening the new 115200-baud text monitor. Browser USB echo and ESP Wi-Fi receipt are separate indicators. Do not treat this CRC/IP-filtered observation link as an authenticated actuator-control protocol.
+
+A later LAN Wi-Fi actuator route can reduce cables but still needs actuator firmware, local arming, measured release, reconnect and watchdog validation. Do not power servos from the board's 3.3 V output, or assume the 5 V/2 A adapter can supply five loaded servos.
