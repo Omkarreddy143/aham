@@ -6,7 +6,36 @@ AHAM maps physical finger movement to a Unity virtual hand and returns synchroni
 
 ## Current status
 
-Planning stage: this repository currently contains the project architecture and the team's 40-hour execution plan. Firmware, the Unity project and validated hardware results will be added during implementation.
+The first software milestone is implemented: a hardware-free glove simulator, ESP32 vibration firmware, a local USB bridge and importable Unity desktop starter assets. The actual headset integration and hardware validation are pending.
+
+| Component | Status |
+|---|---|
+| Browser glove simulator | Runs without hardware; calibration, material cues, output bars and fault controls |
+| ESP32 firmware | Compiles for classic ESP32 DevKit; five flex inputs, five motor PWM channels and local supervision |
+| Shared binary protocol | Python/C++/C# interoperability checked with common fixtures |
+| Unity starter | Primitive hand, three contact surfaces and operator controls; editor compile/play check still required |
+| USB bridge | Implemented; requires a verified serial device and bench test |
+| VR root tracking | Adapter pending headset/controller model |
+| Pressure, tendon resistance, GSR and participant logger | Not implemented in this starter |
+
+## Start now
+
+```powershell
+python host/run.py simulate
+```
+
+Open **http://127.0.0.1:8870**. This is simulation only and cannot drive hardware. See the [quickstart and team assignments](docs/quickstart.md) to calibrate the simulator, import the Unity assets and connect the desktop loop.
+
+For Unity-controlled simulation, use `python host/run.py simulate --controller unity`, copy `unity/Assets/AHAM` and its `.meta` file into the teammate's project, then choose **AHAM -> Create Desktop Starter Scene**.
+
+## Development references
+
+- [Wire protocol v1](docs/protocol.md)
+- [Provisional hardware wiring and bring-up](docs/hardware-bringup.md)
+- [Verification record](docs/verification.md)
+- [Full architecture and 40-hour schedule](AHAM-40-hour-plan.md)
+
+Folders: `firmware/` embedded application, `host/` simulator/USB bridge, `unity/` importable assets, `tests/` protocol and supervisor checks, and `tools/` packaging/verification helpers.
 
 ## Planned prototype
 

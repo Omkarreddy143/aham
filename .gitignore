@@ -32,3 +32,10 @@ Desktop.ini
 
 # Local experiment data
 local-data/
+
+# Local test builds, packages and Python caches
+.build/
+artifacts/
+__pycache__/
+*.pyc
+.venv/
