@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#102125">
-  <title>AHAM · Hand to world</title>
+  <title>AHAM · Orbit Foundry</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -14,16 +14,32 @@
   </header>
   <main>
     <section class="stage">
-      <div class="intro"><p class="eyebrow">QUEST 3 / WEBXR · FULL HAND v2</p><h1>Your hands in the world.</h1><p>Five fingers. Both hands. Contact cues for every fingertip.</p></div>
-      <canvas id="scene" aria-label="Both tracked hands and three contact surfaces"></canvas>
-      <div class="stage-footer"><span>01 Smooth</span><span>02 Rough</span><span>03 Soft</span></div>
+      <div class="intro"><p class="eyebrow">QUEST 3 / WEBXR · ORBIT FOUNDRY v3</p><h1>A little gravity.<br>A lot of possibility.</h1><p>Grab. Lift. Deliver. Put your right hand to work.</p></div>
+      <canvas id="scene" aria-label="Orbit Foundry: energy cores, matching docks and both tracked hands"></canvas>
+      <div class="game-hud" aria-label="Game scoreboard">
+        <div><span>SCORE</span><strong id="game-score">0</strong></div><div><span>SHIFT</span><strong id="game-time">75s</strong></div><div><span>COMBO</span><strong id="game-combo">×1</strong></div><div><span>BEST / THIS VISIT</span><strong id="game-best">0</strong></div>
+      </div>
+      <div class="stage-footer"><p id="game-message" role="status">Open your right hand, then grab a core.</p><span>ION .25kg · FLUX 1kg · NOVA 3kg / VIRTUAL MASS</span></div>
     </section>
     <aside>
       <div class="section-top"><p class="eyebrow">THE CONNECTION</p><span id="source-badge">DESKTOP PREVIEW</span></div>
-      <h2>Follow your hand.</h2>
-      <p class="description">In Quest Browser, enter VR and move both hands. Every finger of the selected feedback hand can touch a surface.</p>
+      <h2>Your shift starts here.</h2>
+      <p class="description">Close your right hand around a core, or pinch it. Lift at least 8 cm, carry to its matching color dock, then open. Chain deliveries for bonus points.</p>
       <button id="enter-vr" class="primary" disabled>Checking VR support…</button>
       <p id="xr-status" class="hint" role="status">Starting the scene…</p>
+      <div class="load-panel">
+        <div class="section-top"><p class="eyebrow">RIGHT HAND / RESISTANCE PREVIEW</p><span class="output-off">SERVOS OFF</span></div>
+        <p id="held-value">No core held</p>
+        <div class="resistance-grid" aria-label="Five dimensionless finger resistance requests">
+          <div><div class="load-track"><i id="resistance-bar-0"></i></div><strong id="resistance-0">0%</strong><span>Thumb</span></div>
+          <div><div class="load-track"><i id="resistance-bar-1"></i></div><strong id="resistance-1">0%</strong><span>Index</span></div>
+          <div><div class="load-track"><i id="resistance-bar-2"></i></div><strong id="resistance-2">0%</strong><span>Middle</span></div>
+          <div><div class="load-track"><i id="resistance-bar-3"></i></div><strong id="resistance-3">0%</strong><span>Ring</span></div>
+          <div><div class="load-track"><i id="resistance-bar-4"></i></div><strong id="resistance-4">0%</strong><span>Little</span></div>
+        </div>
+        <p class="hint">Heavier cores request more grip resistance. Percentages are software requests; they are not servo angles or measured force.</p>
+        <div class="receipt"><div><span>Laptop grip preview</span><strong id="grip-received">Waiting</strong></div></div>
+      </div>
       <label class="select-label" for="hand">Feedback hand<select id="hand"><option value="right">Right hand</option><option value="left">Left hand</option></select></label>
       <div class="readouts">
         <div><span>Tracked joints</span><strong id="all-hands-value">Preview</strong></div>
@@ -40,21 +56,26 @@
       </div>
       <div class="signal"><span>Peak finger cue</span><strong><b id="cue-value">0</b><small> / 255</small></strong><div class="meter"><div id="cue-bar"></div></div><p id="pattern-value">No contact</p></div>
       <div class="receipt"><div><span>Relay accepted</span><strong id="accepted-value">Waiting</strong></div><div><span>Bridge received</span><strong id="received-value">Not connected</strong></div><div><span>Board reports</span><strong id="applied-value">Not connected</strong></div></div>
-      <p class="hint">Acceptance, bridge receipt and board output are separate checks. This demo sends cues to the monitor only. Servo control is pending.</p>
+      <p class="hint">The virtual hand always follows the tracked hand. Cues reach the monitor; resistance previews reach the laptop. Physical vibration and tendon resistance still need the driver, power, release mechanism and firmware.</p>
       <div id="preview-controls">
-        <p class="eyebrow">TRY THE SCENE / SIMULATED HAND</p>
+        <p class="eyebrow">DESKTOP REHEARSAL / SIMULATED HAND</p>
+        <p class="hint">Choose a core → Grab → Lift → Matching dock → Release. Use Right hand above. Only live Quest tracking can send nonzero requests.</p>
+        <div class="surface-buttons"><button data-target="0">Ion · light</button><button data-target="1">Flux · medium</button><button data-target="2">Nova · heavy</button></div>
+        <div class="surface-buttons"><button id="open-hand">Open hand</button><button id="close-hand">Grab core</button></div>
+        <div class="surface-buttons"><button id="lift-core">Lift 18 cm</button><button id="move-dock">Matching dock</button><button id="release-core">Release core</button></div>
+        <button id="reset-game" class="reset">New shift</button>
+        <details><summary>Individual finger preview</summary>
         <label for="preview-curl-0">Thumb bend</label><input id="preview-curl-0" type="range" min="0" max="100" value="0">
         <label for="preview-curl-1">Index bend</label><input id="preview-curl-1" type="range" min="0" max="100" value="0">
         <label for="preview-curl-2">Middle bend</label><input id="preview-curl-2" type="range" min="0" max="100" value="0">
         <label for="preview-curl-3">Ring bend</label><input id="preview-curl-3" type="range" min="0" max="100" value="0">
         <label for="preview-curl-4">Little bend</label><input id="preview-curl-4" type="range" min="0" max="100" value="0">
-        <div class="surface-buttons"><button id="open-hand">Open hand</button><button id="close-hand">Close hand</button></div>
-        <div class="surface-buttons"><button data-target="0">Smooth</button><button data-target="1">Rough</button><button data-target="2">Soft</button></div>
-        <p class="hint">Preview values are synthetic. The relay receives zero output from preview.</p>
+        </details>
+        <p class="hint">Preview values are synthetic. Desktop rehearsal submits no cues and can monitor the live Quest without overriding it.</p>
       </div>
     </aside>
   </main>
-  <footer><span>Optical tracking → virtual contact → feedback cue</span><a href="https://immersive-web.github.io/webxr-samples/immersive-hands.html" target="_blank" rel="noopener">Check Quest hand tracking ↗</a></footer>
+  <footer><span>75 seconds. Three cores. Five fingers. One orbit to power.</span><a href="https://immersive-web.github.io/webxr-samples/immersive-hands.html" target="_blank" rel="noopener">Check Quest hand tracking ↗</a></footer>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

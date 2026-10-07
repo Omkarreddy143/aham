@@ -7,7 +7,8 @@ output = root / "artifacts" / "AHAM-WebXR-Starter.zip"
 output.parent.mkdir(exist_ok=True)
 paths = [root / "README.md", root / "docs/webxr-quickstart.md",
          root / "docs/webxr-architecture.md", root / "docs/protocol.md",
-         root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs"]
+         root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",
+         root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md"]
 for folder in ("webxr", "host"):
     paths.extend(path for path in (root / folder).rglob("*")
                  if path.is_file() and "__pycache__" not in path.parts)

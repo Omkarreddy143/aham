@@ -6,10 +6,12 @@ The selected revision replaces Unity, flex sensors and MPU6050 as primary tracki
 
 | Module | Responsibility | Current implementation |
 |---|---|---|
-| Quest tracking | Estimated wrist orientation and 25 hand-joint poses | WebXR hand joints; actual headset trial pending |
+| Quest tracking | Estimated wrist orientation and 25 hand-joint poses | Team confirmed both-hand tracking and cue receipt on Quest |
 | Hand view | Render joint positions and connecting bones | Independent left/right Three.js rigs; 25 joints each |
 | Curl estimate | Display bending from adjacent bone angles | Approximate visual curl; no flex calibration required |
-| Contact cues | All five tip spheres against material boxes | Smooth 100/pattern 1; Rough 150/2; Soft 80/3 per finger of the selected feedback hand |
+| Orbit Foundry | Grasp/pinch, palm-relative carry, lift, drop, match and score | Pure game state, 75-second shift, three core masses, combos, in-world restart |
+| Contact cues | Tip-to-core boxes or inferred grasp contact | Ion 95/1; Flux 130/2; Nova 155/3; five channels for the selected feedback hand |
+| Resistance preview | Five normalized right-finger requests and captured curl | Separate strict `/api/grip-preview`; expires after 500 ms; no board output |
 | HTTPS link | Carry wireless headset requests | Temporary Cloudflare tunnel to a loopback HTTP server |
 | Laptop relay | Validate requests and distinguish acceptance from receipt | Strict JSON, monitor UDP 8767, matching echoes on 8877 |
 | Existing USB bridge | Observe board telemetry and echo monitor packets | COM7/230400 baud; monitor packets have no serial output route |
@@ -38,7 +40,9 @@ The browser renders at the headset's supplied frame rate, submits cues at most a
 
 Missing joints clear the affected finger's cue; missing wrist clears all five channels. A hidden XR session, stopped frames or session end clears both hand poses and all cues. Desktop preview sends zeros. Receipt ages out after 500 ms; board telemetry after 200 ms. HTTP acceptance never creates a receipt. Echoes must match a recently submitted packet, preventing another application from masquerading as WebXR receipt.
 
-Before physical output, implement a local firmware watchdog independent of browser/network behavior, explicit arming, validated channel limits and an independent stop. Current v1 pressure/mode fields must remain zero; pressure is unsupported. Servo resistance needs a defined command and mechanism limits. Stopping servo PWM alone does not guarantee tendon release.
+Desktop rehearsal is read-only: it submits no cues or resistance requests and can monitor live Quest values. Any synthetic request received by the relay is still forced to zero. The right-hand game requires all five valid, nondegenerate finger chains and a valid wrist orientation. Loss suspends the timer, releases the core with zero throw speed, clears resistance and requires opening before a new grasp. Round end clears requests too. Pickup preserves object-to-palm translation and rotation; visual hands are never clamped to a grip pose.
+
+Before physical output, implement a local firmware watchdog independent of browser/network behavior, explicit arming, validated channel limits and an independent stop. Current v1 pressure/mode fields remain zero; pressure is unsupported. The preview percentages must not be converted directly into servo angles. The [game and servo-resistance contract](servo-resistance-plan.md) records the implemented schema and pending measured mechanism limits. Stopping servo PWM alone does not guarantee tendon release.
 
 ## Team checkpoints within the remaining event time
 

@@ -2,6 +2,12 @@
 
 ## Selected WebXR revision
 
+- Orbit Foundry v3: the team now confirms whole-hand Quest tracking and cue values. Added right-hand grasp/pinch, palm-relative carry/rotation, matching-dock delivery, 75-second scoring, combos and a reachable in-world restart. New gameplay still needs a headset play-through; desktop rehearsal demonstrated a heavy-core grab, increased requests during lift, release to zero and a 200-point dock delivery. [Desktop game proof](images/webxr-foundry.jpg)
+- Thirteen JavaScript tests pass: existing five tracking/contact tests plus eight game tests covering proximity/open gating, pinch hysteresis, rigid object carry, lift/matching-dock scoring once, combos, weight-dependent bounded requests, preview suppression, loss/reacquisition, frame gaps, round end, bounded throws and missing/degenerate joints.
+- Thirty Python tests pass except one Windows symlink-permission skip (29 passed). The three new grip-preview checks prove expiring five-channel storage, strict validation, origin enforcement, release/preview/loss zeroing and **no UDP or actuator packet output** from the resistance endpoint.
+- Desktop rehearsal now submits no requests, avoiding competition with the live Quest; server-side synthetic suppression remains. The existing temporary HTTPS link was retained and the monitor service refreshed. Board telemetry continued to report disarmed state, motor mask 0 and zero vibration. No firmware was flashed and no actuator output enabled.
+- Servo-request percentages and captured optical curls are previews, not measured tension or calibrated servo positions. Physical servo feedback remains pending the mechanism, release, power and actuator-only firmware described in [the resistance plan](servo-resistance-plan.md).
+
 - Full-hand v2: five JavaScript tests passed, including independent cues for all five fingertips, per-finger loss, both 25-joint XR input sets, wrist translation, and preview suppression. The browser preview demonstrated five Smooth cues simultaneously, middle-finger-only contact and the left feedback hand. Both meshes and all five controls render. The team's live Quest session worked for the index starter; full-hand v2 still needs its headset reload/check. [Desktop proof](images/webxr-full-hand.jpg)
 
 - Three.js r180 is vendored with its MIT license. The desktop browser preview produced Smooth 100/pattern 1, Rough 150/pattern 2 and Soft 80/pattern 3 contact cues; preview sends only zero monitor output. Returning to open clears contact.

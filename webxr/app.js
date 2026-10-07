@@ -1,6 +1,8 @@
 import * as THREE from './vendor/three/three.module.min.js';
-import {CHAINS, JOINTS, FINGER_LABELS, MATERIALS, fingerStates, handCue, cueRequest} from './logic.js';
+import {CHAINS, JOINTS, FINGER_LABELS, fingerStates, handCue, cueRequest} from './logic.js';
 import {emptyHands, readHandPoses} from './tracking.js';
+import {FoundryGame, graspInput, CORES, CORE_Z, DOCK_Z} from './game.js';
+import {createWorld} from './world.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -12,8 +14,8 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 20);
-camera.position.set(0.40, 0.46, 0.62);
-camera.lookAt(0, -0.02, -0.045);
+camera.position.set(0.66, 0.53, 0.87);
+camera.lookAt(0, -0.015, -0.065);
 const desktopCamera=camera.clone();
 scene.add(new THREE.HemisphereLight(0xe8f6ff, 0x283b2d, 2.2));
 const key = new THREE.DirectionalLight(0xffe8d6, 3.2);
@@ -25,56 +27,8 @@ scene.add(fill);
 
 const stage = new THREE.Group();
 scene.add(stage);
-const bench = new THREE.Mesh(new THREE.BoxGeometry(0.74,0.03,0.38),
-  new THREE.MeshStandardMaterial({color:0x233e3f, roughness:0.6}));
-bench.position.set(0,-0.13,-0.07);
-stage.add(bench);
-
-function label(text, color='#c9e4dc') {
-  const surface = document.createElement('canvas');
-  surface.width=512; surface.height=96;
-  const context=surface.getContext('2d');
-  context.fillStyle=color; context.font='500 40px Segoe UI';
-  context.textAlign='center'; context.textBaseline='middle';
-  context.fillText(text,256,48);
-  const texture=new THREE.CanvasTexture(surface);
-  texture.colorSpace=THREE.SRGBColorSpace;
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.027),
-    new THREE.MeshBasicMaterial({map:texture,transparent:true,side:THREE.DoubleSide,depthWrite:false}));
-  return mesh;
-}
-
-const targets = MATERIALS.map((material, i) => {
-  const x=(i-1)*0.185;
-  const size=new THREE.Vector3(0.135,0.065,0.16);
-  const position=new THREE.Vector3(x,-0.08,-0.07);
-  const box=new THREE.Box3().setFromCenterAndSize(position,size);
-  const mesh=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z,3,1,3),
-    new THREE.MeshStandardMaterial({color:material.color,roughness:i===0?0.18:0.85,metalness:i===0?0.25:0.02}));
-  mesh.position.copy(position);
-  stage.add(mesh);
-  const name=label(material.name);
-  name.position.set(x,-0.107,0.055);
-  name.rotation.x=-Math.PI/2;
-  stage.add(name);
-  // Texture geometry is visual only; contact uses the block's box.
-  if (i===1) {
-    const bumpMaterial=new THREE.MeshStandardMaterial({color:0xc88b4d,roughness:1});
-    const bumpGeometry=new THREE.SphereGeometry(0.004,6,4);
-    for (let row=0; row<7; row++) for(let column=0; column<6; column++) {
-      const bump=new THREE.Mesh(bumpGeometry,bumpMaterial);
-      bump.position.set(x-0.049+column*0.019,-0.046,-0.128+row*0.019);
-      bump.scale.y=0.4;
-      stage.add(bump);
-    }
-  }
-  if (i===2) {
-    const seam=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.002,0.002),
-      new THREE.MeshStandardMaterial({color:0xc5b9ea,roughness:1}));
-    seam.position.set(x,-0.046,-0.115); stage.add(seam);
-  }
-  return {...material, x, box, mesh};
-});
+const game=new FoundryGame();
+const world=createWorld(stage), targets=world.targets;
 
 const skin=new THREE.MeshStandardMaterial({color:0xc89071,roughness:0.58});
 const tipMaterial=new THREE.MeshStandardMaterial({color:0xdfab8b,roughness:0.53});
@@ -141,13 +95,14 @@ function drawHands() {
   for(const hand of ['left','right']) drawHand(hands[hand],rigs[hand]);
 }
 
-let previewTarget=0;
+let previewTarget=0, previewLift=0, previewDock=false;
 function previewPoses(hand) {
   const selected=hand===selectedHand();
   const amounts=FINGER_LABELS.map((_,i)=>selected?Number($('preview-curl-'+i).value)/100:0);
   const target=selected?previewTarget:(previewTarget+1)%3;
   const mirror=hand==='right'?1:-1;
-  const root=new THREE.Vector3(targets[target].x+mirror*0.025,0.013,0.017);
+  const root=new THREE.Vector3(CORES[target].x+mirror*0.012,0.013+(selected?previewLift:0),
+    CORE_Z+0.015+(selected && previewDock?DOCK_Z-CORE_Z:0));
   const poses=new Map();
   const put=(name,x,y,z,radius=0.008) => poses.set(name,{x:x*mirror+root.x,y:y+root.y,z:z+root.z,radius,orientation:new THREE.Quaternion()});
   put('wrist',0,0,0.035,0.012);
@@ -174,19 +129,20 @@ function previewPoses(hand) {
 
 // The panel is part of the XR scene; normal HTML is not visible inside immersive VR.
 const panelCanvas=document.createElement('canvas');
-panelCanvas.width=1024; panelCanvas.height=768;
+panelCanvas.width=1280; panelCanvas.height=640;
 const panelContext=panelCanvas.getContext('2d');
 const panelTexture=new THREE.CanvasTexture(panelCanvas);
 panelTexture.colorSpace=THREE.SRGBColorSpace;
-const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.55,0.4125),
+const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.76,0.38),
   new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,side:THREE.DoubleSide}));
-panel.position.set(0,0.30,-0.26); panel.visible=false; stage.add(panel);
+panel.position.set(0,0.32,-0.43); panel.visible=false; stage.add(panel);
 
 let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new Map(),
   calculated=handCue(new Map(),[],[]), fingers=fingerStates(new Map()),
   accepted=null, status={received:null,board:null}, lastPost=0,
   postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,
-  xrSupported=false;
+  xrSupported=false, gameTracked=false, lastAnimation=null, restartTouch=0, restartLatched=false,
+  gripBusy=false, gripZeroQueued=false, lastGripPost=0;
 const inverseStage=new THREE.Matrix4();
 const selectedHand=() => $('hand').value;
 
@@ -211,31 +167,60 @@ function readXR(frame) {
   hands=readHandPoses(frame,space,session.inputSources);
 }
 
-function calculate() {
+function localHand(input) {
+  const result=new Map(), inverseRotation=stage.quaternion.clone().invert();
+  for(const [name,pose] of input) {
+    const p=new THREE.Vector3(pose.x,pose.y,pose.z).applyMatrix4(inverseStage);
+    const q=pose.orientation;
+    const orientation=q?inverseRotation.clone().multiply(new THREE.Quaternion(q.x,q.y,q.z,q.w)):null;
+    result.set(name,{x:p.x,y:p.y,z:p.z,radius:pose.radius,orientation});
+  }
+  return result;
+}
+function calculate(delta,time) {
   const previouslyTracked=trackingValid;
   const previousFingerValidity=fingers.valid;
   poses=hands[selectedHand()];
   fingers=fingerStates(poses);
   trackingValid=source==='webxr' && fingers.valid.some(Boolean);
-  if((previouslyTracked && !trackingValid) || previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i])) sendCue(true);
+  if(source==='webxr' && ((previouslyTracked && !trackingValid) || previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i]))) sendCue(true);
   stage.updateMatrixWorld(true);
   inverseStage.copy(stage.matrixWorld).invert();
-  const localPoses=new Map();
-  for(const chain of CHAINS) {
-    const name=chain.at(-1),tip=poses.get(name);
-    if(!tip) continue;
-    const point=new THREE.Vector3(tip.x,tip.y,tip.z).applyMatrix4(inverseStage);
-    localPoses.set(name,{x:point.x,y:point.y,z:point.z,radius:tip.radius});
-  }
-  calculated=handCue(localPoses,targets,fingers.valid);
-  for(const target of targets) {
-    const touching=calculated.contacts.includes(target.name);
-    target.mesh.material.emissive.setHex(touching?target.color:0);
-    target.mesh.material.emissiveIntensity=touching?0.24:0;
+  const localPoses=localHand(poses), right=localHand(hands.right), input=graspInput(right);
+  const wasTracked=gameTracked;gameTracked=!!input.valid;
+  const hadResistance=game.resistance.some(Boolean);
+  game.step(delta,input);world.update(game,time);
+  if(source==='webxr' && ((wasTracked && !gameTracked) || (hadResistance && !game.resistance.some(Boolean)))) sendGrip(true);
+  // Reachable inside VR: hold the right index tip on the illuminated button.
+  const index=right.get('index-finger-tip');
+  const touchingRestart=input.valid && index && new THREE.Vector3(index.x,index.y,index.z).distanceTo(world.restart.position)<.043 && !game.held;
+  restartTouch=touchingRestart?restartTouch+Math.min(delta,.04):0;
+  if(!touchingRestart)restartLatched=false;
+  if(restartTouch>.7 && !restartLatched){resetGame();restartLatched=true;}
+  world.button.material.emissiveIntensity=.15+Math.min(1,restartTouch/.7)*.7;
+  calculated=handCue(localPoses,targets.filter((_,i)=>game.objects[i].state!=='delivered'),fingers.valid);
+  if(game.held && selectedHand()==='right' && game.resistance.some(Boolean)) {
+    // Grasp contact is inferred from the gesture, rather than five tip overlaps.
+    calculated={duties:fingers.valid.map(valid=>valid?game.held.duty:0),patterns:fingers.valid.map(valid=>valid?game.held.pattern:0),contacts:fingers.valid.map(valid=>valid?game.held.name+' grip':null)};
   }
 }
 
+async function sendGrip(forceZero=false) {
+  // Desktop viewers poll receipts; they must not overwrite a live Quest request.
+  // A queued live-session zero may still finish after that session has ended.
+  if(source!=='webxr' && !forceZero)return;
+  if(gripBusy){if(forceZero)gripZeroQueued=true;return;}
+  const now=performance.now();if(!forceZero && now-lastGripPost<75)return;
+  lastGripPost=now;gripBusy=true;
+  try {
+    await fetch('/api/grip-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(game.intent(source,!forceZero && gameTracked)),signal:AbortSignal.timeout(1000)});
+  } catch {} finally {gripBusy=false;if(gripZeroQueued){gripZeroQueued=false;sendGrip(true);}}
+}
+function resetGame(){game.reset();previewLift=0;previewDock=false;for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';if(source==='webxr')sendGrip(true);}
+
 async function sendCue(forceZero=false) {
+  if(source!=='webxr' && !forceZero)return;
   const now=performance.now();
   if(postBusy) {if(forceZero)queuedZero=true;return;}
   if(!forceZero && now-lastPost<50) return;
@@ -271,7 +256,8 @@ setInterval(pollStatus,200);
 function zeroTracking() {
   hands=emptyHands();poses=new Map();trackingValid=false;fingers=fingerStates(poses);
   calculated=handCue(poses,[],[]);
-  sendCue(true);
+  game.suspend();gameTracked=false;restartTouch=0;
+  if(source==='webxr'){sendGrip(true);sendCue(true);}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)zeroTracking();});
 // A stopped XR frame cannot refresh a calculated contact indefinitely.
@@ -280,6 +266,15 @@ setInterval(()=>{
 },100);
 
 function updateUI() {
+  $('game-score').textContent=game.score.toLocaleString();$('game-time').textContent=Math.ceil(game.remaining)+'s';
+  $('game-combo').textContent=game.combo?'×'+(1+Math.min(4,game.combo-1)*.25).toFixed(2):'×1';
+  $('game-best').textContent=game.best.toLocaleString();
+  $('game-message').textContent=game.message;
+  $('held-value').textContent=game.held?game.held.name+' · '+game.held.mass+' kg (virtual)':game.phase==='over'?'Shift complete':'No core held';
+  for(let i=0;i<5;i++) {
+    $('resistance-'+i).textContent=game.resistance[i]+'%';
+    $('resistance-bar-'+i).style.height=game.resistance[i]+'%';
+  }
   $('source-badge').textContent=source==='webxr'?'QUEST HAND TRACKING':'DESKTOP PREVIEW';
   $('preview-controls').hidden=source==='webxr';
   $('all-hands-value').textContent=source==='webxr'?'Right '+hands.right.size+'/25 · Left '+hands.left.size+'/25':'Both hands simulated';
@@ -301,30 +296,33 @@ function updateUI() {
   $('cue-bar').style.width=(peak/255*100)+'%';
   $('pattern-value').textContent=touching.length ? calculated.contacts.map((contact,i)=>contact?FINGER_LABELS[i]+': '+contact:null).filter(Boolean).join(' · ') : 'No contact';
   const acceptedFresh=accepted && performance.now()-accepted.time<1000;
-  $('accepted-value').textContent=acceptedFresh?'Packet '+accepted.sequence:'Not connected';
+  $('accepted-value').textContent=source!=='webxr'?'Read-only preview':acceptedFresh?'Packet '+accepted.sequence:'Not connected';
   const statusAge=performance.now()-statusAt;
   const received=status.received && status.received.ageMs+statusAge<500 ? status.received : null;
   $('received-value').textContent=received?received.duties.join(' / '):'No fresh echo';
   const board=status.board && status.board.ageMs+statusAge<200 ? status.board : null;
   $('applied-value').textContent=board?board.vibration.join(' / ')+' · mask '+board.motor_mask:'No fresh telemetry';
+  const grip=status.resistance && status.resistance.ageMs+statusAge<500?status.resistance:null;
+  $('grip-received').textContent=grip?grip.resistance.join(' / ')+'% · output OFF':'No fresh preview receipt';
   const now=performance.now();
   if(now-lastPanel>150) {
     lastPanel=now;
-    panelContext.clearRect(0,0,1024,768);
-    panelContext.fillStyle='rgba(13,35,39,.96)'; panelContext.fillRect(0,0,1024,768);
-    panelContext.fillStyle='#dceee5'; panelContext.font='600 48px Segoe UI';
-    panelContext.fillText('AHAM / FULL HAND v2',40,65);
-    panelContext.font='30px Segoe UI';
-    const lines=[$('all-hands-value').textContent,
-      'Feedback: '+selectedHand()+' · '+$('pose-value').textContent,
+    panelContext.clearRect(0,0,1280,640);
+    panelContext.fillStyle='rgba(8,24,39,.97)'; panelContext.fillRect(0,0,1280,640);
+    panelContext.fillStyle='#69e8ce'; panelContext.font='600 36px Segoe UI';
+    panelContext.fillText('AHAM / ORBIT FOUNDRY v3',45,60);
+    panelContext.fillStyle='#f1f3e8';panelContext.font='600 65px Segoe UI';
+    panelContext.fillText(game.score+' PTS',45,145);panelContext.fillText(Math.ceil(game.remaining)+'s',640,145);
+    panelContext.font='29px Segoe UI';
+    const lines=[game.message,'Close around a core OR pinch. Lift 8 cm. Open over matching dock.',
+      'RIGHT: '+hands.right.size+'/25 joints · '+game.deliveries+' delivered · Best '+game.best,
       'Finger order: Thumb / Index / Middle / Ring / Little',
-      'Curl %: '+fingers.curls.map(value=>value===null?'—':Math.round(value*100)).join(' / '),
-      'Cue /255: '+calculated.duties.join(' / '),
-      'Contact: '+(touching.join(' · ') || 'None'),
-      'Bridge received: '+$('received-value').textContent,
-      'Board reports: '+$('applied-value').textContent,
-      'Monitor-only cues · Servo control pending'];
-    lines.forEach((line,i)=>panelContext.fillText(line,40,135+i*57));
+      'Resistance request %: '+game.resistance.join(' / '),
+      'Vibration cue /255: '+calculated.duties.join(' / '),
+      'Bridge: '+$('received-value').textContent,
+      'Laptop resistance: '+$('grip-received').textContent,
+      'SERVO OUTPUT OFF · Touch NEW SHIFT for 0.7s to restart'];
+    lines.forEach((line,i)=>panelContext.fillText(line,45,210+i*46,1190));
     panelTexture.needsUpdate=true;
   }
 }
@@ -364,9 +362,9 @@ $('enter-vr').addEventListener('click',async()=>{
       $('xr-status').textContent='VR ended. Desktop preview sends zero output.';
     });
     await renderer.xr.setSession(session);
-    source='webxr';zeroTracking();positioned=false;panel.visible=true;
+    source='webxr';zeroTracking();resetGame();positioned=false;panel.visible=true;lastAnimation=null;
     $('enter-vr').textContent='Exit VR';$('enter-vr').disabled=false;
-    $('xr-status').textContent='VR active. Both hands tracked; every fingertip of the feedback hand can touch a surface.';
+    $('xr-status').textContent='VR active. Open your right hand first, then grab, lift and deliver cores. The first grab starts the shift.';
   } catch(error) {
     if(session) await session.end().catch(()=>{});
     $('xr-status').textContent='Could not start hand tracking: '+error.message;
@@ -376,8 +374,13 @@ $('enter-vr').addEventListener('click',async()=>{
 $('hand').addEventListener('change',zeroTracking);
 $('open-hand').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';});
 $('close-hand').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='100';});
+$('lift-core').addEventListener('click',()=>{previewLift=.18;});
+$('move-dock').addEventListener('click',()=>{previewDock=true;});
+$('release-core').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';});
+$('reset-game').addEventListener('click',resetGame);
 document.querySelectorAll('[data-target]').forEach(button=>button.addEventListener('click',()=>{
   previewTarget=Number(button.dataset.target);
+  previewLift=0;previewDock=false;
   document.querySelectorAll('[data-target]').forEach(item=>item.classList.toggle('active',item===button));
 }));
 document.querySelector('[data-target="0"]').classList.add('active');
@@ -388,11 +391,12 @@ new ResizeObserver(()=>{
   camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix();
 }).observe(canvas.parentElement);
 renderer.setAnimationLoop((time,frame)=>{
+  const delta=lastAnimation===null?0:(time-lastAnimation)/1000;lastAnimation=time;
   if(frame && renderer.xr.isPresenting) {
     source='webxr';lastFrame=performance.now();readXR(frame);
   } else if(!renderer.xr.isPresenting) {
     source='desktop-preview';hands={left:previewPoses('left'),right:previewPoses('right')};
   }
-  calculate();drawHands();updateUI();sendCue();renderer.render(scene,camera);
+  calculate(delta,time);drawHands();updateUI();sendCue();sendGrip();renderer.render(scene,camera);
 });
 checkXR();pollStatus();

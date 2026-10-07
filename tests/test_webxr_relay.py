@@ -101,7 +101,7 @@ class WebXRRelayTests(unittest.TestCase):
                              and value["board"]["sequence"] == sequence)
 
     def test_tracked_cue_is_encoded_and_received_only_after_monitor_echo(self):
-        self.assertEqual(self.status(), {"mode": "monitor-only", "received": None, "board": None})
+        self.assertEqual(self.status(), {"mode": "monitor-only", "received": None, "board": None, "resistance": None})
         status, response = self.post(self.cue())
         self.assertEqual(status, 200)
         self.assertEqual(response, {"accepted": True, "monitorOnly": True, "sequence": 0})
@@ -307,6 +307,52 @@ class WebXRRelayTests(unittest.TestCase):
         self.assertFalse(self.relay.worker.is_alive())
         self.relay.close()
         self.assertEqual(self.post(self.cue())[0], 503)
+
+    def grip(self, **changes):
+        value = {"version": 1, "source": "webxr", "hand": "right", "trackingValid": True,
+                 "holding": True, "objectId": "violet", "gripMode": "grip",
+                 "resistance": [40, 50, 55, 60, 65], "referenceCurl": [20, 30, 40, 50, 60]}
+        value.update(changes)
+        return value
+
+    def post_grip(self, value, headers=None):
+        return self.request("POST", "/api/grip-preview", json.dumps(value),
+                            {"Content-Type": "application/json", **(headers or {})})
+
+    def test_grip_preview_is_observable_expiring_and_has_no_udp_or_actuator_output(self):
+        with patch.object(self.relay, "submit", side_effect=AssertionError("Must not encode a board packet")):
+            code, body, _ = self.post_grip(self.grip())
+        self.assertEqual(code, 200)
+        self.assertFalse(json.loads(body)["actuatorsEnabled"])
+        values = self.status()["resistance"]
+        self.assertEqual(values["resistance"], [40, 50, 55, 60, 65])
+        self.assertEqual(values["referenceCurl"], [20, 30, 40, 50, 60])
+        self.assertFalse(values["actuatorsEnabled"])
+        self.monitor.settimeout(0.03)
+        with self.assertRaises(socket.timeout):
+            self.monitor.recvfrom(256)
+        time.sleep(0.51)
+        self.assertIsNone(self.status()["resistance"])
+
+    def test_grip_release_preview_and_tracking_loss_clear_all_demands(self):
+        for changes in ({"source": "desktop-preview"}, {"holding": False}, {"trackingValid": False}):
+            self.assertEqual(self.post_grip(self.grip(**changes))[0], 200)
+            values = self.status()["resistance"]
+            self.assertEqual(values["resistance"], [0]*5)
+            self.assertEqual(values["referenceCurl"], [0]*5)
+            self.assertIsNone(values["objectId"])
+            self.assertFalse(values["holding"])
+
+    def test_grip_rejects_malformed_channels_and_wrong_origins(self):
+        invalid = [{"resistance": [81]*5}, {"resistance": [True]*5}, {"resistance": [1.1]*5},
+                   {"referenceCurl": [101]*5}, {"trackingValid": 1}, {"holding": "true"},
+                   {"objectId": "unknown"}, {"objectId": None}, {"gripMode": "none"},
+                   {"hand": "left"}, {"source": "fake"}, {"version": True}, {"servoAngle": 180}]
+        for changes in invalid:
+            with self.subTest(changes=changes):
+                self.assertEqual(self.post_grip(self.grip(**changes))[0], 400)
+        self.assertEqual(self.post_grip(self.grip(), {"Origin": "https://other.example"})[0], 403)
+        self.assertIsNone(self.status()["resistance"])
 
 
 class ExternalOriginConfigurationTests(unittest.TestCase):

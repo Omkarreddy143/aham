@@ -2,7 +2,7 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-The Quest estimates hand orientation and finger joints. The browser renders both hands, detects contact for all five fingertips of the selected feedback hand, and calculates vibration cues. A laptop relay receives those cues. The NodeMCU can remain connected to the laptop by USB while the Quest connects wirelessly.
+The Quest estimates hand orientation and finger joints. **Orbit Foundry v3** adds a 75-second right-hand grab, lift and delivery game: three energy cores, matching docks, score and combo bonuses. The browser calculates five vibration cues and five weight-dependent resistance requests. A laptop relay monitors both; physical servo output is disabled. The NodeMCU can remain connected to the laptop by USB while the Quest connects wirelessly.
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.
 
@@ -18,13 +18,14 @@ Later verified output path:
 
 | Part | Status |
 |---|---|
-| WebXR scene | Both hands, 25 joints per hand, five independent finger curls/contact cues and wrist orientation; full-hand headset trial required |
-| Desktop preview | Synthetic hand to check the scene; transmits zero output |
+| WebXR scene | Team confirmed both-hand tracking and live cue receipt; 25 joints per hand and five independent curls/contact cues |
+| Orbit Foundry game | Right-hand grasp/pinch, palm-relative carry, lift, release, matching-dock scoring, combos and an in-world restart; headset gameplay trial next |
+| Desktop preview | Synthetic grab/lift/delivery rehearsal; submits no cues and can monitor Quest |
 | Feedback monitor | Calculated cue, HTTP acceptance, matching bridge echo and board telemetry shown separately |
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
 | Vibration motor | Driver and diode bring-up incomplete; no physical vibration verified |
-| Servo resistance | Not implemented; needs a suitable supply, bounded mechanics and release testing |
+| Servo resistance | Five software requests and expiring laptop receipt implemented; physical control pending supply, measured mechanics, release and firmware |
 
 The WebXR relay sends only to the observation port. It never sends to the actuator command port or serial device. The shipped board configuration has no enabled motor channel. Do not treat a displayed cue as a physical sensation.
 
@@ -52,6 +53,7 @@ The received board is **ESP-12E NodeMCU V3 / ESP8266**, rather than ESP32. Quest
 - [Complete repository starter ZIP](artifacts/AHAM-Starter.zip)
 - [WebXR architecture and next checkpoints](docs/webxr-architecture.md)
 - [WebXR quickstart](docs/webxr-quickstart.md)
+- [Game and servo-resistance contract](docs/servo-resistance-plan.md)
 - [Verification record](docs/verification.md)
 - [Original 40-hour plan](AHAM-40-hour-plan.md), with the selected WebXR revision at the top
 - [Wire protocol](docs/protocol.md)
@@ -63,7 +65,7 @@ The earlier [Unity project](unity/README.md), [Unity ZIP](artifacts/AHAM-Unity-S
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"
-node --test tests/webxr-logic.test.mjs
+node --test tests/webxr-logic.test.mjs tests/webxr-game.test.mjs
 ```
 
 The browser library is pinned and vendored; no npm install or CDN is needed to run this prototype. A Quest session is required to validate actual hand tracking, fitted-glove visibility, contact placement and network delay. Optical pose estimation does not measure tendon force.

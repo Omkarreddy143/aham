@@ -1,6 +1,6 @@
 # Quest 3 WebXR quickstart
 
-The selected approach uses **Quest Browser over a wireless connection**. Unity is not required. The browser renders the VR scene and reads the headset's hand joints; the laptop receives calculated contact cues. This prototype is **monitor only**: motor output remains disabled and servo force feedback is not implemented.
+The selected approach uses **Quest Browser over a wireless connection**. Unity is not required. **Orbit Foundry v3** tracks both hands and adds right-hand grabbing, lifting and delivery gameplay. The laptop receives five vibration cues and a separate five-finger resistance preview. This prototype is **monitor only**: physical motor and servo output remain disabled.
 
 ```text
 Quest Browser: hand joints -> virtual contact -> calculated cues
@@ -49,11 +49,22 @@ Only one process may own COM7. Stop an old bridge or Serial Monitor before openi
 
 Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both hands render; select **Feedback hand** before entering VR to choose which hand's five channels appear in the monitor. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
 
-After updating from the index-only starter, **exit VR, reload the page, check for FULL HAND v2, then Enter VR again**. The page reports right/left joint counts and separate thumb, index, middle, ring and little finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
+After updating, **exit VR, reload the page, check for ORBIT FOUNDRY v3, then Enter VR again**. Reload laptop pages too: old preview tabs can still submit zeros. The page reports right/left joint counts and separate thumb, index, middle, ring and little finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
+
+## Play Orbit Foundry
+
+1. Keep **Feedback hand = Right hand** for the game. Enter VR with bare hands, controllers put down. Open your right hand first.
+2. Reach for a glowing core. Close your fingers around it, or pinch thumb and index near it. The first successful grab starts a 75-second shift.
+3. Lift the core at least **8 cm**, carry it over the matching color dock at the back of the bench, and open your hand. The core falls onto the dock and earns points. A delivered core returns to its cradle.
+4. Ion/mint is light (0.25 kg virtual), Flux/amber is medium (1 kg), Nova/violet is heavy (3 kg). Heavy cores earn more points and request more finger resistance. Consecutive correct deliveries build a combo.
+5. Watch **Resistance request %** and five vibration cues in the floating VR panel. Percentages are software requests, not force or servo angles. The laptop's **grip preview** confirms the requests reached the relay; physical servo output remains OFF.
+6. Touch the illuminated **NEW SHIFT** button at the right edge of the bench with your right index fingertip for **0.7 seconds** to restart. If tracking disappears, the core releases and requests clear; open your hand before picking up again.
+
+On the laptop, use **Ion/Flux/Nova → Grab core → Lift 18 cm → Matching dock → Release core** for a synthetic rehearsal. The desktop page submits no commands, so it can also display live Quest receipts without replacing them. Use one live VR session at a time. The best score lasts for the current page visit.
 
 Plain `http://<laptop-IP>:8890/` is insufficient for WebXR. HTTPS is required for this wireless route; HTTP localhost is a special development exception. [MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)
 
-On the laptop, `http://localhost:8890/` remains available for desktop preview. Its hand motion is synthetic and the relay forces preview cues to zero. It does not prove Quest tracking.
+On the laptop, `http://localhost:8890/` remains available for desktop rehearsal. Its hand motion is synthetic; no requests are submitted. The server additionally forces any synthetic requests to zero. Rehearsal does not prove Quest tracking.
 
 For terminals you started, press **Ctrl+C** in each terminal when finished. This laptop's current background demo can be stopped by matching the recorded process IDs in `.build/quest-tunnel.pid`, `.build/webxr-server.pid`, and `.build/webxr-board.pid` to their AHAM processes. Keep the laptop awake while the headset is using the link.
 
@@ -61,7 +72,7 @@ For terminals you started, press **Ctrl+C** in each terminal when finished. This
 
 1. With bare hands, first open the [hand sample linked by Meta](https://immersive-web.github.io/webxr-samples/immersive-hands.html). Confirm both hands appear.
 2. Open this prototype in Quest Browser. Move both wrists and bend each of the five fingers individually. Watch the right/left joint counts, wrist orientation and each finger's curl value. Clear tracking should provide up to 25 joints per visible hand.
-3. Touch one block at a time with each fingertip of the selected feedback hand. Expected presets per finger are Smooth **100/255**, Rough **150/255**, and Soft **80/255**. Move away and verify zero. The five-channel order is thumb, index, middle, ring, little. These are chosen vibration cues, not measured force.
+3. Touch a core with each fingertip, then grasp it. Ion uses **95/255**, Flux **130/255**, Nova **155/255**. Grasp cues apply to all five available fingers; simple tip contact applies to the touching finger. Release/move away and verify zero. The channel order is thumb, index, middle, ring, little. These are chosen vibration cues, not measured force.
 4. Hide the hand, interrupt tracking, and leave VR. Verify cues clear to zero on pose/session loss and old receipts become stale. A missing echo must never be presented as a fresh receipt.
 5. Repeat with the actual glove, straps, motors, and cables attached. Keep the flex-sensor backup until this visibility test works reliably. Meta documents reduced accuracy from occlusion and coverings; compatibility with this custom glove is still unverified. [Meta tracking limitations](https://developers.meta.com/vr/design/hands-limitations-mitigations/)
 
@@ -78,7 +89,7 @@ Compare three separate results: **HTTP accepted** means the relay accepted a req
 | 3: Laptop/board | Verify the monitor echo separately from HTTP acceptance; record board telemetry with only one COM7 owner. |
 | 4: Glove | Compare bare-hand and fitted-glove tracking; check cable/strap occlusion and retain the flex backup until results pass. |
 
-After that checkpoint, implement actuator-only firmware and a verified motor driver circuit. Test vibration first. Servo feedback needs a separate suitable supply and bounded mechanical testing before wearable use. The ESP8266 provides Wi-Fi and has no built-in BLE, so later wireless glove communication should use Wi-Fi or added hardware. [Espressif ESP8266 specifications](https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf), [Espressif provisioning guide](https://docs.espressif.com/_/downloads/esp-jumpstart/en/latest/pdf/)
+After that checkpoint, implement actuator-only firmware and a verified motor driver circuit. Test vibration first. Follow the [servo-resistance plan](servo-resistance-plan.md) for the new request contract and the one-finger bench-first mechanism stage. Servo feedback needs a separate suitable supply and bounded mechanical testing before wearable use. The ESP8266 provides Wi-Fi and has no built-in BLE, so later wireless glove communication should use Wi-Fi or added hardware. [Espressif ESP8266 specifications](https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf), [Espressif provisioning guide](https://docs.espressif.com/_/downloads/esp-jumpstart/en/latest/pdf/)
 
 ## Optional USB development fallback
 

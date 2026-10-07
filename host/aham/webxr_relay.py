@@ -28,6 +28,8 @@ RECEIVED_MAX_AGE = 0.500
 BOARD_MAX_AGE = 0.200
 MAX_RECENT_CUES = 32
 CUE_FIELDS = {"version", "source", "hand", "trackingValid", "duties", "patterns"}
+GRIP_FIELDS = {"version", "source", "hand", "trackingValid", "holding", "objectId",
+               "gripMode", "resistance", "referenceCurl"}
 STATIC_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -109,6 +111,33 @@ def _unique_object(pairs):
     return result
 
 
+def validate_grip_preview(value):
+    """An expiring software preview; this is never encoded into board packets."""
+    if not isinstance(value, dict) or set(value) != GRIP_FIELDS:
+        raise ValueError("Expected exactly the documented grip-preview fields")
+    if type(value["version"]) is not int or value["version"] != 1:
+        raise ValueError("version must be 1")
+    if value["source"] not in ("webxr", "desktop-preview") or value["hand"] != "right":
+        raise ValueError("Grip preview requires a known source and right hand")
+    if type(value["trackingValid"]) is not bool or type(value["holding"]) is not bool:
+        raise ValueError("trackingValid and holding must be booleans")
+    if value["objectId"] not in (None, "mint", "amber", "violet"):
+        raise ValueError("Unknown core")
+    if value["gripMode"] not in ("none", "pinch", "grip"):
+        raise ValueError("Unknown grip mode")
+    for name, maximum in (("resistance", 80), ("referenceCurl", 100)):
+        if (not isinstance(value[name], list) or len(value[name]) != 5
+                or any(type(item) is not int or not 0 <= item <= maximum for item in value[name])):
+            raise ValueError(f"{name} must contain five integers from 0 to {maximum}")
+    if value["holding"] and (value["objectId"] is None or value["gripMode"] == "none"):
+        raise ValueError("A holding preview requires a core and grip mode")
+    result = dict(value, resistance=list(value["resistance"]), referenceCurl=list(value["referenceCurl"]))
+    if value["source"] != "webxr" or not value["trackingValid"] or not value["holding"]:
+        result.update(holding=False, objectId=None, gripMode="none", resistance=[0]*5, referenceCurl=[0]*5)
+    result["actuatorsEnabled"] = False
+    return result
+
+
 def _reject_constant(value):
     raise ValueError("Non-finite JSON number")
 
@@ -123,6 +152,9 @@ class Relay:
         self.recent_cues = deque(maxlen=MAX_RECENT_CUES)
         self.received = self.board = None
         self.received_at = self.board_at = None
+        self.resistance = None
+        self.resistance_at = None
+        self.grip_sequence = 0
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -160,6 +192,17 @@ class Relay:
         """Called with the state lock held; old submissions cannot confirm receipt."""
         while self.recent_cues and now - self.recent_cues[0][0] > RECEIVED_MAX_AGE:
             self.recent_cues.popleft()
+
+    def submit_grip_preview(self, value):
+        preview = validate_grip_preview(value)
+        with self.lock:
+            if self.done.is_set():
+                raise OSError("Relay closed")
+            sequence = self.grip_sequence
+            self.grip_sequence = (sequence + 1) & 0xFFFF
+            self.resistance = dict(preview, sequence=sequence)
+            self.resistance_at = time.monotonic()
+        return sequence
 
     def _receive(self):
         while not self.done.is_set():
@@ -200,10 +243,11 @@ class Relay:
         with self.lock:
             now = time.monotonic()
             self._prune_recent_cues(now)
-            result = {"mode": "monitor-only", "received": None, "board": None}
+            result = {"mode": "monitor-only", "received": None, "board": None, "resistance": None}
             for field, timestamp, maximum in (
                 ("received", self.received_at, RECEIVED_MAX_AGE),
                 ("board", self.board_at, BOARD_MAX_AGE),
+                ("resistance", self.resistance_at, RECEIVED_MAX_AGE),
             ):
                 if timestamp is not None and 0 <= now - timestamp < maximum:
                     result[field] = dict(getattr(self, field), ageMs=int((now - timestamp) * 1000))
@@ -293,7 +337,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         except ValueError:
             self._reply(400, {"error": "Invalid path"})
             return
-        if path != "/api/cue":
+        if path not in ("/api/cue", "/api/grip-preview"):
             self._reply(404, {"error": "Unknown endpoint"})
             return
         if not self._same_origin():
@@ -316,14 +360,18 @@ class RelayHandler(BaseHTTPRequestHandler):
                 raise ValueError("Incomplete cue body")
             value = json.loads(body.decode("utf-8"), object_pairs_hook=_unique_object,
                                parse_constant=_reject_constant)
-            sequence = self.server.relay.submit(value)
+            sequence = (self.server.relay.submit(value) if path == "/api/cue"
+                        else self.server.relay.submit_grip_preview(value))
         except (ValueError, UnicodeError, RecursionError) as error:
             self._reply(400, {"error": str(error)})
             return
         except OSError:
             self._reply(503, {"error": "Monitor relay unavailable"})
             return
-        self._reply(200, {"accepted": True, "monitorOnly": True, "sequence": sequence})
+        result = {"accepted": True, "monitorOnly": True, "sequence": sequence}
+        if path == "/api/grip-preview":
+            result["actuatorsEnabled"] = False
+        self._reply(200, result)
 
 
 def create_server(relay, port=8890, bind="127.0.0.1", static_root=None, scheme="http", external_origin=None):
