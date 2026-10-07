@@ -1,6 +1,6 @@
 # Start AHAM now
 
-The received board is **ESP-12E NodeMCU V3 (ESP8266)**. It has only one ADC input; resistors and motor drivers are still missing. Start with the desktop loop and the USB/I2C probe in [received-hardware bring-up](hardware-bringup.md). Meta Quest 3 arrives later. The repository provides an importable Unity asset folder, not a preconfigured headset project.
+The received board is **ESP-12E NodeMCU V3 (ESP8266)**. It has only one ADC input; resistors and motor drivers are still missing. Start with the desktop loop and the USB/I2C probe in [received-hardware bring-up](hardware-bringup.md). Meta Quest 3 arrives later. The repository now includes a desktop Unity project in `unity/` as well as assets to import into an existing project.
 
 Download the [complete starter ZIP](../artifacts/AHAM-Starter.zip) and extract it into a working folder. The [Unity import ZIP](../artifacts/AHAM-Unity-Starter.zip) contains only the assets to copy into an existing Unity project; run the host from the complete starter or repository.
 
@@ -24,13 +24,17 @@ Open **http://127.0.0.1:8870**. This mode requires no third-party Python package
 
 The finger illustration approximates curl. It is not optical hand tracking or proof of a physical touch sensation.
 
-## 2. Give the Unity teammate the starter
+## 2. Open the AHAM desktop project in Unity
+
+**For the new project on this laptop:** in Unity Hub choose **Add project from disk** in Projects, and select the repository's **`unity` folder**. With the current checkout that is `C:\Users\komka\OneDrive\Desktop\Makethon\unity`. Do not select `Assets` or the repository root. Open with Unity Editor 6000.6.4f1. The scripts have compiled and the starter scene/settings are included; a fresh copy generates its local Library on import. [Project-specific instructions](../unity/README.md)
+
+**For a teammate's existing project:** use the asset import route:
 
 Copy **`unity/Assets/AHAM`** and **`unity/Assets/AHAM.meta`** into the existing Unity project's `Assets` directory. Alternatively, extract `artifacts/AHAM-Unity-Starter.zip` into that directory. Use a desktop 3D project; no XR package is required for this starter.
 
 For example, if your teammate's project is `C:\Projects\AhamDemo`, the finished layout must contain **`C:\Projects\AhamDemo\Assets\AHAM\Scripts\AhamDemo.cs`**. Copy the AHAM folder, not the whole repository into Assets. Unity should show an **AHAM** menu after it finishes compiling. This ZIP is a folder of scripts/assets to import; it is not opened as a complete project through Unity Hub.
 
-Intended compatibility: Unity 2022.3/Unity 6 desktop on Windows. Runtime scripts still need to be compiled and played in the teammate's actual editor; this workstation does not have a confirmed Unity Editor installation.
+The standalone project is set to Unity 6000.6.4f1, verified for script compilation and scene creation on this laptop. Asset-only import remains intended for Unity 2022.3/Unity 6 desktop on Windows. Play-mode rendering and contact physics still need verification in the interactive editor.
 
 1. On the Unity teammate's computer, use the full repository/starter ZIP and start the host in Unity-controlled simulation mode (both applications must run on the same computer for these localhost defaults):
 
@@ -38,7 +42,7 @@ Intended compatibility: Unity 2022.3/Unity 6 desktop on Windows. Runtime scripts
    python host/run.py simulate --controller unity
    ```
 
-2. In Unity choose **AHAM -> Create Desktop Starter Scene**.
+2. In Unity open **Assets -> AHAM -> Scenes -> AhamStarter**. If the scene is missing, choose **AHAM -> Create Desktop Starter Scene**.
 3. Press **Play**. A primitive hand and three colored contact blocks are constructed at runtime.
 4. The status should identify **SIMULATED GLOVE**.
 5. Enable outgoing commands in Unity; this first sends disarm and establishes a command sequence.

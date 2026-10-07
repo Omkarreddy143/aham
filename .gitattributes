@@ -1,0 +1,4 @@
+# Unity writes spaces after empty YAML values; preserve its native serialization.
+unity/**/*.asset whitespace=-blank-at-eol
+unity/**/*.unity whitespace=-blank-at-eol
+unity/**/*.meta whitespace=-blank-at-eol

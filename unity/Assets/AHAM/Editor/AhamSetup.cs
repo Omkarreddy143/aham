@@ -11,7 +11,7 @@ namespace Aham
         [MenuItem("AHAM/Create Desktop Starter Scene")]
         public static void Create()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (!Application.isBatchMode && !EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject demo = new GameObject("AHAM Desktop Starter"); demo.AddComponent<AhamDemo>();
             Directory.CreateDirectory("Assets/AHAM/Scenes");

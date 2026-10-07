@@ -15,7 +15,7 @@ The kit has arrived: **ESP-12E NodeMCU V3 (ESP8266)**, five flex sensors, MPU605
 | NodeMCU probe | Separate text diagnostic for USB, I2C ACKs and MPU identity; commands no servo motion |
 | ESP32 alternative | Retained five-channel build for a classic ESP32 replacement; motor outputs default disabled |
 | Shared binary protocol | Python/C++/C# interoperability checked with common fixtures |
-| Unity starter | Primitive hand, three contact surfaces and operator controls; editor compile/play check still required |
+| Unity desktop project | Open `unity/` in Unity Hub; primitive hand, three contact surfaces and operator controls |
 | USB bridge | Implemented; requires a verified serial device and bench test |
 | VR root tracking | Meta Quest 3 adapter pending; desktop setup works without XR |
 | Pressure, tendon resistance, GSR and participant logger | Not implemented in this starter |
@@ -30,7 +30,9 @@ python host/run.py simulate
 
 Open **http://127.0.0.1:8870**. This is simulation only and cannot drive hardware. See the [quickstart and team assignments](docs/quickstart.md) to calibrate the simulator, import the Unity assets and connect the desktop loop.
 
-For Unity-controlled simulation, use `python host/run.py simulate --controller unity`, copy `unity/Assets/AHAM` and its `.meta` file into the teammate's project, then choose **AHAM -> Create Desktop Starter Scene**.
+For the new desktop project, add the repository's **`unity` folder** to Unity Hub and open it. Run `python host/run.py simulate --controller unity` from the repository root, then choose **AHAM -> Create Desktop Starter Scene** and press Play. [Step-by-step Unity instructions](unity/README.md)
+
+For a teammate's existing project, copy `unity/Assets/AHAM` and its `.meta` file into their Assets folder or extract the Unity import ZIP there.
 
 ## Development references
 
