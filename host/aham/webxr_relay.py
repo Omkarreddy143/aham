@@ -19,6 +19,7 @@ from urllib.parse import unquote, urlsplit
 
 from .cue_monitor import cue_values
 from .protocol import HAPTIC, TELEMETRY, decode, haptic, telemetry
+from .runtime import keep_awake
 
 
 WEB = Path(__file__).resolve().parents[2] / "webxr"
@@ -436,7 +437,8 @@ def main():
         if not context:
             print(f"Quest USB secure context: adb reverse tcp:{server.server_port} tcp:{server.server_port}; "
                   f"open http://localhost:{server.server_port}/ in Quest Browser.", flush=True)
-        server.serve_forever()
+        with keep_awake():
+            server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:

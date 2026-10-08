@@ -149,6 +149,9 @@ let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new
 const inverseStage=new THREE.Matrix4();
 const localPoint=new THREE.Vector3(),localRotation=new THREE.Quaternion(),restartPoint=new THREE.Vector3();
 const selectedHand=() => $('hand').value;
+// A temporary HTTPS tunnel can exceed one second per round trip. This only
+// bounds the HTTP request; relay freshness and ESP output leases stay unchanged.
+const FEEDBACK_REQUEST_TIMEOUT_MS=3000;
 
 function readXR(frame) {
   hands=emptyHands();
@@ -219,7 +222,7 @@ async function sendGrip(forceZero=false) {
   lastGripPost=now;gripBusy=true;
   try {
     await fetch('/api/grip-preview',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(game.intent(source,!forceZero && gameTracked)),signal:AbortSignal.timeout(1000)});
+      body:JSON.stringify(game.intent(source,!forceZero && gameTracked)),signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
   } catch {} finally {gripBusy=false;if(gripZeroQueued){gripZeroQueued=false;sendGrip(true);}}
 }
 function resetGame(){game.reset();previewLift=0;previewDock=false;for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';if(source==='webxr')sendGrip(true);}
@@ -234,7 +237,7 @@ async function sendCue(forceZero=false) {
   try {
     const result=await fetch('/api/cue',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(request),
-      signal:AbortSignal.timeout(1000)});
+      signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
     const value=await result.json();
     accepted=result.ok && value.accepted ? {sequence:value.sequence,time:performance.now()} : null;
     if(!result.ok) $('accepted-value').textContent='Request rejected';
@@ -248,7 +251,7 @@ async function pollStatus() {
   pollBusy=true;
   const requestedAt=performance.now();
   try {
-    const result=await fetch('/api/status',{signal:AbortSignal.timeout(1000)});
+    const result=await fetch('/api/status',{signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
     if(!result.ok) throw new Error('Relay unavailable');
     status=await result.json();
     // Count the entire round trip conservatively rather than showing a delayed

@@ -27,6 +27,24 @@ def command_packet(snapshot, session, boot, sequence, now_ms, key, elapsed=0):
     return signed(COMMAND, sequence, now_ms, body, key)
 
 
+def quest_input_status(snapshot, elapsed=0):
+    """Describe the current source separately from an ESP's saved disarm reason."""
+    if snapshot is None:
+        return "RELAY_UNAVAILABLE"
+    if not isinstance(snapshot, dict) or snapshot.get("mode") != "monitor-only":
+        return "INVALID_PREVIEW"
+    values = [snapshot.get("cue"), snapshot.get("grip")]
+    if not any(isinstance(value, dict) for value in values):
+        return "WAITING_FOR_VR"
+    current = [value for value in values if fresh(value, 250, elapsed)]
+    if not current:
+        return "STALE_VR_DATA"
+    if any(value.get("source") == "webxr" and value.get("hand") == "right"
+           and value.get("trackingValid") is True for value in current):
+        return "RIGHT_HAND_TRACKING"
+    return "NO_RIGHT_HAND_TRACKING"
+
+
 class WirelessGlove(WirelessBench):
     def send(self, snapshot, elapsed=0):
         now = time.monotonic(); self._prune(now)
@@ -121,10 +139,12 @@ def main():
             if now-last_print >= .5:
                 last_print = now
                 if receipt:
-                    print(f"ESP FIVE seq={receipt['sequence']} VIB={receipt['vibration']} RES%={receipt['resistance']} "
+                    source_status = quest_input_status(snapshot, now-started)
+                    print(f"ESP FIVE seq={receipt['sequence']} ESP_LINK=LIVE QUEST={source_status} "
+                          f"VIB={receipt['vibration']} RES%={receipt['resistance']} "
                           f"HOLD={receipt['holding']} M_ARM={receipt['motorMask']} S_ARM={receipt['servoMask']} "
                           f"PWM={receipt['pwm']} SERVO_US={receipt['servoUs']} "
-                          f"S_SIGNAL={receipt['servoSignalMask']} {receipt['reason']}", flush=True)
+                          f"S_SIGNAL={receipt['servoSignalMask']} LAST_REASON={receipt['reason']}", flush=True)
                 else:
                     print("NO FRESH FIVE-FINGER RECEIPT: check nodemcu_wifi_glove, UDP 4212, IPs and pairing key.", flush=True)
                 if snapshot is None:

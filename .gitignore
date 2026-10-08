@@ -36,6 +36,7 @@ Desktop.ini
 
 # Local experiment data
 local-data/
+VR-LINK.txt
 
 # Local test builds, packages and Python caches
 .build/

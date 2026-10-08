@@ -199,6 +199,8 @@ PWM=[0,0,0,0,0] SERVO_US=[1500,1500,1500,1500,1500] S_SIGNAL=0
 
 VIB/RES% are received requests. PWM/SERVO_US are controller commands, **not measured motor vibration, shaft position or tendon force**. The website's hardware readout remains observation-only; use these new local logs for actuator command receipts.
 
+Terminal status now separates **ESP_LINK=LIVE** (a fresh authenticated ESP reply) from **QUEST=RIGHT_HAND_TRACKING / WAITING_FOR_VR / STALE_VR_DATA / NO_RIGHT_HAND_TRACKING** (current headset input). **LAST_REASON** is the firmware's saved state/disarm reason. For example `LAST_REASON=LINK_LOST` can remain after replies resume; it does not mean the current ESP Wi-Fi link is disconnected. With `QUEST=WAITING_FOR_VR`, enter VR on Quest and allow hand tracking; desktop rehearsal sends no cues.
+
 ## 8. Verify one finger at a time, then enable all five
 
 **Quest not available?** Use [the standalone procedure](hardware-test-without-vr.md) and `host/run.py glove-test`. It sends controlled one-finger requests without a VR scene/server and keeps the same uploaded firmware. Startup is zero-only; local Serial ARM and verification masks still apply.

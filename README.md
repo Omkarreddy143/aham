@@ -6,6 +6,8 @@ The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** add
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.
 
+Windows shortcut: double-click **Open VR Link.cmd** to reuse or repair the HTTPS link; **Refresh VR Link.cmd** forces a new one. The verified URL is copied to the clipboard and saved in **VR-LINK.txt**. The shortcuts update the relay origin together with the tunnel and preserve ESP settings.
+
 ```text
 Quest hand tracking → WebXR hand → virtual contact → cue
   → HTTPS → laptop relay → hotspot Wi-Fi → NodeMCU receive-only monitor

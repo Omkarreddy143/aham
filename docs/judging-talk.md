@@ -1,5 +1,7 @@
 # AHAM judging speaking script
 
+For the implementation, Quest hosting, three-device connection, packet flow and hardware mapping, use the [technical judging explanation](technical-judging.md). It also provides an honest desktop-only demonstration when the headset is unavailable.
+
 Confirmed Tattva: **"Consciousness is beyond the body and mind. Show artificial sense of Self in body and mind."** Use these sections as modules; no presentation duration is assumed. [Preparation and Q&A](judging-preparation.md), [shlokas and explanation](tattva-explanation.md).
 
 ## Teammate 1 — opening

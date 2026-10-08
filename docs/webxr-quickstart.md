@@ -12,6 +12,26 @@ Meta supports WebXR hand tracking with 25 joints per hand, including position an
 
 ## Start the wireless demo
 
+On this Windows laptop, double-click **Open VR Link.cmd** in the Makethon folder. It checks the existing URL and reuses it when healthy. If it is unavailable, it creates a new tunnel, updates the relay's exact HTTPS origin, verifies the public relay, copies the URL to the clipboard, opens the browser and saves **VR-LINK.txt**. Double-click **Refresh VR Link.cmd** to force a new URL immediately. Wait for **READY** before sharing it; Internet/DNS registration can take several seconds. Close old AHAM tabs on Quest, open the new URL and Enter VR again.
+
+This laptop also has **AHAM Refresh VR** on the desktop with **Ctrl+Alt+V** assigned. It opens the same refresh command in a visible window. Fresh downloads can use the two `.cmd` files directly; the desktop shortcut is a local convenience and is not inside the ZIP.
+
+These shortcuts manage only the tunnel and VR relay. They preserve ESP addresses, pairing files, hotspot credentials and hardware settings. Use the other Wi-Fi for VR-only testing; before the combined ESP test, reconnect the laptop to the ESP's configured phone hotspot and restart the Wi-Fi sender after a network switch. Changing laptop networks can also interrupt the tunnel.
+
+The Windows relay requests temporary sleep prevention while running and clears that request when it stops. This does not change saved Windows power settings or prevent Internet outages. Quick Tunnels have no guaranteed lifetime or uptime; a stable hostname requires an account/domain with a managed tunnel. [Cloudflare Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/), [managed tunnel setup](https://developers.cloudflare.com/tunnel/get-started/)
+
+Manual equivalent:
+
+```powershell
+.\.venv\Scripts\python.exe tools/vr_link.py --force
+```
+
+Check without restarting anything:
+
+```powershell
+.\.venv\Scripts\python.exe tools/vr_link.py --status
+```
+
 The selected route is a **Cloudflare Quick Tunnel**. It gives the laptop service a temporary HTTPS address that Quest Browser can open wirelessly. No Cloudflare account or domain is needed. Anyone with the URL can access it while the tunnel runs; stopping the tunnel closes that URL. [Cloudflare Quick Tunnels](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/)
 
 Open PowerShell in the Makethon folder. If the tunnel, relay, or bridge is already running, reuse it rather than starting duplicates.
@@ -50,6 +70,8 @@ Only one process may own COM7. Stop an old bridge or Serial Monitor before openi
 Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both hands render; entering the game selects right-hand feedback. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
 
 After updating, **exit VR, reload the page, check for ORBIT FOUNDRY v4, then Enter VR again**. The current laptop preview submits no cues. Close any older v1/v2 preview tabs that may still submit zeros. Expand **Tracking & connection details** on the laptop for joint counts and five independent finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
+
+Feedback HTTP requests allow up to three seconds for a tunnel round trip. This is a request timeout, **not** permission to keep old feedback active: the existing relay freshness and ESP lease limits remain unchanged. Slow/failed requests can still create zero-output gaps. In the five-finger terminal, `ESP_LINK=LIVE` confirms fresh ESP replies independently of `QUEST=WAITING_FOR_VR / STALE_VR_DATA / RIGHT_HAND_TRACKING`; `LAST_REASON` is a saved firmware state/disarm reason, not current Wi-Fi connectivity.
 
 ## Play Orbit Foundry
 

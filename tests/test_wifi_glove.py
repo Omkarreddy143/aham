@@ -9,13 +9,25 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "host"))
 from aham.protocol import Packet, crc16, decode
 from aham.wifi_bench import HELLO, HELLO_ACK, HELLO_RECEIPT, authenticated, signed
-from aham.wifi_glove import ACK, BODY, COMMAND, RECEIPT, WirelessGlove, command_packet
+from aham.wifi_glove import ACK, BODY, COMMAND, RECEIPT, WirelessGlove, command_packet, quest_input_status
 from test_wifi_monitor import snapshot
 
 KEY = bytes(range(32))  # Public test vector, not a deployment key.
 
 
 class GlovePacketTests(unittest.TestCase):
+    def test_source_status_separates_absent_stale_and_missing_right_hand(self):
+        self.assertEqual(quest_input_status(None), "RELAY_UNAVAILABLE")
+        self.assertEqual(quest_input_status({"mode": "monitor-only", "cue": None, "grip": None}), "WAITING_FOR_VR")
+        self.assertEqual(quest_input_status({"mode": "unknown"}), "INVALID_PREVIEW")
+        self.assertEqual(quest_input_status(snapshot()), "RIGHT_HAND_TRACKING")
+        self.assertEqual(quest_input_status(snapshot(), .25), "STALE_VR_DATA")
+        for changes in ({"hand": "left"}, {"trackingValid": False}, {"source": "desktop-preview"}):
+            value = snapshot()
+            value["cue"].update(changes)
+            value["grip"].update(changes)
+            self.assertEqual(quest_input_status(value), "NO_RIGHT_HAND_TRACKING")
+
     def test_all_five_channels_keep_order_and_fit_existing_frame(self):
         value = snapshot(); value["cue"]["duties"] = [10, 95, 120, 140, 160]
         value["cue"]["patterns"] = [0, 1, 2, 3, 0]
