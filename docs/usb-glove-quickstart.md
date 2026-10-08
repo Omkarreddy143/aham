@@ -64,6 +64,13 @@ The optional duration accepts only `3`, `10` or `15` seconds; omitting it keeps
 the three-second default. Link expiry, D6 and STOP still interrupt the jog.
 This does not extend the continuous VR servo-pull limit.
 
+To check a larger **detached** movement, use `ARM SERVO INDEX` followed by
+`SWEEP INDEX`. The ten-second sequence uses 1500 → 1750 → 1250 → 1500 us with
+the initial center configuration, then disarms. All threads must be detached;
+only the selected servo may be armed, and the motor outputs stay off. Test
+THUMB, INDEX, MIDDLE, RING and LITTLE separately. This is a bench command and
+does not change the normal VR resistance range.
+
 Re-arm the index pair with an open hand before a VR contact/grasp test. Touch an
 object for vibration, then grasp, lift briefly and release for servo resistance
 requests. Watch `VIB`, `RES%`, `PWM`, `SERVO_US`, `M_ARM`, `S_ARM`, and `S_SIGNAL`.

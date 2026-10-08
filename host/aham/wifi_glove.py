@@ -18,6 +18,16 @@ BODY = struct.Struct("<IIHB5B5B5B")
 ACK = struct.Struct("<IIHBB5B5HBB")
 
 
+def valid_servo_receipt(sent, motors, servos, signal, pwm, pulses, reason):
+    if all(1400 <= value <= 1600 for value in pulses):
+        return True
+    # A local detached sweep is the only wider output. VR command ranges remain unchanged.
+    return (not any(sent[3:]) and motors == 0 and not any(pwm)
+            and servos in (1, 2, 4, 8, 16) and signal == servos and reason == 1
+            and all((1250 <= value <= 1750) if servos & (1 << i)
+                    else (1400 <= value <= 1600) for i, value in enumerate(pulses)))
+
+
 class PreviewReader:
     """Poll HTTP separately so a slow response cannot stop the UDP heartbeat."""
     def __init__(self, url):
@@ -127,16 +137,17 @@ class WirelessGlove(WirelessBench):
                 result = ACK.unpack(authenticated(ack, ACK.size, self.key))
                 session, boot, checksum, motor_mask, servo_mask = result[:5]
                 pwm, pulse, signal_mask, reason = list(result[5:10]), list(result[10:15]), result[15], result[16]
+                sent = BODY.unpack(packet.payload[:BODY.size])
                 if (session != self.session or boot != self.boot or checksum != crc16(packet.payload[:BODY.size])
                         or motor_mask > 31 or servo_mask > 31 or signal_mask > 31 or reason >= len(REASONS)
-                        or any(value > 160 for value in pwm) or any(not 1400 <= value <= 1600 for value in pulse)
+                        or any(value > 160 for value in pwm)
+                        or not valid_servo_receipt(sent, motor_mask, servo_mask, signal_mask, pwm, pulse, reason)
                         or any(pwm[i] and not motor_mask & (1 << i) for i in range(5))):
                     continue
                 if self.last_receipt:
                     advance = (ack.sequence-self.last_receipt["sequence"]) & 0xffff
                     if not 0 < advance < 0x8000:
                         continue
-                sent = BODY.unpack(packet.payload[:BODY.size])
             except (ValueError, struct.error):
                 continue
             self.pending.pop(ack.sequence); self.received += 1

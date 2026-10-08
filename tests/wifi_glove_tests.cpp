@@ -1,4 +1,5 @@
 #include "GloveOutputs.h"
+#include "BenchServoSweep.h"
 #include <assert.h>
 #include <stdio.h>
 #include <fstream>
@@ -74,5 +75,22 @@ int main(int argc,char** argv) {
     assert(limits.allowedServos==17); // Bad index/middle/ring calibration is disabled.
     output.reset();assert(!output.enabled&&!output.servoSignalMask);
     for(int i=0;i<5;i++){assert(aham_glove::ServoChannels[i]==i);assert(aham_glove::MotorChannels[i]==8+i);}
+    assert(aham_glove::ServoSweepDurationMs==10000);
+    for(uint32_t elapsed : {0u,999u,1000u,3999u,4000u,6999u,7000u,9999u,10000u}) {
+        const uint16_t expected=elapsed>=1000&&elapsed<4000?1750:elapsed>=4000&&elapsed<7000?1250:1500;
+        assert(aham_glove::benchSweepPulse(1500,elapsed)==expected);
+        for(uint16_t home : {1400,1500,1600}) {
+            const uint16_t pulse=aham_glove::benchSweepPulse(home,elapsed);
+            assert(pulse>=1250&&pulse<=1750);
+        }
+    }
+    aham_glove::Controller sweep(456,31,31,homes,pulls);
+    assert(sweep.accept(command(),0));assert(sweep.arm(0,2,0,true));
+    output.reset();output.plan(sweep,1000,1,aham_glove::benchSweepPulse(1500,1000));
+    assert(output.servoSignalMask==2&&output.reportedPulse[1]==1750&&output.servoTicks[1]==358);
+    for(int i=0;i<5;i++)if(i!=1)assert(!output.servoTicks[i]&&!output.motorTicks[i]);
+    sweep.tick(1000,false);output.plan(sweep,1000,1,1750);
+    assert(!sweep.armedServos&&output.reportedPulse[1]==1500);
+    output.plan(sweep,1300,1,1750);assert(!output.enabled);
     puts("Five-finger controller/output planning, interoperability, masks, limits, stop, lease and replay checks passed");
 }

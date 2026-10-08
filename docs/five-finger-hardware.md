@@ -4,7 +4,7 @@ Use **ESP-12E NodeMCU V3 / ESP8266**, one **PCA9685**, five **3 V coin motors**,
 
 Download [AHAM-Five-Finger-Hardware.zip](../artifacts/AHAM-Five-Finger-Hardware.zip). It contains the complete ESP source, PlatformIO project, laptop sender, configuration examples and this guide. [ESP source](../firmware/src/wifi_glove.cpp), [controller](../firmware/include/GloveController.h), [output planner](../firmware/include/GloveOutputs.h), [laptop sender](../host/aham/wifi_glove.py).
 
-**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. The earlier tests produced servo buzzing and no motor vibration. During the subsequent ten-second index test, the user confirmed slight physical servo movement. Other servo movement, motor vibration and VR-driven physical feedback remain unverified. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
+**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. After slight index movement in the ten-second jog, the wider detached sweep produced **clear physical movement of all five servos**, confirmed by the user. Motor vibration and VR-driven physical feedback remain unverified. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
 
 A subsequent ten-second index jog confirmed the 1600 us position request across
 9.94 seconds of ESP receipts. Active PCA register readback showed channel 1
@@ -12,7 +12,16 @@ ON=0/OFF=328, FULL_OFF=0, PRE_SCALE=121 (nominal 50.03 Hz) and D7 LOW.
 The jog returned home and disarmed automatically, and the user reported slight
 index servo movement. The requested change was only 1500 to 1600 us; holding it
 longer holds that position rather than causing continuous rotation. The physical
-pulse timing, tendon direction/travel and other actuator movement still need verification.
+pulse timing and tendon direction/travel still need verification.
+
+The subsequent wider detached sweep completed for **all five servo channels**,
+one at a time. ESP receipts confirmed both 1750 and 1250 us targets on every
+channel, home return and automatic signal shutdown, with all motor requests and
+outputs zero. The user confirmed **all five servo horns moved clearly** during
+this wider test. This verifies detached movement, not calibrated finger force.
+The receiver now recognizes wider **bench** receipts only for a zero request,
+one armed/signalling servo, no motor output and the bounded 1250–1750 us range.
+Wider pulses in a VR contact/grasp receipt remain rejected.
 
 ## 1. Parts for the complete glove
 
@@ -290,6 +299,35 @@ are accepted; STOP, D6 and link expiry still cancel the test. This extension
 does not change the three-second continuous VR pull limit or the motor test.
 The pulse itself remains 1400–1600 **microseconds**, repeated around 50 Hz;
 seconds describe the overall bench test, not the length of an individual pulse.
+
+### Wider detached servo observation
+
+With **all threads detached and the glove off the hand**, `SWEEP INDEX`
+tests a visibly larger position change for ten seconds. Arm only that servo
+first with `ARM SERVO INDEX`. The fixed sequence is center for one second,
+center +250 us for three seconds, center -250 us for three seconds, then center
+for three seconds. Pulses are clamped to 1250–1750 us. With the initial 1500 us
+center, this is **1500 → 1750 → 1250 → 1500 us**. It returns home and disarms.
+
+Replace INDEX with THUMB, MIDDLE, RING or LITTLE to test each PCA channel in turn.
+Re-arm each named servo before its sweep; `SWEEP ALL` is deliberately unsupported.
+No motor or other servo may be armed during a sweep. The duration/range cannot
+be overridden by this command. STOP, D6, I2C fault and link expiry still cancel it.
+These bench pulses do not widen the normal VR resistance limits (1400–1600 us,
+maximum configured delta ±100 us). Travel and tendon direction still need
+calibration before attaching a finger.
+
+For an automated sequential sweep using USB, stop the existing companion and
+close Serial Monitor so COM7 is free, confirm actuator power and detached threads,
+then run from the repository root:
+
+```powershell
+python tools/servo_sweep.py --serial-port COM7 --key-file local-data/wifi-bench.key --finger ALL --detached
+```
+
+This tool derives each center from the ESP receipt, verifies both target positions
+and single-channel isolation, aborts the remaining batch on a lost link or failed
+stage, and sends STOP before closing. Restart the normal companion afterward.
 
 ## 9. How resistance is converted into a small servo movement
 

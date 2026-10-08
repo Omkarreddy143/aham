@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import serial
 
-COMMAND = re.compile(r'(?:STATUS|PCA STATUS|PWM PROBE|STOP|HOME|ARM (?:MOTOR|SERVO|BOTH) (?:THUMB|INDEX|MIDDLE|RING|LITTLE|ALL)|JOG (?:THUMB|INDEX|MIDDLE|RING|LITTLE) [+-](?:10|50|100)(?: (?:3|10|15))?)\Z')
+COMMAND = re.compile(r'(?:STATUS|PCA STATUS|PWM PROBE|STOP|HOME|ARM (?:MOTOR|SERVO|BOTH) (?:THUMB|INDEX|MIDDLE|RING|LITTLE|ALL)|SWEEP (?:THUMB|INDEX|MIDDLE|RING|LITTLE)|JOG (?:THUMB|INDEX|MIDDLE|RING|LITTLE) [+-](?:10|50|100)(?: (?:3|10|15))?)\Z')
 
 
 class SerialPacketLink:
@@ -44,7 +44,7 @@ class SerialPacketLink:
                         return frame
                 except (ValueError, UnicodeError):
                     pass
-            elif line.startswith((b'STATUS ', b'PCA DIAG ', b'PWM PROBE ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'10 s JOG', b'15 s JOG', b'300 ms JOG', b'JOG needs', b'DISARMED:', b'I2C FAULT:')):
+            elif line.startswith((b'STATUS ', b'PCA DIAG ', b'PWM PROBE ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'10 s JOG', b'15 s JOG', b'10 s SWEEP', b'SWEEP refused:', b'300 ms JOG', b'JOG needs', b'DISARMED:', b'I2C FAULT:')):
                 print('USB BOARD: ' + line.decode('ascii', errors='replace').strip(), flush=True)
         raise BlockingIOError()
 

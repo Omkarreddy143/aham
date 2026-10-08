@@ -162,6 +162,29 @@ class GloveUdpTests(unittest.TestCase):
         with patch("aham.wifi_glove.time.monotonic", return_value=result["receivedAt"]+.6):
             self.assertIsNone(self.glove.poll())
 
+    def test_wider_sweep_receipts_require_zero_request_and_one_selected_servo(self):
+        self.pair()
+        for finger in range(5):
+            bit = 1 << finger
+            for target in (1750, 1250):
+                self.glove.send(None); packet, peer = self.receive()
+                pulses = [1500] * 5; pulses[finger] = target
+                result = self.reply(packet, peer, self.ack(packet, motors=0, servos=bit,
+                                    pwm=[0]*5, pulses=pulses, signal=bit))
+                self.assertEqual(result['servoUs'][finger], target)
+        self.glove.send(None); packet, peer = self.receive()
+        valid = dict(motors=0, servos=2, pwm=[0]*5, pulses=[1500,1750,1500,1500,1500], signal=2)
+        received = self.glove.received
+        for changes in ({'servos':31}, {'signal':0}, {'reason':4},
+                        {'pulses':[1750,1750,1500,1500,1500]},
+                        {'pulses':[1500,1751,1500,1500,1500]},
+                        {'pulses':[1500,1249,1500,1500,1500]}, {'pwm':[0,1,0,0,0]}):
+            self.reply(packet, peer, self.ack(packet, **dict(valid, **changes)))
+            self.assertEqual(self.glove.received, received)
+        self.glove.send(snapshot()); packet, peer = self.receive()
+        self.reply(packet, peer, self.ack(packet, **valid))
+        self.assertEqual(self.glove.received, received)  # Wide pulses cannot be accepted for VR grip/contact.
+
     def test_wrong_key_unsolicited_hello_and_reboot_nonce_handling(self):
         self.glove.send(None); hello, peer = self.receive()
         self.reply(hello, peer, HELLO_ACK.pack(123, 456), HELLO_RECEIPT, key=bytes([1])*32)
