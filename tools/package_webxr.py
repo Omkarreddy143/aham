@@ -10,7 +10,8 @@ paths = [root / "README.md", root / "docs/webxr-quickstart.md",
          root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",
          root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md",
          root / "docs/verification.md", root / "docs/images/webxr-v4.jpg"]
-paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py"])
+paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py",
+              root / "docs/index-hardware-quickstart.md"])
 for folder in ("webxr", "host", "docs/images"):
     paths.extend(path for path in (root / folder).rglob("*")
                  if path.is_file() and "__pycache__" not in path.parts)

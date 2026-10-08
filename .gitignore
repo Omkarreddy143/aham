@@ -3,6 +3,8 @@
 .env.*
 !.env.example
 **/WifiSecrets.h
+**/BenchSecrets.h
+**/BenchConfig.h
 *.pem
 *.key
 
@@ -42,6 +44,7 @@ artifacts/*
 !artifacts/AHAM-Index-Arduino.zip
 !artifacts/AHAM-WebXR-Starter.zip
 !artifacts/AHAM-WiFi-Monitor.zip
+!artifacts/AHAM-Index-Hardware.zip
 __pycache__/
 *.pyc
 .venv/

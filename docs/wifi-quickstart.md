@@ -2,6 +2,8 @@
 
 This is a **receive-and-print test**, ready to upload with PlatformIO. It transfers five vibration values and five resistance requests to the ESP8266 over Wi-Fi. Motors and servos stay disabled. No flex sensor, MPU6050 or PCA9685 connection is needed for this data test.
 
+After confirming receipt, use the separate [one-index hardware bench guide](index-hardware-quickstart.md) and **AHAM-Index-Hardware.zip** for output preparation. It uses a different firmware/sender/port with local arming. This receive-only path remains unchanged.
+
 ```text
 Quest Browser -> existing HTTPS scene -> laptop relay
   -> local UDP over phone hotspot -> NodeMCU Wi-Fi receiver
