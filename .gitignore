@@ -47,6 +47,7 @@ artifacts/*
 !artifacts/AHAM-WiFi-Monitor.zip
 !artifacts/AHAM-Index-Hardware.zip
 !artifacts/AHAM-Five-Finger-Hardware.zip
+!artifacts/AHAM-Judging-Pack.zip
 __pycache__/
 *.pyc
 .venv/

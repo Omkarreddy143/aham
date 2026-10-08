@@ -59,6 +59,8 @@ The received board is **ESP-12E NodeMCU V3 / ESP8266**, rather than ESP32. Quest
 - [Five-finger hardware ZIP](artifacts/AHAM-Five-Finger-Hardware.zip) and [full circuit, PlatformIO code and setup](docs/five-finger-hardware.md)
 - [Game and servo-resistance contract](docs/servo-resistance-plan.md)
 - [Verification record](docs/verification.md)
+- [Judging preparation for the 25/25/50 rubric](docs/judging-preparation.md), [speaking script](docs/judging-talk.md), [Tattva explanation and shlokas](docs/tattva-explanation.md) and [blank observation sheet](docs/judging-observations.csv)
+- [Judging pack ZIP](artifacts/AHAM-Judging-Pack.zip) and [offline BODY / MIND / AWARENESS spectator cards](docs/judging-cards.html)
 - [Original 40-hour plan](AHAM-40-hour-plan.md), with the selected WebXR revision at the top
 - [Wire protocol](docs/protocol.md)
 - [Motor hardware guide](docs/index-finger-mvp.md)

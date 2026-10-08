@@ -11,7 +11,10 @@ paths = [root / "README.md", root / "docs/webxr-quickstart.md",
          root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md",
          root / "docs/verification.md", root / "docs/images/webxr-v4.jpg"]
 paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py",
-              root / "docs/index-hardware-quickstart.md", root / "docs/five-finger-hardware.md"])
+              root / "docs/index-hardware-quickstart.md", root / "docs/five-finger-hardware.md",
+              root / "docs/judging-preparation.md", root / "docs/judging-talk.md",
+              root / "docs/tattva-explanation.md", root / "docs/judging-cards.html",
+              root / "docs/judging-observations.csv"])
 for folder in ("webxr", "host", "docs/images"):
     paths.extend(path for path in (root / folder).rglob("*")
                  if path.is_file() and "__pycache__" not in path.parts)
