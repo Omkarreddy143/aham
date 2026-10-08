@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import serial
 
-COMMAND = re.compile(r'(?:STATUS|STOP|HOME|ARM (?:MOTOR|SERVO|BOTH) (?:THUMB|INDEX|MIDDLE|RING|LITTLE|ALL)|JOG (?:THUMB|INDEX|MIDDLE|RING|LITTLE) [+-](?:10|50|100))\Z')
+COMMAND = re.compile(r'(?:STATUS|PCA STATUS|PWM PROBE|STOP|HOME|ARM (?:MOTOR|SERVO|BOTH) (?:THUMB|INDEX|MIDDLE|RING|LITTLE|ALL)|JOG (?:THUMB|INDEX|MIDDLE|RING|LITTLE) [+-](?:10|50|100))\Z')
 
 
 class SerialPacketLink:
@@ -44,7 +44,7 @@ class SerialPacketLink:
                         return frame
                 except (ValueError, UnicodeError):
                     pass
-            elif line.startswith((b'STATUS ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'300 ms JOG', b'DISARMED:', b'I2C FAULT:')):
+            elif line.startswith((b'STATUS ', b'PCA DIAG ', b'PWM PROBE ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'300 ms JOG', b'DISARMED:', b'I2C FAULT:')):
                 print('USB BOARD: ' + line.decode('ascii', errors='replace').strip(), flush=True)
         raise BlockingIOError()
 

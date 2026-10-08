@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
     command = ' '.join(args.command)
     if not COMMAND.fullmatch(command):
-        parser.error('Use STATUS, STOP, HOME, ARM MOTOR|SERVO|BOTH INDEX, or JOG INDEX +10|+50|+100 (negative steps also allowed).')
+        parser.error('Use STATUS, PCA STATUS, PWM PROBE, STOP, HOME, ARM MOTOR|SERVO|BOTH INDEX, or JOG INDEX +10|+50|+100 (negative steps also allowed).')
     try:
         state = json.loads((ROOT / '.build/quest-wireless.json').read_text(encoding='utf-8-sig'))
         if not state.get('gloveSerialPort'):
@@ -31,7 +31,12 @@ def main():
             with control.open('ab') as destination:
                 destination.write((command + '\n').encode('ascii'))
             print('Requested locally: ' + command, flush=True)
-            expected = ('ARMED ', 'NOT ARMED:') if command.startswith('ARM ') else ('3 s JOG', '300 ms JOG', 'JOG needs') if command.startswith('JOG ') else ('STATUS ',) if command == 'STATUS' else ('DISARMED:',)
+            if command == 'PCA STATUS':
+                expected = ('PCA DIAG ',)
+            elif command == 'PWM PROBE':
+                expected = ('PWM PROBE ',)
+            else:
+                expected = ('ARMED ', 'NOT ARMED:') if command.startswith('ARM ') else ('3 s JOG', '300 ms JOG', 'JOG needs') if command.startswith('JOG ') else ('STATUS ',) if command == 'STATUS' else ('DISARMED:',)
             deadline = time.monotonic() + 2
             buffer = b''
             while time.monotonic() < deadline:

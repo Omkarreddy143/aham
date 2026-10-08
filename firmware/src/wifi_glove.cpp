@@ -44,6 +44,11 @@ bool writeRegister(uint8_t reg, uint8_t value) {
     Wire.beginTransmission(address); Wire.write(reg); Wire.write(value);
     return Wire.endTransmission() == 0;
 }
+bool readRegister(uint8_t reg, uint8_t& value) {
+    Wire.beginTransmission(address); Wire.write(reg);
+    if (Wire.endTransmission(false) != 0 || Wire.requestFrom(address, uint8_t(1)) != 1) return false;
+    value = uint8_t(Wire.read()); return true;
+}
 bool writeChannel(uint8_t ch, uint16_t ticks) {
     // Zero uses FULL_OFF, which overrides the ON comparator.
     Wire.beginTransmission(address); Wire.write(uint8_t(0x06 + ch * 4));
@@ -79,6 +84,47 @@ void applyOutputs(uint32_t now) {
     }
     digitalWrite(board::servoOePin, output.enabled ? LOW : HIGH);
 }
+void pcaStatus() {
+    // Read actual chip registers rather than repeating the controller's requests.
+    uint8_t mode1, mode2, prescale, allOn, allOff, servo[4], motor[4];
+    bool ok = pcaReady && readRegister(0x00, mode1) && readRegister(0x01, mode2) &&
+        readRegister(0xfe, prescale) && readRegister(0xfb, allOn) && readRegister(0xfd, allOff);
+    for (uint8_t i = 0; ok && i < 4; ++i) {
+        ok = readRegister(uint8_t(0x06 + 4 * 1 + i), servo[i]) &&
+             readRegister(uint8_t(0x06 + 4 * 9 + i), motor[i]);
+    }
+    if (!ok) { i2cFault(); Serial.println("PCA DIAG READ_FAILED; outputs disabled"); return; }
+    Serial.print("PCA DIAG MODE1=0x"); Serial.print(mode1, HEX);
+    Serial.print(" MODE2=0x"); Serial.print(mode2, HEX);
+    Serial.print(" PRESCALE="); Serial.print(prescale);
+    Serial.print(" NOMINAL_HZ="); Serial.print(25000000.0 / (4096.0 * (prescale + 1)), 2);
+    Serial.print(" D7_LEVEL="); Serial.print(digitalRead(board::servoOePin));
+    Serial.print(" ALL_ON_H=0x"); Serial.print(allOn, HEX);
+    Serial.print(" ALL_OFF_H=0x"); Serial.print(allOff, HEX);
+    const uint8_t* channels[2] = {servo, motor};
+    for (uint8_t i = 0; i < 2; ++i) {
+        const uint8_t* data = channels[i];
+        const uint16_t on = uint16_t(data[0]) | (uint16_t(data[1] & 15) << 8);
+        const uint16_t off = uint16_t(data[2]) | (uint16_t(data[3] & 15) << 8);
+        Serial.print(i ? " CH9_ON=" : " CH1_ON="); Serial.print(on);
+        Serial.print(" OFF="); Serial.print(off);
+        Serial.print(" FULL_ON="); Serial.print(bool(data[1] & 16));
+        Serial.print(" FULL_OFF="); Serial.print(bool(data[3] & 16));
+    }
+    Serial.println();
+}
+void pwmProbe() {
+    // Optional extra wire from the selected PCA PWM signal to D5, with VCC <=3.3 V.
+    // Two bounded measurements take at most 50 ms; no output is armed or changed.
+    const uint32_t highUs = pulseIn(board::motorPins[1], HIGH, 25000);
+    const uint32_t lowUs = pulseIn(board::motorPins[1], LOW, 25000);
+    const uint32_t period = highUs && lowUs ? highUs + lowUs : 0;
+    Serial.print("PWM PROBE PIN=D5 HIGH_US="); Serial.print(highUs);
+    Serial.print(" LOW_US="); Serial.print(lowUs);
+    Serial.print(" PERIOD_US="); Serial.print(period);
+    Serial.print(" HZ="); Serial.print(period ? 1000000.0 / period : 0.0, 2);
+    Serial.println("; physical jumper required; separate cycles sampled");
+}
 int fingerNumber(const char* text) {
     for (int i = 0; i < 5; ++i) if (!strcmp(text, names[i])) return i;
     if (!strcmp(text, "PINKY")) return 4;
@@ -87,6 +133,8 @@ int fingerNumber(const char* text) {
 void commands(const char* text) {
     const uint32_t now = millis();
     state->tick(now, digitalRead(board::stopPin) == LOW);
+    if (!strcmp(text, "PCA STATUS")) { pcaStatus(); return; }
+    if (!strcmp(text, "PWM PROBE")) { pwmProbe(); return; }
     if (!strcmp(text, "STATUS")) {
         Serial.print("STATUS PCA="); Serial.print(pcaReady);
         Serial.print(" STOP_CLOSED="); Serial.print(digitalRead(board::stopPin) == LOW);
@@ -139,7 +187,7 @@ void commands(const char* text) {
         applyOutputs(now); Serial.print("3 s JOG "); Serial.print(names[number]);
         Serial.print(" pulse us="); Serial.println(pulse); return;
     }
-    Serial.println("STATUS; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100; STOP; HOME. Send newline.");
+    Serial.println("STATUS; PCA STATUS; PWM PROBE; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100; STOP; HOME. Send newline.");
 }
 bool handlePacket(const aham::Packet& packet, aham::Packet& ack, bool fromUsb);
 int hexDigit(char value) {
@@ -227,7 +275,7 @@ template <typename T> void printArray(const T* array) {
 }
 void setup() {
     digitalWrite(board::servoOePin, HIGH); pinMode(board::servoOePin, OUTPUT);
-    digitalWrite(board::motorPins[1], LOW); pinMode(board::motorPins[1], OUTPUT); // D5 unused; disable old driver.
+    pinMode(board::motorPins[1], INPUT); // D5 optional PWM probe; disconnect the old direct motor driver.
     pinMode(board::stopPin, INPUT_PULLUP); Serial.begin(115200);
     Serial.println("\nAHAM FIVE-FINGER BENCH: DISARMED; order T/I/M/R/L; servos 0..4, motor SIGNALS 8..12.");
     static aham_glove::Controller controller(ESP.random() | 1, glove_config::motorVerifiedMask,

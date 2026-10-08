@@ -4,7 +4,7 @@ Use **ESP-12E NodeMCU V3 / ESP8266**, one **PCA9685**, five **3 V coin motors**,
 
 Download [AHAM-Five-Finger-Hardware.zip](../artifacts/AHAM-Five-Finger-Hardware.zip). It contains the complete ESP source, PlatformIO project, laptop sender, configuration examples and this guide. [ESP source](../firmware/src/wifi_glove.cpp), [controller](../firmware/include/GloveController.h), [output planner](../firmware/include/GloveOutputs.h), [laptop sender](../host/aham/wifi_glove.py).
 
-**Current status:** software compiles and software tests pass. Physical motors, servos, power, tendon tension and release have not been tested. The diode and actuator supplies still need to be obtained/confirmed. Both verification masks ship as **0**, so every actuator is disabled. You can wire with power disconnected now and choose the V+ source later.
+**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. The user reports servo buzzing without confirmed shaft movement and no motor vibration; physical feedback is still unresolved. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
 
 ## 1. Parts for the complete glove
 
@@ -58,7 +58,7 @@ Disconnect USB and actuator power while wiring.
 | **D7 / GPIO13** | **OE** |
 | **1 kohm resistor** | Between **OE** and NodeMCU **3V** |
 | **D6 / GPIO12** | Normally closed STOP switch / removable loop to **GND** |
-| **D5 / GPIO14** | Unused in this version; disconnect the old index motor base wire |
+| **D5 / GPIO14** | Optional 3.3 V PWM probe input; disconnect the old direct motor base wire |
 
 Address jumpers stay unset: **0x40**. Check that I2C pull-ups are connected to PCA VCC/3 V, not servo 5 V. OE HIGH disables all PCA signals. Verify the external pull-up actually makes OE HIGH during reset; some modules have an OE pull-down/jumper that must be corrected. The HIGH threshold is 0.7 x VCC. Firmware sets all channels OFF at startup. [PCA9685 datasheet](https://cdn-shop.adafruit.com/datasheets/PCA9685.pdf)
 
@@ -178,7 +178,7 @@ pio run -e nodemcu_wifi_glove -t upload --upload-port COM7
 pio device monitor --port COM7 --baud 115200 --eol LF --echo
 ```
 
-Replace COM7 if your board has a different port. Use **115200 baud**, not the old sensor firmware's 230400. Close other programs owning that port before uploading. If `pio` is unavailable in a normal terminal, use the PlatformIO terminal/tasks in VS Code. No upload or physical actuation was performed while preparing this project.
+Replace COM7 if your board has a different port. Use **115200 baud**, not the old sensor firmware's 230400. Close other programs owning that port before uploading. If `pio` is unavailable in a normal terminal, use the PlatformIO terminal/tasks in VS Code.
 
 The board prints **ESP_IP=... UDP=4212** and verification masks 0. If PCA=0, fix the PCA wiring/power/address before arming; reboot after fixing an I2C fault.
 
@@ -202,6 +202,51 @@ VIB/RES% are received requests. PWM/SERVO_US are controller commands, **not meas
 Terminal status now separates **ESP_LINK=LIVE** (a fresh authenticated ESP reply) from **QUEST=RIGHT_HAND_TRACKING / WAITING_FOR_VR / STALE_VR_DATA / NO_RIGHT_HAND_TRACKING** (current headset input). **LAST_REASON** is the firmware's saved state/disarm reason. For example `LAST_REASON=LINK_LOST` can remain after replies resume; it does not mean the current ESP Wi-Fi link is disconnected. With `QUEST=WAITING_FOR_VR`, enter VR on Quest and allow hand tracking; desktop rehearsal sends no cues.
 
 ## 8. Verify one finger at a time, then enable all five
+
+### Check the actual PWM when a servo buzzes or a motor does not start
+
+The servo pulses are approximately 1.5 ms at home and 1.6 ms for a +100 us jog,
+repeating at about 50 Hz. PWM high voltage follows **VCC**, which is 3.3 V here;
+servo **V+** supplies motor power separately. An ordinary DC meter may display
+an average near 0.25 V on a servo PWM pin even though its pulses reach 3.3 V.
+That average is not a measurement of pulse height. These values follow the
+[PCA9685 timing and output configuration](https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf).
+
+Two local read-only commands are available with the updated firmware:
+
+```powershell
+python tools/glove_command.py PCA STATUS
+python tools/glove_command.py PWM PROBE
+```
+
+`PCA STATUS` reads back the chip's MODE1, MODE2, prescaler, global full-on/full-off
+bits, and actual channel 1 / channel 9 registers. `NOMINAL_HZ` is calculated using
+the typical 25 MHz oscillator, not measured. `D7_LEVEL` reads the NodeMCU pin;
+check continuity to the PCA OE pin separately. With the configured output active,
+MODE1 sleep should be clear, auto-increment set, MODE2 equal 0x04, prescaler 121,
+the selected channel's FULL_OFF clear, and D7 low. During a stopped test, channels
+are intentionally FULL_OFF and D7 is high.
+
+`PWM PROBE` measures the signal physically present on **D5**. First confirm PCA
+VCC is 3.3 V and use the updated firmware, which makes D5 an input. With power
+off, add one extra wire from **channel 1 PWM to D5**, keeping the index servo's
+signal connected to that same PWM pin. Keep common GND, D6 stop loop and D7/OE
+connected. Connect only PWM to D5; V+ is a separate power pin. Leave every tendon
+detached for an explicitly requested index bench jog.
+
+During that jog, `HIGH_US` should be around 1500 or 1600, `PERIOD_US` around 20000
+and `HZ` around 50. High and low intervals are sampled in separate cycles, so
+these are approximate timing measurements, not an oscilloscope trace. No signal
+while disarmed is expected. The probe neither arms outputs nor changes travel,
+and each measurement times out within 50 ms. It does not measure pulse voltage,
+motor current or tendon force. Remove the probe wire before using legacy sensor
+firmware, which can drive D5 as an output.
+
+The previous motor bench request was duty 95/255, about 37%; that may be too low
+for a particular coin motor to start. Confirm supply and transistor/diode wiring
+before a supervised test up to the existing firmware limit of 160/255. Servo
+position pulses and motor duty have different purposes; keep their shared PCA
+frequency at approximately 50 Hz while servos are attached.
 
 **Quest not available?** Use [the standalone procedure](hardware-test-without-vr.md) and `host/run.py glove-test`. It sends controlled one-finger requests without a VR scene/server and keeps the same uploaded firmware. Startup is zero-only; local Serial ARM and verification masks still apply.
 

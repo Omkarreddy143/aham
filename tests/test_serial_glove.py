@@ -24,10 +24,22 @@ class SerialGloveTests(unittest.TestCase):
         device.read.return_value = b'FRAME_ACK invalid\nFRAME_ACK 616263\n'
         with self.assertRaises(BlockingIOError):
             link.recv(128)
-        for value in ('ARM BOTH ALL\nSTOP', 'JOG INDEX +999', 'FRAME abc', 'arm both all'):
+        for value in ('ARM BOTH ALL\nSTOP', 'JOG INDEX +999', 'FRAME abc', 'arm both all',
+                      'PCA STATUS\nARM BOTH ALL', 'PWM PROBE ALL'):
             with self.assertRaises(ValueError):
                 link.send_command(value)
         device.write.assert_not_called()
+
+    def test_read_only_diagnostics_and_partial_response(self):
+        device = Mock()
+        link = SerialPacketLink('unused', device)
+        for command in ('PCA STATUS', 'PWM PROBE'):
+            link.send_command(command)
+            device.write.assert_called_with(command.encode('ascii') + b'\n')
+        device.read.side_effect = [b'PCA DIAG MODE1=0x20', b' MODE2=0x4\nFRAME_ACK 61626300\n']
+        with self.assertRaises(BlockingIOError):
+            link.recv(128)
+        self.assertEqual(link.recv(128), b'abc\0')
 
     def test_local_control_skips_old_arm_and_handles_new_split_lines(self):
         with tempfile.TemporaryDirectory() as directory:
