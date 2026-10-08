@@ -1,0 +1,221 @@
+#if !defined(ESP8266)
+#error "Select nodemcu_wifi_glove for ESP-12E / ESP8266."
+#endif
+#include <Arduino.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#include <Wire.h>
+#include <stdio.h>
+#include "BoardConfig.h"
+#include "BenchAuth.h"
+#include "GloveOutputs.h"
+#if __has_include("WifiSecrets.h")
+#include "WifiSecrets.h"
+#else
+#include "WifiSecrets.example.h"
+#endif
+#if __has_include("GloveConfig.h")
+#include "GloveConfig.h"
+#else
+#include "GloveConfig.example.h"
+#endif
+#if __has_include("BenchSecrets.h")
+#include "BenchSecrets.h"
+#else
+constexpr uint8_t benchKey[32] = {};
+#endif
+
+namespace {
+WiFiUDP udp;
+IPAddress laptop;
+aham_glove::Controller* state = nullptr;
+aham_glove::Outputs output;
+bool configured = false, listening = false, pcaReady = false;
+uint16_t writtenServo[5] = {}, writtenMotor[5] = {};
+uint32_t lastPrint = 0, jogAt = 0;
+int jogFinger = -1;
+uint16_t jogPulse = 1500;
+constexpr uint16_t port = 4212;
+constexpr uint8_t address = 0x40;
+const char* names[5] = {"THUMB", "INDEX", "MIDDLE", "RING", "LITTLE"};
+
+bool writeRegister(uint8_t reg, uint8_t value) {
+    Wire.beginTransmission(address); Wire.write(reg); Wire.write(value);
+    return Wire.endTransmission() == 0;
+}
+bool writeChannel(uint8_t ch, uint16_t ticks) {
+    // Zero uses FULL_OFF, which overrides the ON comparator.
+    Wire.beginTransmission(address); Wire.write(uint8_t(0x06 + ch * 4));
+    Wire.write(uint8_t(0)); Wire.write(uint8_t(0));
+    Wire.write(uint8_t(ticks)); Wire.write(uint8_t(ticks ? ticks >> 8 : 0x10));
+    return Wire.endTransmission() == 0;
+}
+bool setupPca() {
+    Wire.begin(board::sdaPin, board::sclPin); Wire.setClock(100000); Wire.setClockStretchLimit(2000);
+    // All 16 channels share this approximately 50 Hz frequency. OUTDRV=1 drives BJT bases.
+    if (!writeRegister(0x00, 0x30) || !writeRegister(0xfe, 121) ||
+        !writeRegister(0x01, 0x04) || !writeRegister(0x00, 0x20)) return false;
+    delay(1); if (!writeRegister(0x00, 0xa0)) return false;
+    for (uint8_t ch = 0; ch < 16; ++ch) if (!writeChannel(ch, 0)) return false;
+    return true;
+}
+void i2cFault() {
+    digitalWrite(board::servoOePin, HIGH); pcaReady = false; jogFinger = -1;
+    state->lost(aham_bench::I2cFault); output.reset();
+    Serial.println("I2C FAULT: OE disabled. Cut actuator power and release tendons manually; reboot after repair.");
+}
+void applyOutputs(uint32_t now) {
+    if (!pcaReady) { digitalWrite(board::servoOePin, HIGH); output.reset(); return; }
+    output.plan(*state, now, jogFinger, jogPulse);
+    // Zero motors BEFORE parking servos. Any failed write disables all outputs via OE.
+    for (uint8_t i = 0; i < 5; ++i) if (output.motorTicks[i] != writtenMotor[i]) {
+        if (!writeChannel(aham_glove::MotorChannels[i], output.motorTicks[i])) { i2cFault(); return; }
+        writtenMotor[i] = output.motorTicks[i];
+    }
+    for (uint8_t i = 0; i < 5; ++i) if (output.servoTicks[i] != writtenServo[i]) {
+        if (!writeChannel(aham_glove::ServoChannels[i], output.servoTicks[i])) { i2cFault(); return; }
+        writtenServo[i] = output.servoTicks[i];
+    }
+    digitalWrite(board::servoOePin, output.enabled ? LOW : HIGH);
+}
+int fingerNumber(const char* text) {
+    for (int i = 0; i < 5; ++i) if (!strcmp(text, names[i])) return i;
+    if (!strcmp(text, "PINKY")) return 4;
+    return -1;
+}
+void commands(const char* text) {
+    const uint32_t now = millis();
+    state->tick(now, digitalRead(board::stopPin) == LOW);
+    if (!strcmp(text, "STOP") || !strcmp(text, "HOME")) {
+        jogFinger = -1; state->disarm(aham_bench::ManualStop); applyOutputs(now);
+        Serial.println("DISARMED: motor zero and home requested; use mechanical release if loaded."); return;
+    }
+    char kind[8] = {}, finger[8] = {}, extra;
+    if (sscanf(text, "ARM %7s %7s %c", kind, finger, &extra) == 2) {
+        const int number = fingerNumber(finger);
+        const uint8_t selected = !strcmp(finger, "ALL") ? 31 : number >= 0 ? uint8_t(1 << number) : 0;
+        const bool motor = !strcmp(kind, "MOTOR") || !strcmp(kind, "BOTH");
+        const bool servo = !strcmp(kind, "SERVO") || !strcmp(kind, "BOTH");
+        const uint8_t motors = motor ? selected & state->allowedMotors : 0;
+        const uint8_t servos = servo ? selected & state->allowedServos : 0;
+        // ALL selects only verified circuits; a named finger must be fully verified for the requested kinds.
+        const bool namedMissing = strcmp(finger, "ALL") &&
+            ((motor && motors != selected) || (servo && servos != selected));
+        if (!selected || !(motor || servo) || namedMissing || !pcaReady ||
+            !state->arm(motors, servos, now, digitalRead(board::stopPin) == LOW)) {
+            Serial.println("NOT ARMED: check verification masks, PCA, D6 STOP loop, fresh link, open hand and zero cues."); return;
+        }
+        jogFinger = -1; applyOutputs(now);
+        Serial.print("ARMED motor mask="); Serial.print(state->armedMotors);
+        Serial.print(" servo mask="); Serial.println(state->armedServos); return;
+    }
+    char direction[5] = {};
+    if (sscanf(text, "JOG %7s %4s %c", finger, direction, &extra) == 2) {
+        const int number = fingerNumber(finger);
+        if (number < 0 || (strcmp(direction, "+10") && strcmp(direction, "-10")) ||
+            !(state->armedServos & (1 << number)) || (state->flags & 2) || !pcaReady) {
+            Serial.println("JOG needs an armed named servo, open hand and detached tendon."); return;
+        }
+        const int pulse = int(state->home[number]) + (direction[0] == '+' ? 10 : -10);
+        if (pulse < 1400 || pulse > 1600) return;
+        jogFinger = number; jogPulse = uint16_t(pulse); jogAt = now;
+        applyOutputs(now); Serial.print("300 ms JOG "); Serial.print(names[number]);
+        Serial.print(" pulse us="); Serial.println(pulse); return;
+    }
+    Serial.println("ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +10|-10; STOP; HOME. Send newline.");
+}
+void serialCommands() {
+    static char line[48]; static size_t used = 0; static bool overflow = false;
+    for (int count = 0; count < 64 && Serial.available(); ++count) {
+        const char c = char(Serial.read()); if (c == '\r') continue;
+        if (c == '\n') {
+            if (!overflow) { line[used] = 0; commands(line); }
+            used = 0; overflow = false;
+        } else if (used < sizeof(line)-1) line[used++] = c;
+        else overflow = true;
+    }
+}
+void cancelJog(uint32_t now) {
+    if (jogFinger >= 0 && (!(state->armedServos & (1 << jogFinger)) || (state->flags & 2) ||
+        uint32_t(now - jogAt) >= 300)) {
+        jogFinger = -1;
+        if (state->armedMotors | state->armedServos) state->disarm(aham_bench::ManualStop);
+    }
+}
+void receive() {
+    for (int count = 0; count < 8; ++count) {
+        const int size = udp.parsePacket(); if (!size) break;
+        if (udp.remoteIP() != laptop || size < 2 || size > int(aham::MaxEncoded)) { udp.flush(); continue; }
+        const IPAddress sender = udp.remoteIP(); const uint16_t senderPort = udp.remotePort();
+        uint8_t bytes[aham::MaxEncoded]; const int read = udp.read(bytes, sizeof(bytes));
+        aham::Packet packet, ack;
+        if (read != size || bytes[read-1] || !aham::decode(bytes, size-1, packet)) continue;
+        if (packet.type == aham_bench::Hello && aham_bench::authentic(packet, 4, benchKey) && aham::u32(packet.payload)) {
+            ack.type = aham_bench::HelloReceipt; ack.seq = packet.seq; ack.timeMs = millis();
+            memcpy(ack.payload, packet.payload, 4); aham::put32(ack.payload + 4, state->boot);
+            aham_bench::sign(ack, 8, benchKey);
+        } else if (packet.type == aham_glove::Command &&
+                   aham_bench::authentic(packet, aham_glove::CommandSize, benchKey) && state->accept(packet, millis())) {
+            state->tick(millis(), digitalRead(board::stopPin) == LOW); cancelJog(millis()); applyOutputs(millis());
+            ack.type = aham_glove::Receipt; ack.seq = state->sequence; ack.timeMs = millis();
+            aham::put32(ack.payload, state->session); aham::put32(ack.payload + 4, state->boot);
+            aham::put16(ack.payload + 8, state->checksum);
+            ack.payload[10] = state->armedMotors; ack.payload[11] = state->armedServos;
+            memcpy(ack.payload + 12, state->pwm, 5);
+            for (uint8_t i = 0; i < 5; ++i) aham::put16(ack.payload + 17 + i*2,
+                output.servoSignalMask & (1 << i) ? output.reportedPulse[i] : state->home[i]);
+            ack.payload[27] = output.servoSignalMask; ack.payload[28] = state->reason;
+            aham_bench::sign(ack, aham_glove::ReceiptSize, benchKey);
+        } else continue;
+        const size_t length = aham::encode(ack, bytes);
+        if (udp.beginPacket(sender, senderPort)) { udp.write(bytes, length); udp.endPacket(); }
+    }
+}
+template <typename T> void printArray(const T* array) {
+    Serial.print('['); for (int i = 0; i < 5; ++i) { if (i) Serial.print(','); Serial.print(array[i]); } Serial.print(']');
+}
+}
+void setup() {
+    digitalWrite(board::servoOePin, HIGH); pinMode(board::servoOePin, OUTPUT);
+    digitalWrite(board::motorPins[1], LOW); pinMode(board::motorPins[1], OUTPUT); // D5 unused; disable old driver.
+    pinMode(board::stopPin, INPUT_PULLUP); Serial.begin(115200);
+    Serial.println("\nAHAM FIVE-FINGER BENCH: DISARMED; order T/I/M/R/L; servos 0..4, motor SIGNALS 8..12.");
+    static aham_glove::Controller controller(ESP.random() | 1, glove_config::motorVerifiedMask,
+        glove_config::servoVerifiedMask, glove_config::homeUs, glove_config::pullDeltaUs);
+    state = &controller;
+    pcaReady = setupPca();
+    if (!pcaReady) state->disarm(aham_bench::I2cFault);
+    uint8_t keySet = 0; for (uint8_t byte : benchKey) keySet |= byte;
+    configured = keySet && laptop.fromString(AHAM_LAPTOP_IP) && strcmp(AHAM_WIFI_SSID, "SET_HOTSPOT_NAME");
+    Serial.print("Verified motor mask="); Serial.print(state->allowedMotors);
+    Serial.print(" servo mask="); Serial.print(state->allowedServos); Serial.print(" PCA="); Serial.println(pcaReady);
+    Serial.println("Motor drivers: external 3 V + transistor + diode EACH. PCA V+ = separate 5 V servo rail.");
+    Serial.println("D6 normally closed STOP loop to GND; D7 OE has external 1k pull-up to 3V. Tendons DETACHED first.");
+    WiFi.persistent(false);
+    if (!configured) { WiFi.mode(WIFI_OFF); Serial.println("Configure WifiSecrets.h and run setup_wifi_bench.py --five-finger first."); return; }
+    WiFi.mode(WIFI_STA); WiFi.hostname("aham-five-finger"); WiFi.setAutoReconnect(true);
+    WiFi.begin(AHAM_WIFI_SSID, AHAM_WIFI_PASSWORD);
+}
+void loop() {
+    const uint32_t now = millis();
+    state->tick(now, digitalRead(board::stopPin) == LOW);
+    if (!configured || WiFi.status() != WL_CONNECTED) {
+        state->lost(pcaReady ? aham_bench::LinkLost : aham_bench::I2cFault);
+        if (listening) { udp.stop(); listening = false; }
+    } else {
+        if (!listening) {
+            listening = udp.begin(port) == 1;
+            if (listening) { Serial.print("ESP_IP="); Serial.print(WiFi.localIP()); Serial.print(" UDP="); Serial.println(port); }
+        }
+        if (listening) receive();
+    }
+    cancelJog(millis()); serialCommands(); cancelJog(millis()); applyOutputs(millis());
+    if (uint32_t(now - lastPrint) >= 500) {
+        lastPrint = now; Serial.print("VIB="); printArray(state->vibration);
+        Serial.print(" RES%="); printArray(state->resistance); Serial.print(" PWM="); printArray(state->pwm);
+        Serial.print(" SERVO_US="); printArray(state->pulse); Serial.print(" M_ARM="); Serial.print(state->armedMotors);
+        Serial.print(" S_ARM="); Serial.print(state->armedServos); Serial.print(" S_SIGNAL="); Serial.print(output.servoSignalMask);
+        Serial.print(" REASON="); Serial.println(state->reason);
+    }
+    delay(1);
+}

@@ -5,6 +5,7 @@
 **/WifiSecrets.h
 **/BenchSecrets.h
 **/BenchConfig.h
+**/GloveConfig.h
 *.pem
 *.key
 
@@ -45,6 +46,7 @@ artifacts/*
 !artifacts/AHAM-WebXR-Starter.zip
 !artifacts/AHAM-WiFi-Monitor.zip
 !artifacts/AHAM-Index-Hardware.zip
+!artifacts/AHAM-Five-Finger-Hardware.zip
 __pycache__/
 *.pyc
 .venv/

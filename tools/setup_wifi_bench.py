@@ -6,7 +6,8 @@ import shutil
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.parse_args()
+parser.add_argument("--five-finger", action="store_true", help="Create GloveConfig.h for the five-finger PCA firmware")
+args = parser.parse_args()
 include = root / "firmware/include"
 private = root / "local-data"
 private.mkdir(exist_ok=True)
@@ -21,9 +22,10 @@ else:
     header.write_text("#pragma once\n#include <stdint.h>\nconstexpr uint8_t benchKey[32] = {" +
                       ",".join(f"0x{byte:02x}" for byte in key) + "};\n", encoding="ascii")
     print("Created private pairing files. Keep them local; do not share the key.")
-config = include / "BenchConfig.h"
+config_name = "GloveConfig" if args.five_finger else "BenchConfig"
+config = include / f"{config_name}.h"
 if not config.exists():
-    shutil.copyfile(include / "BenchConfig.example.h", config)
+    shutil.copyfile(include / f"{config_name}.example.h", config)
 print(f"Board pairing header: {header}")
 print(f"Laptop key file: {key_file}")
 print(f"Local hardware flags: {config} (motor/servo disabled initially)")

@@ -1,5 +1,7 @@
 # One index vibrator + one index servo from the existing Quest scene
 
+For the newer full-glove project, use the [five-finger wiring and code guide](five-finger-hardware.md). Its index motor signal is **PCA channel 9**, whereas this retained one-index circuit uses **D5**. Match the wiring, firmware and laptop sender; do not mix the versions.
+
 The VR website stays unchanged. This new local companion selects the **second/index value** from each five-value array. The old `wifi-monitor` firmware is receive-only; actual output requires the new **nodemcu_wifi_bench** firmware and **wifi-bench** sender.
 
 **Current status:** diode still missing; suitable motor power and separate servo power unresolved. Firmware/software are prepared; physical motion is untested. Keep all supplies disconnected while wiring, and the tendon detached throughout initial tests.

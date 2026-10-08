@@ -9,7 +9,8 @@ paths = ["firmware/src/wifi_monitor.cpp", "firmware/include/BoardConfig.h",
          "firmware/include/WifiSecrets.example.h", "host/run.py", "host/aham/__init__.py",
          "host/aham/protocol.py", "host/aham/wifi_monitor.py", "tests/test_wifi_monitor.py",
          "tests/wifi_monitor_tests.cpp", "tests/fixtures/wifi-monitor.txt", "docs/wifi-quickstart.md",
-         "docs/servo-resistance-plan.md", "docs/webxr-quickstart.md", "docs/index-hardware-quickstart.md"]
+         "docs/servo-resistance-plan.md", "docs/webxr-quickstart.md", "docs/index-hardware-quickstart.md",
+         "docs/five-finger-hardware.md"]
 output.parent.mkdir(exist_ok=True)
 with ZipFile(output, "w", ZIP_DEFLATED) as archive:
     for name in paths:

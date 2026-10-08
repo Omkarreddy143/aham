@@ -26,9 +26,9 @@ Later verified output path:
 | Wi-Fi to NodeMCU | Team confirmed ESP receipts with changing vibration/resistance requests and HOLD state; OUTPUT remains OFF |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
 | Vibration motor | Driver and diode bring-up incomplete; no physical vibration verified |
-| Servo resistance | Five software requests and expiring laptop receipt implemented; physical control pending supply, measured mechanics, release and firmware |
+| Servo resistance | Five requests, locally armed five-channel bench firmware and sender implemented; physical control pending supply, measured mechanics and release |
 
-The WebXR relay sends only to the observation port. It never sends to the actuator command port or serial device. A separate local **index hardware bench companion** can select the index preview and send authenticated actuator packets, with explicit local arming and default-disabled hardware flags. The website is unchanged. Physical movement remains unverified. Do not treat a displayed cue or commanded pulse as a physical sensation.
+The WebXR relay sends only to the observation port. It never sends to the actuator command port or serial device. Separate local **index** and **five-finger hardware companions** send authenticated actuator packets, with explicit local arming and default-disabled hardware flags. The five-finger version uses one PCA9685: servos 0–4, motor-driver signals 8–12. The website is unchanged. Physical movement remains unverified. Do not treat a displayed cue or commanded pulse as a physical sensation.
 
 ## Run locally
 
@@ -56,6 +56,7 @@ The received board is **ESP-12E NodeMCU V3 / ESP8266**, rather than ESP32. Quest
 - [WebXR quickstart](docs/webxr-quickstart.md)
 - [Wi-Fi receiver ZIP](artifacts/AHAM-WiFi-Monitor.zip) and [2.4 GHz hotspot setup](docs/wifi-quickstart.md)
 - [One-index hardware ZIP](artifacts/AHAM-Index-Hardware.zip) and [servo/motor wiring and bench quickstart](docs/index-hardware-quickstart.md)
+- [Five-finger hardware ZIP](artifacts/AHAM-Five-Finger-Hardware.zip) and [full circuit, PlatformIO code and setup](docs/five-finger-hardware.md)
 - [Game and servo-resistance contract](docs/servo-resistance-plan.md)
 - [Verification record](docs/verification.md)
 - [Original 40-hour plan](AHAM-40-hour-plan.md), with the selected WebXR revision at the top

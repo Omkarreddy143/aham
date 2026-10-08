@@ -48,13 +48,15 @@ Example JSON for a held heavy core; channel order is thumb, index, middle, ring,
 
 All fields are required, no extra fields are accepted. `version` is 1, source is `webxr` or `desktop-preview`, hand is `right`, booleans are strict, object IDs are `mint`, `amber`, `violet` or null, grip mode is `grip`, `pinch` or `none`. Both arrays contain five integers; resistance is 0–80 and reference curl 0–100. Reference curl is captured once at acquisition; it is descriptive optical pose, not a servo position command. Release, preview, or invalid tracking clears holding, object ID and both arrays. The laptop readout expires after 500 ms. A receipt confirms laptop storage, not hardware application. Existing protocol-v1 pressure and mode remain zero.
 
-## Mechanism and firmware needed next
+## Mechanism and physical verification needed next
+
+The [five-finger bench guide](five-finger-hardware.md) now provides a complete PlatformIO receiver, local sender, channels, repeated motor-driver circuit and detached calibration procedure. Defaults disable all outputs; physical power, force and release remain unverified. The retained [one-index guide](index-hardware-quickstart.md) is a separate fallback. Software requests and pulses are not force measurements.
 
 Finger tendons can oppose finger movement and represent grip resistance. A glove attached only to the hand cannot apply a sustained external downward arm load equivalent to lifting a real 3 kg object. This distinction follows the difference between hand-referenced resistance and externally grounded weight feedback; [Docking Haptics](https://arxiv.org/abs/2002.06093) combines a worn hand exoskeleton with a grounded arm to add weight feedback. Optical curl and servo angle also cannot measure tendon tension or guarantee the real hand stays in exactly the virtual pose. Define this demonstration as grip resistance with visual weight cues.
 
 Build one index mechanism on the bench first. Specify which motion the tendon opposes; a tendon that simply pulls fingers closed is not a safe resistance brake. Use a releasable arrangement, compliant travel, measured tension, and a direct mechanical release. Obtain the actual spool radius, slack/release position, minimum/maximum travel, current and allowable tendon load before creating a wearable control law. A future tension/load measurement should enforce limits locally; this hardware set currently has no force sensor. Do not convert the scene's percentage directly into 0–180° servo positions.
 
-The future firmware must have an explicit actuator-only state machine:
+The new bench firmware implements local arming, bounded travel and expiry. The physical mechanism must still demonstrate the release behavior represented below:
 
 ```text
 DISARMED -> local mechanism checks + explicit arm -> READY
