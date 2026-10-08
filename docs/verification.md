@@ -6,6 +6,7 @@
 - Browser review: landscape renders; Start, chapter advancement, identity-form changes, light preview, restart and the in-world prompt panel work. No browser console errors were observed.
 - All 27 JavaScript tests passed, including the 180-second timeline, visibility pauses, missing/invalid fingertip rejection and existing game/tracking/network regressions.
 - Original game loaded through the current public HTTPS tunnel without console errors.
+- Cloudflare subsequently showed intermittent 1033 errors and logged control-stream disconnects. The fixed repository-hosted Witness Garden build was then loaded successfully through rawcdn.githack.com, with the scene ready and no console errors. This static fallback has no laptop/ESP relay API.
 - Scene contains no feedback-network or actuator transport. Scenery and synthesized ambient music/chimes use bundled code, with audio unlocked by a user button press.
 - Team previously confirmed all five servo horns moved and all five motors vibrated in separate bench tests. Live Quest-driven glove feedback remains unverified.
 - The new garden's headset layout, fingertip reach and sound require the final Quest rehearsal. Body ownership is a participant report, not an engineering test result.

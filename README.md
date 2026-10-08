@@ -4,6 +4,8 @@
 
 **Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience with both tracked hands, an original procedural landscape, fingertip light/chime interactions and synthesized ambient music, plus the original **Orbit Foundry** game. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
 
+For the final presentation, **Open Final Demo.cmd** opens a fixed repository-hosted copy of the garden, avoiding the laptop's temporary tunnel. The original game's live feedback relay still uses the laptop-hosted URL.
+
 The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** adds a 75-second right-hand grab, lift and delivery game with a compact VR scoreboard, highlighted grab targets and matching docks. The browser calculates five vibration cues and five weight-dependent resistance requests. The team has confirmed actual ESP receipts and separately verified all five servos and all five vibration motors in bench tests. Live VR-driven physical feedback remains unverified; outputs are disarmed for the garden presentation.
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.

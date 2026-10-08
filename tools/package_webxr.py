@@ -5,7 +5,7 @@ import zipfile
 root = Path(__file__).resolve().parents[1]
 output = root / "artifacts" / "AHAM-WebXR-Starter.zip"
 output.parent.mkdir(exist_ok=True)
-paths = [root / "README.md", root / "docs/webxr-quickstart.md", root / "docs/final-demo-3min.md",
+paths = [root / "README.md", root / "docs/webxr-quickstart.md", root / "docs/final-demo-3min.md", root / "Open Final Demo.cmd",
          root / "Open VR Link.cmd", root / "Refresh VR Link.cmd", root / "tools/vr_link.py",
          root / "tools/check_wireless.py", root / "tests/test_vr_link.py", root / "tests/test_wifi_discovery.py",
          root / "docs/technical-judging.md",

@@ -2,9 +2,11 @@
 
 **Choose Witness Garden on the dashboard.** Orbit Foundry remains available as the second option. The garden is a guided exploration of Tattva 5: agency, body ownership, identity and awareness of body and mind.
 
+**Final-demo fallback, verified in the desktop browser:** [open the fixed Witness Garden build](https://rawcdn.githack.com/Omkarreddy143/aham/ebebae13b4f420c3a0a07dffb1d5ec98f92ade44/webxr/witness.html). This serves the public repository version independently of the laptop tunnel. If the hosting service shows its source notice, check that the destination is `Omkarreddy143/aham` and select **Open the page**. Then select **Enter VR** on Quest. The shortcut **Open Final Demo.cmd** opens this address on the laptop. The [static dashboard](https://rawcdn.githack.com/Omkarreddy143/aham/ebebae13b4f420c3a0a07dffb1d5ec98f92ade44/webxr/index.html) also offers both scenes, but the original game's ESP relay requires the laptop-hosted URL. The static copy has no laptop feedback API.
+
 ## Before the judges arrive
 
-1. Keep the laptop server/tunnel running long enough for Quest Browser to load the page. Open the current HTTPS address saved in `VR-LINK.txt`.
+1. Prefer the fixed garden link above for this presentation. Alternatively, keep the laptop server/tunnel running long enough for Quest Browser to load the page and open the current HTTPS address saved in `VR-LINK.txt`. The latter exposes the live feedback relay for the original game.
 2. Choose **Witness Garden**, enable Quest hand tracking, put controllers aside, and select **Enter VR · begin journey**. Sound starts with this press. Set a comfortable headset volume before the presentation.
 3. Start facing forward. The garden positions itself once relative to the initial headset pose. Hold either hand in view; the three lights sit within reaching distance. Touch them with a fingertip.
 4. For spectators, use the Quest's existing casting setup if available. The laptop's garden page is a separate **simulated desktop rehearsal**, not a mirror of the headset. Label it accordingly if used as a fallback.
