@@ -37,7 +37,7 @@ int jogFinger = -1;
 uint16_t jogPulse = 1500;
 constexpr uint16_t port = 4212;
 constexpr uint8_t address = 0x40;
-constexpr uint32_t JogDurationMs = 3 * 1000;
+uint32_t jogDurationMs = 3 * 1000;
 const char* names[5] = {"THUMB", "INDEX", "MIDDLE", "RING", "LITTLE"};
 
 bool writeRegister(uint8_t reg, uint8_t value) {
@@ -171,23 +171,27 @@ void commands(const char* text) {
         Serial.print("ARMED motor mask="); Serial.print(state->armedMotors);
         Serial.print(" servo mask="); Serial.println(state->armedServos); return;
     }
-    char direction[5] = {};
-    if (sscanf(text, "JOG %7s %4s %c", finger, direction, &extra) == 2) {
+    char direction[5] = {}, seconds[3] = {};
+    const int jogFields = sscanf(text, "JOG %7s %4s %2s %c", finger, direction, seconds, &extra);
+    if (jogFields == 2 || jogFields == 3) {
         const int number = fingerNumber(finger);
+        const bool knownDuration = jogFields == 2 || !strcmp(seconds, "3") ||
+            !strcmp(seconds, "10") || !strcmp(seconds, "15");
         const bool knownStep = !strcmp(direction, "+10") || !strcmp(direction, "-10") ||
             !strcmp(direction, "+50") || !strcmp(direction, "-50") ||
             !strcmp(direction, "+100") || !strcmp(direction, "-100");
-        if (number < 0 || !knownStep ||
+        if (number < 0 || !knownStep || !knownDuration ||
             !(state->armedServos & (1 << number)) || (state->flags & 2) || !pcaReady) {
-            Serial.println("JOG needs an armed named servo, open hand and detached tendon."); return;
+            Serial.println("JOG needs an armed named servo, open hand, detached tendon and duration 3, 10 or 15 seconds."); return;
         }
         const int pulse = int(state->home[number]) + atoi(direction);
         if (pulse < 1400 || pulse > 1600) return;
         jogFinger = number; jogPulse = uint16_t(pulse); jogAt = now;
-        applyOutputs(now); Serial.print("3 s JOG "); Serial.print(names[number]);
+        jogDurationMs = jogFields == 2 ? 3000 : uint32_t(atoi(seconds)) * 1000;
+        applyOutputs(now); Serial.print(jogDurationMs / 1000); Serial.print(" s JOG "); Serial.print(names[number]);
         Serial.print(" pulse us="); Serial.println(pulse); return;
     }
-    Serial.println("STATUS; PCA STATUS; PWM PROBE; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100; STOP; HOME. Send newline.");
+    Serial.println("STATUS; PCA STATUS; PWM PROBE; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100 [3|10|15 seconds]; STOP; HOME. Send newline.");
 }
 bool handlePacket(const aham::Packet& packet, aham::Packet& ack, bool fromUsb);
 int hexDigit(char value) {
@@ -230,7 +234,7 @@ void serialCommands() {
 }
 void cancelJog(uint32_t now) {
     if (jogFinger >= 0 && (!(state->armedServos & (1 << jogFinger)) || (state->flags & 2) ||
-        uint32_t(now - jogAt) >= JogDurationMs)) {
+        uint32_t(now - jogAt) >= jogDurationMs)) {
         jogFinger = -1;
         if (state->armedMotors | state->armedServos) state->disarm(aham_bench::ManualStop);
     }

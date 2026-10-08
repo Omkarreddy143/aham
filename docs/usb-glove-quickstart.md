@@ -58,6 +58,12 @@ equivalents stay within the enforced 1400–1600 microsecond range. Pulse width 
 not a force measurement. Choose direction and tendon travel through detached
 bench checks before attaching a finger.
 
+For a longer **detached bench observation**, use `JOG INDEX +100 10` to keep
+the same position request active for ten seconds, then return home and disarm.
+The optional duration accepts only `3`, `10` or `15` seconds; omitting it keeps
+the three-second default. Link expiry, D6 and STOP still interrupt the jog.
+This does not extend the continuous VR servo-pull limit.
+
 Re-arm the index pair with an open hand before a VR contact/grasp test. Touch an
 object for vibration, then grasp, lift briefly and release for servo resistance
 requests. Watch `VIB`, `RES%`, `PWM`, `SERVO_US`, `M_ARM`, `S_ARM`, and `S_SIGNAL`.

@@ -25,10 +25,22 @@ class SerialGloveTests(unittest.TestCase):
         with self.assertRaises(BlockingIOError):
             link.recv(128)
         for value in ('ARM BOTH ALL\nSTOP', 'JOG INDEX +999', 'FRAME abc', 'arm both all',
-                      'PCA STATUS\nARM BOTH ALL', 'PWM PROBE ALL'):
+                      'PCA STATUS\nARM BOTH ALL', 'PWM PROBE ALL', 'JOG INDEX +100 16',
+                      'JOG INDEX +100 10\nARM BOTH ALL', 'JOG INDEX +100 0',
+                      'JOG INDEX +100 100', 'JOG INDEX +100 15 extra'):
             with self.assertRaises(ValueError):
                 link.send_command(value)
         device.write.assert_not_called()
+
+    def test_bounded_long_jog_commands_and_replies(self):
+        device = Mock()
+        link = SerialPacketLink('unused', device)
+        for seconds in ('', ' 3', ' 10', ' 15'):
+            command = 'JOG INDEX +100' + seconds
+            link.send_command(command)
+            device.write.assert_called_with(command.encode('ascii') + b'\n')
+        device.read.return_value = b'10 s JOG INDEX pulse us=1600\nFRAME_ACK 61626300\n'
+        self.assertEqual(link.recv(128), b'abc\0')
 
     def test_read_only_diagnostics_and_partial_response(self):
         device = Mock()

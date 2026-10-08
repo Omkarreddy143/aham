@@ -4,7 +4,15 @@ Use **ESP-12E NodeMCU V3 / ESP8266**, one **PCA9685**, five **3 V coin motors**,
 
 Download [AHAM-Five-Finger-Hardware.zip](../artifacts/AHAM-Five-Finger-Hardware.zip). It contains the complete ESP source, PlatformIO project, laptop sender, configuration examples and this guide. [ESP source](../firmware/src/wifi_glove.cpp), [controller](../firmware/include/GloveController.h), [output planner](../firmware/include/GloveOutputs.h), [laptop sender](../host/aham/wifi_glove.py).
 
-**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. The user reports servo buzzing without confirmed shaft movement and no motor vibration; physical feedback is still unresolved. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
+**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. The earlier tests produced servo buzzing and no motor vibration. During the subsequent ten-second index test, the user confirmed slight physical servo movement. Other servo movement, motor vibration and VR-driven physical feedback remain unverified. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
+
+A subsequent ten-second index jog confirmed the 1600 us position request across
+9.94 seconds of ESP receipts. Active PCA register readback showed channel 1
+ON=0/OFF=328, FULL_OFF=0, PRE_SCALE=121 (nominal 50.03 Hz) and D7 LOW.
+The jog returned home and disarmed automatically, and the user reported slight
+index servo movement. The requested change was only 1500 to 1600 us; holding it
+longer holds that position rather than causing continuous rotation. The physical
+pulse timing, tendon direction/travel and other actuator movement still need verification.
 
 ## 1. Parts for the complete glove
 
@@ -273,6 +281,15 @@ HOME
 ```
 
 Any finger name can replace INDEX in ARM/JOG; JOG requires a single named servo. ARM replaces the previous selection. Neither Wi-Fi packets nor reconnects arm the board. A fresh link, closed D6 STOP loop, open VR hand and zero cues are required for arming. After a stop/expiry, clear the object/contact and explicitly re-arm.
+
+For an explicitly requested **detached servo bench test**, add `10` or `15`
+to the jog command, for example `JOG INDEX +100 10`. The servo receives the
+same position pulse repeatedly for ten seconds, then returns home and disarms.
+Omitting the duration keeps the three-second default. Only 3, 10 and 15 seconds
+are accepted; STOP, D6 and link expiry still cancel the test. This extension
+does not change the three-second continuous VR pull limit or the motor test.
+The pulse itself remains 1400–1600 **microseconds**, repeated around 50 Hz;
+seconds describe the overall bench test, not the length of an individual pulse.
 
 ## 9. How resistance is converted into a small servo movement
 
