@@ -4,7 +4,7 @@ Use **ESP-12E NodeMCU V3 / ESP8266**, one **PCA9685**, five **3 V coin motors**,
 
 Download [AHAM-Five-Finger-Hardware.zip](../artifacts/AHAM-Five-Finger-Hardware.zip). It contains the complete ESP source, PlatformIO project, laptop sender, configuration examples and this guide. [ESP source](../firmware/src/wifi_glove.cpp), [controller](../firmware/include/GloveController.h), [output planner](../firmware/include/GloveOutputs.h), [laptop sender](../host/aham/wifi_glove.py).
 
-**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. After slight index movement in the ten-second jog, the wider detached sweep produced **clear physical movement of all five servos**, confirmed by the user. Motor vibration and VR-driven physical feedback remain unverified. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
+**Current status:** firmware compiles and detached bench commands for all five servos and five motors have been acknowledged by the ESP. The user confirmed **clear physical movement of all five servos** during the wider detached sweep and **clear index motor vibration** during a three-second test at duty 160/255. The other four motors and VR-driven physical feedback remain unverified. PCA V+ was measured around 5.3 V and VCC at 3.3 V while idle. These readings do not confirm voltage at the servo connector during movement. Both verification masks still ship as **0**, so every actuator is disabled by default.
 
 A subsequent ten-second index jog confirmed the 1600 us position request across
 9.94 seconds of ESP receipts. Active PCA register readback showed channel 1
@@ -22,6 +22,13 @@ this wider test. This verifies detached movement, not calibrated finger force.
 The receiver now recognizes wider **bench** receipts only for a zero request,
 one armed/signalling servo, no motor output and the bounded 1250–1750 us range.
 Wider pulses in a VR contact/grasp receipt remain rejected.
+
+The subsequent index-only motor test used PCA channel 9 at duty 160/255 for three
+seconds. ESP receipts reported `PWM=[0,160,0,0,0]`, `M_ARM=2`, `S_ARM=0` and
+`S_SIGNAL=0`. Active register readback showed channel 9 ON=0/OFF=2570,
+FULL_OFF=0 and D7 LOW. The user confirmed clear vibration. STOP then disabled
+the output, and readback confirmed channel 9 FULL_OFF=1 with D7 HIGH.
+This verifies one motor at that duty, not a minimum starting duty or all five motors.
 
 ## 1. Parts for the complete glove
 
