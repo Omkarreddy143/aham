@@ -201,6 +201,8 @@ VIB/RES% are received requests. PWM/SERVO_US are controller commands, **not meas
 
 ## 8. Verify one finger at a time, then enable all five
 
+**Quest not available?** Use [the standalone procedure](hardware-test-without-vr.md) and `host/run.py glove-test`. It sends controlled one-finger requests without a VR scene/server and keeps the same uploaded firmware. Startup is zero-only; local Serial ARM and verification masks still apply.
+
 Do not set both masks to 31 just because the arrays arrive. The masks declare that the physical circuits are ready for a **detached, unloaded bench test**; that test is still required.
 
 1. Obtain the diode and confirmed supplies. Check transistor B/C/E, motor polarity, common GND, stop loop and OE pull-up. Keep all threads detached. Check one motor driver and one servo at a time.

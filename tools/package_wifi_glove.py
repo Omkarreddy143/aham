@@ -10,10 +10,10 @@ paths = ["firmware/src/wifi_glove.cpp", "firmware/include/BoardConfig.h",
          "firmware/include/GloveController.h", "firmware/include/GloveOutputs.h",
          "firmware/include/GloveConfig.example.h", "firmware/include/WifiSecrets.example.h",
          "host/run.py", "host/aham/__init__.py", "host/aham/protocol.py",
-         "host/aham/wifi_monitor.py", "host/aham/wifi_bench.py", "host/aham/wifi_glove.py",
+         "host/aham/wifi_monitor.py", "host/aham/wifi_bench.py", "host/aham/wifi_glove.py", "host/aham/glove_test.py",
          "tools/setup_wifi_bench.py", "tests/test_wifi_glove.py", "tests/test_wifi_monitor.py",
          "tests/wifi_glove_tests.cpp", "tests/fixtures/wifi-glove.txt",
-         "docs/five-finger-hardware.md"]
+         "docs/five-finger-hardware.md", "docs/hardware-test-without-vr.md", "tests/test_glove_test.py"]
 output.parent.mkdir(exist_ok=True)
 with ZipFile(output, "w", ZIP_DEFLATED) as archive:
     for name in paths:
@@ -32,6 +32,7 @@ monitor_speed = 115200
     archive.writestr(".gitignore", "**/WifiSecrets.h\n**/BenchSecrets.h\n**/BenchConfig.h\n**/GloveConfig.h\n*.key\nlocal-data/\n**/.pio/\n.venv/\n__pycache__/\n*.pyc\n")
     archive.writestr("START-HERE.txt", "AHAM five-finger hardware bench project\n\n"
                      "Read docs/five-finger-hardware.md for the full circuit and procedure.\n"
+                     "Without VR: read docs/hardware-test-without-vr.md; glove-test starts with zeros.\n"
                      "Existing VR website/server stays unchanged; this ZIP contains no scene/server.\n"
                      "Open firmware in VS Code/PlatformIO; default environment nodemcu_wifi_glove.\n"
                      "From this root run python tools/setup_wifi_bench.py --five-finger.\n"
