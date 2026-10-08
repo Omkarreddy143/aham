@@ -1,5 +1,17 @@
 # Starter verification — 7 October 2026
 
+## Final submission — Witness Garden (9 October 2026)
+
+- Dashboard now exposes Witness Garden and preserves Orbit Foundry at `/game.html`.
+- Browser review: landscape renders; Start, chapter advancement, identity-form changes, light preview, restart and the in-world prompt panel work. No browser console errors were observed.
+- All 27 JavaScript tests passed, including the 180-second timeline, visibility pauses, missing/invalid fingertip rejection and existing game/tracking/network regressions.
+- Original game loaded through the current public HTTPS tunnel without console errors.
+- Scene contains no feedback-network or actuator transport. Scenery and synthesized ambient music/chimes use bundled code, with audio unlocked by a user button press.
+- Team previously confirmed all five servo horns moved and all five motors vibrated in separate bench tests. Live Quest-driven glove feedback remains unverified.
+- The new garden's headset layout, fingertip reach and sound require the final Quest rehearsal. Body ownership is a participant report, not an engineering test result.
+
+The older sections below describe earlier build milestones and their then-current limitations.
+
 ## Selected WebXR revision
 
 - **8 October — judging preparation:** the team confirmed the official Tattva as consciousness beyond body and mind, with agency/identity/ownership as suggested approaches, and confirmed physical output is still unverified. Added a rubric plan, modular four-person speaking script, verified Gita 13.2 / 2.14 with paraphrased meanings, blank informal observation sheet and offline spectator cards. No presentation duration is imposed. The cards distinguish actual representation, participant report and philosophical reflection; they send no hardware commands and infer no consciousness or ownership score. The companion explanation's focus controls and narrow/wide layouts passed browser checks; the offline cards were rendered and inspected. The existing VR scene, server and board code/settings were not changed by this preparation.

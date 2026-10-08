@@ -2,7 +2,9 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** adds a 75-second right-hand grab, lift and delivery game with a compact VR scoreboard, highlighted grab targets and matching docks. The browser calculates five vibration cues and five weight-dependent resistance requests. A laptop relay sends observation data over hotspot Wi-Fi; the team has confirmed actual ESP receipts. Physical motor and servo output remain disabled.
+**Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience with both tracked hands, an original procedural landscape, fingertip light/chime interactions and synthesized ambient music, plus the original **Orbit Foundry** game. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
+
+The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** adds a 75-second right-hand grab, lift and delivery game with a compact VR scoreboard, highlighted grab targets and matching docks. The browser calculates five vibration cues and five weight-dependent resistance requests. The team has confirmed actual ESP receipts and separately verified all five servos and all five vibration motors in bench tests. Live VR-driven physical feedback remains unverified; outputs are disarmed for the garden presentation.
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.
 
@@ -27,10 +29,11 @@ Later verified output path:
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |
 | Wi-Fi to NodeMCU | Team confirmed ESP receipts with changing vibration/resistance requests and HOLD state; OUTPUT remains OFF |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
-| Vibration motor | Driver and diode bring-up incomplete; no physical vibration verified |
-| Servo resistance | Five requests, locally armed five-channel bench firmware and sender implemented; physical control pending supply, measured mechanics and release |
+| Witness Garden | Three-minute local Tattva journey, scenery, original ambient audio, fingertip reactions and in-world prompts; desktop checked, final headset rehearsal pending |
+| Vibration motors | Team confirmed all five physically vibrated in separate bench tests |
+| Servo resistance | Team confirmed all five servo horns moved in detached bench tests; live VR-driven resistance and calibrated mechanics remain unverified |
 
-The WebXR relay sends only to the observation port. It never sends to the actuator command port or serial device. Separate local **index** and **five-finger hardware companions** send authenticated actuator packets, with explicit local arming and default-disabled hardware flags. The five-finger version uses one PCA9685: servos 0–4, motor-driver signals 8–12. The website is unchanged. Physical movement remains unverified. Do not treat a displayed cue or commanded pulse as a physical sensation.
+The WebXR relay sends only to the observation port. It never sends to the actuator command port or serial device. Separate local **index** and **five-finger hardware companions** send authenticated actuator packets, with explicit local arming and default-disabled hardware flags. The five-finger version uses one PCA9685: servos 0–4, motor-driver signals 8–12. Do not treat a displayed cue or commanded pulse as a verified physical sensation. Witness Garden has no actuator transport.
 
 ## Run locally
 

@@ -1,5 +1,7 @@
 # Quest 3 WebXR quickstart
 
+**Final demo:** the home page now offers two experiences. Choose **Witness Garden** for the three-minute Tattva presentation, then **Enter VR · begin journey**. It uses both tracked hands, local light/chime interactions and original ambient music; no glove connection is required. Read [the three-minute judging script](final-demo-3min.md). Choose **Orbit Foundry** to retain the original grasp/lift game and feedback-request path. A laptop desktop rehearsal uses simulated hands and does not mirror the headset.
+
 The selected approach uses **Quest Browser over a wireless connection**. Unity is not required. **Orbit Foundry v4** tracks both hands and adds right-hand grabbing, lifting and delivery gameplay with a compact scoreboard and clear grab/lift/drop cues. The team has confirmed changing five-channel requests reach the ESP over Wi-Fi. This prototype is **monitor only**: physical motor and servo output remain disabled.
 
 ```text

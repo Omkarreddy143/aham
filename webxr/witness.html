@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081d24"><title>AHAM · Witness Garden</title><link rel="stylesheet" href="./witness.css"></head>
+<body>
+  <header><a class="brand" href="./index.html">AHAM<span>AN EXPLORATION OF SELF</span></a><a class="exit" href="./index.html">← Both experiences</a></header>
+  <main class="journey-layout">
+    <section class="garden-stage">
+      <canvas id="garden" aria-label="Witness Garden: luminous arch, still water and hand-responsive light"></canvas>
+      <div class="scene-heading"><p class="eyebrow">TATTVA 5 · THREE-MINUTE JOURNEY</p><h1>Witness Garden</h1><p>The hand changes. The experience changes. Notice.</p></div>
+      <div class="scene-caption"><strong id="phase-title">A moment to arrive.</strong><p id="phase-action">Enter VR, or rehearse on this screen. Your journey begins with a button press.</p></div>
+    </section>
+    <aside class="journey-aside">
+      <span class="source" id="tracking-source">DESKTOP · SIMULATED HANDS</span>
+      <h2>What makes it “mine”?</h2>
+      <p>A small exploration of agency, body ownership and the awareness of both. Open and close your hands; touch the three floating lights.</p>
+      <button class="primary" id="enter-garden" disabled>Checking VR support…</button>
+      <p id="garden-status" class="status" role="status">Loading the garden…</p>
+      <div class="clock"><strong id="journey-time">3:00</strong><span>GUIDED EXPERIENCE</span></div><div class="progress"><i id="journey-progress"></i></div>
+      <div class="chapters"><div class="chapter" data-phase="0"><b>01</b><span>Agency · I act</span></div><div class="chapter" data-phase="1"><b>02</b><span>Ownership · Is this mine?</span></div><div class="chapter" data-phase="2"><b>03</b><span>Identity · The form changes</span></div><div class="chapter" data-phase="3"><b>04</b><span>Awareness · I notice</span></div></div>
+      <div class="button-row"><button id="restart-journey">Start / restart</button><button id="next-phase">Next chapter</button></div>
+      <div class="sound"><button id="mute-music" aria-pressed="false">Sound on</button><label for="music-volume">Volume</label><input id="music-volume" aria-label="Music volume" type="range" min="0" max="100" value="30"></div>
+      <div class="rehearsal" id="garden-rehearsal"><p>Desktop rehearsal uses simulated hands. Light and sound demonstrate scene reactions; they are not physical feedback.</p><button id="preview-touch">Touch a light · preview</button><button id="preview-form">Change hand appearance</button><button id="preview-panel">Show VR prompts</button></div>
+      <p class="note">The garden generates its own ambient music and chimes. After loading, the experience uses local Quest tracking and does not depend on the laptop feedback link. It sends no actuator commands.</p>
+      <p class="note">“The body is the field; the one who knows it is the knower.”<br>Bhagavad Gita 13.2 · paraphrase</p>
+    </aside>
+  </main>
+  <footer><span>Theme: consciousness beyond body and mind · An invitation to reflect.</span><a href="./game.html">Open Orbit Foundry ↗</a></footer>
+  <script type="module" src="./witness.js"></script>
+</body>
+</html>

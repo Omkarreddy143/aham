@@ -1,1 +1,1 @@
-{"private":true,"type":"module","scripts":{"test":"node --test ../tests/webxr-logic.test.mjs ../tests/webxr-game.test.mjs"}}
+{"private":true,"type":"module","scripts":{"test":"node --test ../tests/webxr-logic.test.mjs ../tests/webxr-game.test.mjs ../tests/webxr-network.test.mjs ../tests/webxr-witness.test.mjs"}}

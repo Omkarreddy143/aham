@@ -158,6 +158,8 @@ class Relay:
         self.grip_sequence = 0
         self.submitted = None
         self.submitted_at = None
+        self.last_upload = None
+        self.uploads_accepted = self.uploads_rejected = 0
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -276,6 +278,29 @@ class Relay:
                     if self.resistance_at is not None and 0 <= now-self.resistance_at < .500 else None)
             return {"mode": "monitor-only", "cue": cue, "grip": grip}
 
+    def note_upload(self, path, status, agent, error=None):
+        with self.lock:
+            self.last_upload = dict(path=path, status=status, agent=agent[:180],
+                                    error=error, at=time.monotonic())
+            if status == 200:
+                self.uploads_accepted += 1
+            else:
+                self.uploads_rejected += 1
+
+    def connection_status(self):
+        # Historical diagnostics never extend the live cue/grip expiry.
+        with self.lock:
+            now = time.monotonic()
+            upload = None
+            if self.last_upload is not None:
+                upload = {name: value for name, value in self.last_upload.items() if name != "at"}
+                upload["ageMs"] = int((now-self.last_upload["at"])*1000)
+            return dict(mode="monitor-only", accepted=self.uploads_accepted,
+                        rejected=self.uploads_rejected, lastUpload=upload,
+                        lastCueAgeMs=None if self.submitted_at is None else int((now-self.submitted_at)*1000),
+                        lastGripAgeMs=None if self.resistance_at is None else int((now-self.resistance_at)*1000),
+                        lastCueSource=None if self.submitted is None else self.submitted["source"])
+
 
 class RelayHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
@@ -326,6 +351,8 @@ class RelayHandler(BaseHTTPRequestHandler):
                 self._reply(200, self.server.relay.status())
             elif path == "/api/wifi-preview":
                 self._reply(200, self.server.relay.wifi_preview())
+            elif path == "/api/connection-status":
+                self._reply(200, self.server.relay.connection_status())
             else:
                 self._reply(404, {"error": "Unknown endpoint"})
             return
@@ -359,6 +386,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             self._reply(404, {"error": "Unknown endpoint"})
             return
         if not self._same_origin():
+            self.server.relay.note_upload(path, 403, self.headers.get("User-Agent", ""), "Origin rejected")
             return
         content_types = self.headers.get_all("Content-Type", [])
         lengths = self.headers.get_all("Content-Length", [])
@@ -381,11 +409,14 @@ class RelayHandler(BaseHTTPRequestHandler):
             sequence = (self.server.relay.submit(value) if path == "/api/cue"
                         else self.server.relay.submit_grip_preview(value))
         except (ValueError, UnicodeError, RecursionError) as error:
+            self.server.relay.note_upload(path, 400, self.headers.get("User-Agent", ""), str(error))
             self._reply(400, {"error": str(error)})
             return
         except OSError:
+            self.server.relay.note_upload(path, 503, self.headers.get("User-Agent", ""), "Monitor relay unavailable")
             self._reply(503, {"error": "Monitor relay unavailable"})
             return
+        self.server.relay.note_upload(path, 200, self.headers.get("User-Agent", ""))
         result = {"accepted": True, "monitorOnly": True, "sequence": sequence}
         if path == "/api/grip-preview":
             result["actuatorsEnabled"] = False

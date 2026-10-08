@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102125">
+  <title>AHAM · Orbit Foundry</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./index.html">AHAM<span>HAND TO WORLD</span></a>
+    <span class="mode"><i></i>Quest hand tracking · Wi-Fi feedback preview</span>
+  </header>
+  <main>
+    <section class="stage">
+      <div class="intro"><p class="eyebrow">QUEST 3 / WEBXR · ORBIT FOUNDRY v4</p><h1>Power the orbit.</h1><p>One hand. Three cores. Keep the energy flowing.</p></div>
+      <canvas id="scene" aria-label="Orbit Foundry: energy cores, matching docks and both tracked hands"></canvas>
+      <div class="game-hud" aria-label="Game scoreboard">
+        <div><span>SCORE</span><strong id="game-score">0</strong></div><div><span>SHIFT</span><strong id="game-time">75s</strong></div><div><span>COMBO</span><strong id="game-combo">×1</strong></div><div><span>BEST / THIS VISIT</span><strong id="game-best">0</strong></div>
+      </div>
+      <div class="stage-footer"><p id="game-message" role="status">Open your right hand, then grab a core.</p><span>ION .25kg · FLUX 1kg · NOVA 3kg / VIRTUAL MASS</span></div>
+    </section>
+    <aside>
+      <div class="section-top"><p class="eyebrow">THE CONNECTION</p><span id="source-badge">DESKTOP PREVIEW</span></div>
+      <h2>Reach. Grab. Power up.</h2>
+      <p class="description">Use your right hand. Grab a glowing core, lift it, and release over its matching dock. Chain deliveries to build your score.</p>
+      <button id="enter-vr" class="primary" disabled>Checking VR support…</button>
+      <p id="xr-status" class="hint" role="status">Starting the scene…</p>
+      <div class="load-panel">
+        <div class="section-top"><p class="eyebrow">RIGHT HAND / RESISTANCE PREVIEW</p><span class="output-off">SERVOS OFF</span></div>
+        <p id="held-value">No core held</p>
+        <div class="resistance-grid" aria-label="Five dimensionless finger resistance requests">
+          <div><div class="load-track"><i id="resistance-bar-0"></i></div><strong id="resistance-0">0%</strong><span>Thumb</span></div>
+          <div><div class="load-track"><i id="resistance-bar-1"></i></div><strong id="resistance-1">0%</strong><span>Index</span></div>
+          <div><div class="load-track"><i id="resistance-bar-2"></i></div><strong id="resistance-2">0%</strong><span>Middle</span></div>
+          <div><div class="load-track"><i id="resistance-bar-3"></i></div><strong id="resistance-3">0%</strong><span>Ring</span></div>
+          <div><div class="load-track"><i id="resistance-bar-4"></i></div><strong id="resistance-4">0%</strong><span>Little</span></div>
+        </div>
+        <p class="hint">Heavier cores request more grip resistance. Percentages are software requests; they are not servo angles or measured force.</p>
+        <div class="receipt"><div><span>Laptop grip preview</span><strong id="grip-received">Waiting</strong></div></div>
+      </div>
+      <details class="diagnostics"><summary>Tracking & connection details</summary>
+      <label class="select-label" for="hand">Feedback hand<select id="hand"><option value="right">Right hand</option><option value="left">Left hand</option></select></label>
+      <div class="readouts">
+        <div><span>Tracked joints</span><strong id="all-hands-value">Preview</strong></div>
+        <div><span>Feedback hand pose</span><strong id="pose-value">Preview</strong></div>
+        <div><span>Wrist orientation</span><strong id="wrist-value">Preview</strong></div>
+        <div><span>Surface contact</span><strong id="contact-value">None</strong></div>
+      </div>
+      <div class="finger-grid" aria-label="Five finger curl and contact values">
+        <div><span>Thumb</span><strong id="curl-0">—</strong><small id="finger-cue-0">Cue 0</small></div>
+        <div><span>Index</span><strong id="curl-1">—</strong><small id="finger-cue-1">Cue 0</small></div>
+        <div><span>Middle</span><strong id="curl-2">—</strong><small id="finger-cue-2">Cue 0</small></div>
+        <div><span>Ring</span><strong id="curl-3">—</strong><small id="finger-cue-3">Cue 0</small></div>
+        <div><span>Little</span><strong id="curl-4">—</strong><small id="finger-cue-4">Cue 0</small></div>
+      </div>
+      <div class="signal"><span>Peak finger cue</span><strong><b id="cue-value">0</b><small> / 255</small></strong><div class="meter"><div id="cue-bar"></div></div><p id="pattern-value">No contact</p></div>
+      <div class="receipt"><div><span>Relay accepted</span><strong id="accepted-value">Waiting</strong></div><div><span>Bridge received</span><strong id="received-value">Not connected</strong></div><div><span>Board reports</span><strong id="applied-value">Not connected</strong></div></div>
+      <p class="hint">The hand follows Quest tracking. The Wi-Fi sender terminal confirms ESP receipts; these browser readouts show the laptop and legacy USB bridge. Physical actuator output remains off.</p>
+      </details>
+      <div id="preview-controls">
+        <p class="eyebrow">DESKTOP REHEARSAL / SIMULATED HAND</p>
+        <p class="hint">Choose a core → Grab → Lift → Matching dock → Release. Use Right hand above. Only live Quest tracking can send nonzero requests.</p>
+        <div class="surface-buttons"><button data-target="0">Ion · light</button><button data-target="1">Flux · medium</button><button data-target="2">Nova · heavy</button></div>
+        <div class="surface-buttons"><button id="open-hand">Open hand</button><button id="close-hand">Grab core</button></div>
+        <div class="surface-buttons"><button id="lift-core">Lift 18 cm</button><button id="move-dock">Matching dock</button><button id="release-core">Release core</button></div>
+        <button id="reset-game" class="reset">New shift</button>
+        <button id="hud-preview" class="reset">Preview VR panel</button>
+        <details><summary>Individual finger preview</summary>
+        <label for="preview-curl-0">Thumb bend</label><input id="preview-curl-0" type="range" min="0" max="100" value="0">
+        <label for="preview-curl-1">Index bend</label><input id="preview-curl-1" type="range" min="0" max="100" value="0">
+        <label for="preview-curl-2">Middle bend</label><input id="preview-curl-2" type="range" min="0" max="100" value="0">
+        <label for="preview-curl-3">Ring bend</label><input id="preview-curl-3" type="range" min="0" max="100" value="0">
+        <label for="preview-curl-4">Little bend</label><input id="preview-curl-4" type="range" min="0" max="100" value="0">
+        </details>
+        <p class="hint">Preview values are synthetic. Desktop rehearsal submits no cues and can monitor the live Quest without overriding it.</p>
+      </div>
+    </aside>
+  </main>
+  <footer><span>75 seconds. Three cores. Five fingers. One orbit to power.</span><a href="https://immersive-web.github.io/webxr-samples/immersive-hands.html" target="_blank" rel="noopener">Check Quest hand tracking ↗</a></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

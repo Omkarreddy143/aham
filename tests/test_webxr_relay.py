@@ -78,6 +78,20 @@ class WebXRRelayTests(unittest.TestCase):
         self.assertEqual(status, 200)
         return json.loads(body)
 
+    def test_connection_diagnostics_distinguish_rejected_uploads_without_replaying_stale_cues(self):
+        self.assertEqual(self.post(self.cue(), {"User-Agent": "OculusBrowser test"})[0], 200)
+        self.assertEqual(self.post({})[0], 400)
+        with self.relay.lock:
+            self.relay.submitted_at -= 1
+        status, body, _ = self.request("GET", "/api/connection-status")
+        self.assertEqual(status, 200)
+        value = json.loads(body)
+        self.assertEqual((value["accepted"], value["rejected"]), (1, 1))
+        self.assertEqual(value["lastUpload"]["status"], 400)
+        self.assertGreaterEqual(value["lastCueAgeMs"], 1000)
+        self.assertEqual(value["lastCueSource"], "webxr")
+        self.assertIsNone(self.relay.wifi_preview()["cue"])
+
     def wait_for(self, predicate):
         deadline = time.monotonic() + 1
         while time.monotonic() < deadline:

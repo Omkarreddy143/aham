@@ -3,6 +3,7 @@ import {CHAINS, JOINTS, FINGER_LABELS, fingerStates, handCue, cueRequest} from '
 import {emptyHands, readHandPoses} from './tracking.js';
 import {FoundryGame, graspInput, CORES, CORE_Z, DOCK_Z} from './game.js';
 import {createWorld} from './world.js';
+import {fetchJSON} from './network.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -145,7 +146,7 @@ let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new
   accepted=null, status={received:null,board:null}, lastPost=0,
   postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,lastUI=0,
   xrSupported=false, gameTracked=false, lastAnimation=null, restartTouch=0, restartLatched=false,
-  gripBusy=false, gripZeroQueued=false, lastGripPost=0;
+  gripBusy=false, gripZeroQueued=false, lastGripPost=0, connectionError='';
 const inverseStage=new THREE.Matrix4();
 const localPoint=new THREE.Vector3(),localRotation=new THREE.Quaternion(),restartPoint=new THREE.Vector3();
 const selectedHand=() => $('hand').value;
@@ -221,8 +222,8 @@ async function sendGrip(forceZero=false) {
   const now=performance.now();if(!forceZero && now-lastGripPost<75)return;
   lastGripPost=now;gripBusy=true;
   try {
-    await fetch('/api/grip-preview',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(game.intent(source,!forceZero && gameTracked)),signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
+    await fetchJSON('/api/grip-preview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(game.intent(source,!forceZero && gameTracked))},FEEDBACK_REQUEST_TIMEOUT_MS);
   } catch {} finally {gripBusy=false;if(gripZeroQueued){gripZeroQueued=false;sendGrip(true);}}
 }
 function resetGame(){game.reset();previewLift=0;previewDock=false;for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';if(source==='webxr')sendGrip(true);}
@@ -235,13 +236,14 @@ async function sendCue(forceZero=false) {
   lastPost=now; postBusy=true;
   const request=cueRequest(calculated,source,selectedHand(),forceZero?false:trackingValid);
   try {
-    const result=await fetch('/api/cue',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(request),
-      signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
-    const value=await result.json();
-    accepted=result.ok && value.accepted ? {sequence:value.sequence,time:performance.now()} : null;
+    const {response:result,value}=await fetchJSON('/api/cue',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(request)},FEEDBACK_REQUEST_TIMEOUT_MS);
+    accepted=result.ok && value.accepted ? {sequence:value.sequence,time:performance.now(),roundTripMs:performance.now()-now} : null;
+    connectionError=result.ok?'':String(value.error || 'HTTP '+result.status).slice(0,80);
     if(!result.ok) $('accepted-value').textContent='Request rejected';
-  } catch {accepted=null;} finally {
+  } catch(error) {
+    accepted=null;connectionError=error.name==='AbortError'?'Request timeout':String(error.message || error).slice(0,80);
+  } finally {
     postBusy=false;
     if(queuedZero) {queuedZero=false;sendCue(true);}
   }
@@ -251,9 +253,9 @@ async function pollStatus() {
   pollBusy=true;
   const requestedAt=performance.now();
   try {
-    const result=await fetch('/api/status',{signal:AbortSignal.timeout(FEEDBACK_REQUEST_TIMEOUT_MS)});
+    const {response:result,value}=await fetchJSON('/api/status',{},FEEDBACK_REQUEST_TIMEOUT_MS);
     if(!result.ok) throw new Error('Relay unavailable');
-    status=await result.json();
+    status=value;
     // Count the entire round trip conservatively rather than showing a delayed
     // network snapshot as freshly received board/monitor telemetry.
     statusAt=requestedAt;
@@ -355,7 +357,13 @@ function updatePanel(time) {
     ctx.fillStyle='#8be6cd';ctx.fillRect(x,309,62*game.resistance[i]/80,8);
     ctx.fillStyle='#a5c1cb';ctx.font='19px Segoe UI';ctx.fillText(name,x,346);
   });
-  ctx.fillStyle='#809fa9';ctx.font='19px Segoe UI';ctx.fillText('HAPTIC PREVIEW',785,374);
+  const relayLive=accepted && performance.now()-accepted.time<1000;
+  const relayLabel=source!=='webxr'?'HAPTIC PREVIEW':relayLive?(accepted.roundTripMs<250?'RELAY LIVE':'RELAY SLOW'):'RELAY LOST';
+  ctx.fillStyle=source!=='webxr'?'#809fa9':relayLive?'#8be6cd':'#ffc28f';
+  ctx.font='19px Segoe UI';ctx.fillText(relayLabel,785,374);
+  if(source==='webxr' && !relayLive && connectionError) {
+    ctx.fillStyle='#ffc28f';ctx.font='16px Segoe UI';ctx.fillText(connectionError.slice(0,44),785,399);
+  }
   panelTexture.needsUpdate=true;
 }
 
