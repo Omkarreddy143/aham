@@ -14,6 +14,8 @@ paths = [root / "README.md", root / "docs/webxr-quickstart.md",
          root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md",
          root / "docs/verification.md", root / "docs/images/webxr-v4.jpg"]
 paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py",
+              root / "docs/usb-glove-quickstart.md", root / "tools/glove_command.py",
+              root / "Enable Index Feedback.cmd", root / "Stop Glove.cmd", root / "tests/test_serial_glove.py",
               root / "docs/index-hardware-quickstart.md", root / "docs/five-finger-hardware.md",
               root / "docs/judging-preparation.md", root / "docs/judging-talk.md",
               root / "docs/tattva-explanation.md", root / "docs/judging-cards.html",

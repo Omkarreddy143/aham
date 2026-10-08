@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import struct
+import threading
 import time
 from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
@@ -15,6 +16,49 @@ from .wifi_bench import (HELLO, HELLO_BODY, HELLO_ACK, HELLO_RECEIPT, REASONS, W
 COMMAND, RECEIPT = 11, 12
 BODY = struct.Struct("<IIHB5B5B5B")
 ACK = struct.Struct("<IIHBB5B5HBB")
+
+
+class PreviewReader:
+    """Poll HTTP separately so a slow response cannot stop the UDP heartbeat."""
+    def __init__(self, url):
+        self.url = url
+        self.opener = build_opener(ProxyHandler({}), NoRedirect())
+        self.lock = threading.Lock()
+        self.done = threading.Event()
+        self.snapshot = None
+        self.sampled_at = time.monotonic()
+        self.worker = threading.Thread(target=self._run, name="AHAM-preview-reader", daemon=True)
+
+    def start(self):
+        self.worker.start()
+
+    def _sample(self):
+        started = time.monotonic()
+        value = None
+        try:
+            with self.opener.open(self.url, timeout=.15) as response:
+                body = response.read(8193)
+                if len(body) > 8192:
+                    raise ValueError("Oversized preview")
+                value = json.loads(body)
+        except (OSError, URLError, ValueError, RecursionError):
+            pass
+        with self.lock:
+            self.snapshot, self.sampled_at = value, started
+
+    def _run(self):
+        while not self.done.is_set():
+            started = time.monotonic()
+            self._sample()
+            self.done.wait(max(0, .05-(time.monotonic()-started)))
+
+    def get(self):
+        with self.lock:
+            return self.snapshot, max(0, time.monotonic()-self.sampled_at)
+
+    def close(self):
+        self.done.set()
+        self.worker.join(timeout=.3)
 
 
 def command_packet(snapshot, session, boot, sequence, now_ms, key, elapsed=0):
@@ -104,7 +148,10 @@ class WirelessGlove(WirelessBench):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--esp-ip", type=lan_ip, required=True)
+    transport = parser.add_mutually_exclusive_group(required=True)
+    transport.add_argument("--esp-ip", type=lan_ip)
+    transport.add_argument("--serial-port", help="USB fallback for the same five-finger firmware, at 115200")
+    parser.add_argument("--control-file", type=Path, help="Append local STATUS/ARM/JOG/STOP commands; old lines are skipped")
     parser.add_argument("--esp-port", type=port_number, default=4212)
     parser.add_argument("--relay-port", type=port_number, default=8890)
     parser.add_argument("--key-file", type=Path, required=True)
@@ -113,33 +160,41 @@ def main():
         key = read_key(args.key_file)
     except ValueError as error:
         parser.error(str(error))
-    glove = WirelessGlove((args.esp_ip, args.esp_port), key)
-    opener = build_opener(ProxyHandler({}), NoRedirect())
+    control = None
+    if args.serial_port:
+        from .serial_glove import SerialPacketLink, LocalCommandFile
+        glove = WirelessGlove(("127.0.0.1", 9), key)
+        glove.socket.close()
+        glove.socket = SerialPacketLink(args.serial_port)
+        if args.control_file:
+            control = LocalCommandFile(args.control_file)
+        print(f"ESP TRANSPORT=USB PORT={args.serial_port} BAUD=115200; Quest stays wireless.", flush=True)
+    else:
+        if args.control_file:
+            parser.error("--control-file requires --serial-port")
+        glove = WirelessGlove((args.esp_ip, args.esp_port), key)
     url = f"http://127.0.0.1:{args.relay_port}/api/wifi-preview"
+    preview = PreviewReader(url)
+    preview.start()
     print("AHAM FIVE-FINGER BENCH: T/I/M/R/L; PCA servo 0..4, motor SIGNAL 8..12. ESP boots DISARMED.", flush=True)
     print("Use verified circuits, detached tendons, suitable supplies and local Serial ARM commands at 115200 baud.", flush=True)
     print("PWM/SERVO_US are commanded outputs, not measured motion or force. STOP parks/disarms.", flush=True)
     last_print = 0
     try:
         while True:
-            started = time.monotonic(); snapshot = None
+            started = time.monotonic()
+            snapshot, elapsed = preview.get()
             try:
-                with opener.open(url, timeout=.15) as response:
-                    body = response.read(8193)
-                    if len(body) > 8192:
-                        raise ValueError("Oversized preview")
-                    snapshot = json.loads(body)
-            except (OSError, URLError, ValueError, RecursionError):
-                pass
-            try:
-                glove.send(snapshot, time.monotonic()-started); receipt = glove.poll()
+                if control:
+                    control.poll(glove.socket)
+                glove.send(snapshot, elapsed); receipt = glove.poll()
             except OSError:
                 receipt = None
             now = time.monotonic()
             if now-last_print >= .5:
                 last_print = now
                 if receipt:
-                    source_status = quest_input_status(snapshot, now-started)
+                    source_status = quest_input_status(snapshot, elapsed + now-started)
                     print(f"ESP FIVE seq={receipt['sequence']} ESP_LINK=LIVE QUEST={source_status} "
                           f"VIB={receipt['vibration']} RES%={receipt['resistance']} "
                           f"HOLD={receipt['holding']} M_ARM={receipt['motorMask']} S_ARM={receipt['servoMask']} "
@@ -149,10 +204,14 @@ def main():
                     print("NO FRESH FIVE-FINGER RECEIPT: check nodemcu_wifi_glove, UDP 4212, IPs and pairing key.", flush=True)
                 if snapshot is None:
                     print("Relay unavailable: sending zeros.", flush=True)
-            time.sleep(max(0, .05-(time.monotonic()-started)))
+            interval = .05 if args.serial_port else .02
+            time.sleep(max(0, interval-(time.monotonic()-started)))
     except KeyboardInterrupt:
         pass
     finally:
+        preview.close()
+        if control:
+            control.close()
         glove.close()
 
 

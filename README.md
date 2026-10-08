@@ -59,6 +59,7 @@ The received board is **ESP-12E NodeMCU V3 / ESP8266**, rather than ESP32. Quest
 - [Wi-Fi receiver ZIP](artifacts/AHAM-WiFi-Monitor.zip) and [2.4 GHz hotspot setup](docs/wifi-quickstart.md)
 - [One-index hardware ZIP](artifacts/AHAM-Index-Hardware.zip) and [servo/motor wiring and bench quickstart](docs/index-hardware-quickstart.md)
 - [Five-finger hardware ZIP](artifacts/AHAM-Five-Finger-Hardware.zip) and [full circuit, PlatformIO code and setup](docs/five-finger-hardware.md)
+- [USB glove fallback](docs/usb-glove-quickstart.md): Quest stays wireless; the laptop uses the NodeMCU USB cable when hotspot UDP gaps interrupt output. Physical movement still needs confirmation.
 - [Game and servo-resistance contract](docs/servo-resistance-plan.md)
 - [Verification record](docs/verification.md)
 - [Judging preparation for the 25/25/50 rubric](docs/judging-preparation.md), [speaking script](docs/judging-talk.md), [Tattva explanation and shlokas](docs/tattva-explanation.md) and [blank observation sheet](docs/judging-observations.csv)

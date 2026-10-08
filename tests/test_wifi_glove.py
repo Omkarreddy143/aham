@@ -4,15 +4,58 @@ import socket
 import sys
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "host"))
 from aham.protocol import Packet, crc16, decode
 from aham.wifi_bench import HELLO, HELLO_ACK, HELLO_RECEIPT, authenticated, signed
-from aham.wifi_glove import ACK, BODY, COMMAND, RECEIPT, WirelessGlove, command_packet, quest_input_status
+from aham.wifi_glove import ACK, BODY, COMMAND, RECEIPT, WirelessGlove, PreviewReader, command_packet, quest_input_status
 from test_wifi_monitor import snapshot
 
 KEY = bytes(range(32))  # Public test vector, not a deployment key.
+
+
+class PreviewReaderTests(unittest.TestCase):
+    def test_cached_data_keeps_http_and_cache_delay_in_freshness(self):
+        reader = PreviewReader('http://127.0.0.1/unused')
+        response = MagicMock()
+        response.read.return_value = __import__('json').dumps(snapshot()).encode()
+        reader.opener = MagicMock()
+        reader.opener.open.return_value.__enter__.return_value = response
+        with patch('aham.wifi_glove.time.monotonic', side_effect=[10, 10.3]):
+            reader._sample()
+            value, elapsed = reader.get()
+        self.assertAlmostEqual(elapsed, .3)
+        body = BODY.unpack(command_packet(value, 1, 2, 3, 4, KEY, elapsed).payload[:BODY.size])
+        self.assertEqual(body[3:], (0,)*16)
+
+    def test_failed_http_sample_clears_previous_nonzero_data(self):
+        reader = PreviewReader('http://127.0.0.1/unused')
+        reader.snapshot = snapshot()
+        reader.opener = MagicMock()
+        reader.opener.open.side_effect = OSError('offline')
+        reader._sample()
+        self.assertIsNone(reader.get()[0])
+
+    def test_udp_can_read_zero_while_http_is_blocked(self):
+        reader = PreviewReader('http://127.0.0.1/unused')
+        reader.opener = MagicMock()
+        import threading
+        entered, release = threading.Event(), threading.Event()
+        def block(*args, **kwargs):
+            entered.set()
+            release.wait(1)
+            raise OSError('offline')
+        reader.opener.open.side_effect = block
+        reader.start()
+        try:
+            self.assertTrue(entered.wait(.5))
+            started = time.monotonic()
+            self.assertIsNone(reader.get()[0])
+            self.assertLess(time.monotonic()-started, .05)
+        finally:
+            release.set()
+            reader.close()
 
 
 class GlovePacketTests(unittest.TestCase):

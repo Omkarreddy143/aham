@@ -30,7 +30,7 @@ WiFiUDP udp;
 IPAddress laptop;
 aham_glove::Controller* state = nullptr;
 aham_glove::Outputs output;
-bool configured = false, listening = false, pcaReady = false;
+bool configured = false, listening = false, pcaReady = false, paired = false, usbSession = false;
 uint16_t writtenServo[5] = {}, writtenMotor[5] = {};
 uint32_t lastPrint = 0, jogAt = 0;
 int jogFinger = -1;
@@ -86,6 +86,19 @@ int fingerNumber(const char* text) {
 void commands(const char* text) {
     const uint32_t now = millis();
     state->tick(now, digitalRead(board::stopPin) == LOW);
+    if (!strcmp(text, "STATUS")) {
+        Serial.print("STATUS PCA="); Serial.print(pcaReady);
+        Serial.print(" STOP_CLOSED="); Serial.print(digitalRead(board::stopPin) == LOW);
+        Serial.print(" WIFI="); Serial.print(WiFi.status() == WL_CONNECTED);
+        Serial.print(" LIVE="); Serial.print(state->live);
+        Serial.print(" AGE_MS="); Serial.print(uint32_t(now - state->receivedAt));
+        Serial.print(" M_ALLOWED="); Serial.print(state->allowedMotors);
+        Serial.print(" S_ALLOWED="); Serial.print(state->allowedServos);
+        Serial.print(" HOLD="); Serial.print(bool(state->flags & 2));
+        Serial.print(" TRANSPORT="); Serial.print(usbSession ? "USB" : "WIFI");
+        Serial.print(" REASON="); Serial.println(state->reason);
+        return;
+    }
     if (!strcmp(text, "STOP") || !strcmp(text, "HOME")) {
         jogFinger = -1; state->disarm(aham_bench::ManualStop); applyOutputs(now);
         Serial.println("DISARMED: motor zero and home requested; use mechanical release if loaded."); return;
@@ -112,24 +125,55 @@ void commands(const char* text) {
     char direction[5] = {};
     if (sscanf(text, "JOG %7s %4s %c", finger, direction, &extra) == 2) {
         const int number = fingerNumber(finger);
-        if (number < 0 || (strcmp(direction, "+10") && strcmp(direction, "-10")) ||
+        const bool knownStep = !strcmp(direction, "+10") || !strcmp(direction, "-10") ||
+            !strcmp(direction, "+50") || !strcmp(direction, "-50") ||
+            !strcmp(direction, "+100") || !strcmp(direction, "-100");
+        if (number < 0 || !knownStep ||
             !(state->armedServos & (1 << number)) || (state->flags & 2) || !pcaReady) {
             Serial.println("JOG needs an armed named servo, open hand and detached tendon."); return;
         }
-        const int pulse = int(state->home[number]) + (direction[0] == '+' ? 10 : -10);
+        const int pulse = int(state->home[number]) + atoi(direction);
         if (pulse < 1400 || pulse > 1600) return;
         jogFinger = number; jogPulse = uint16_t(pulse); jogAt = now;
         applyOutputs(now); Serial.print("300 ms JOG "); Serial.print(names[number]);
         Serial.print(" pulse us="); Serial.println(pulse); return;
     }
-    Serial.println("ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +10|-10; STOP; HOME. Send newline.");
+    Serial.println("STATUS; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100; STOP; HOME. Send newline.");
+}
+bool handlePacket(const aham::Packet& packet, aham::Packet& ack, bool fromUsb);
+int hexDigit(char value) {
+    if (value >= '0' && value <= '9') return value - '0';
+    if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+    if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+    return -1;
+}
+void serialFrame(const char* text) {
+    const size_t length = strlen(text);
+    if (!paired || length < 4 || length > aham::MaxEncoded * 2 || (length & 1)) return;
+    uint8_t bytes[aham::MaxEncoded];
+    for (size_t i = 0; i < length / 2; ++i) {
+        const int high = hexDigit(text[i*2]), low = hexDigit(text[i*2+1]);
+        if (high < 0 || low < 0) return;
+        bytes[i] = uint8_t(high * 16 + low);
+    }
+    aham::Packet packet, ack;
+    if (bytes[length/2-1] || !aham::decode(bytes, length/2-1, packet) || !handlePacket(packet, ack, true)) return;
+    const size_t count = aham::encode(ack, bytes);
+    const char digits[] = "0123456789abcdef";
+    Serial.print("FRAME_ACK ");
+    for (size_t i = 0; i < count; ++i) { Serial.print(digits[bytes[i] >> 4]); Serial.print(digits[bytes[i] & 15]); }
+    Serial.println();
 }
 void serialCommands() {
-    static char line[48]; static size_t used = 0; static bool overflow = false;
+    static char line[aham::MaxEncoded * 2 + 8]; static size_t used = 0; static bool overflow = false;
     for (int count = 0; count < 64 && Serial.available(); ++count) {
         const char c = char(Serial.read()); if (c == '\r') continue;
         if (c == '\n') {
-            if (!overflow) { line[used] = 0; commands(line); }
+            if (!overflow) {
+                line[used] = 0;
+                if (!strncmp(line, "FRAME ", 6)) serialFrame(line + 6);
+                else commands(line);
+            }
             used = 0; overflow = false;
         } else if (used < sizeof(line)-1) line[used++] = c;
         else overflow = true;
@@ -142,20 +186,15 @@ void cancelJog(uint32_t now) {
         if (state->armedMotors | state->armedServos) state->disarm(aham_bench::ManualStop);
     }
 }
-void receive() {
-    for (int count = 0; count < 8; ++count) {
-        const int size = udp.parsePacket(); if (!size) break;
-        if (udp.remoteIP() != laptop || size < 2 || size > int(aham::MaxEncoded)) { udp.flush(); continue; }
-        const IPAddress sender = udp.remoteIP(); const uint16_t senderPort = udp.remotePort();
-        uint8_t bytes[aham::MaxEncoded]; const int read = udp.read(bytes, sizeof(bytes));
-        aham::Packet packet, ack;
-        if (read != size || bytes[read-1] || !aham::decode(bytes, size-1, packet)) continue;
+bool handlePacket(const aham::Packet& packet, aham::Packet& ack, bool fromUsb) {
+        if (!paired) return false;
         if (packet.type == aham_bench::Hello && aham_bench::authentic(packet, 4, benchKey) && aham::u32(packet.payload)) {
             ack.type = aham_bench::HelloReceipt; ack.seq = packet.seq; ack.timeMs = millis();
             memcpy(ack.payload, packet.payload, 4); aham::put32(ack.payload + 4, state->boot);
             aham_bench::sign(ack, 8, benchKey);
         } else if (packet.type == aham_glove::Command &&
                    aham_bench::authentic(packet, aham_glove::CommandSize, benchKey) && state->accept(packet, millis())) {
+            usbSession = fromUsb;
             state->tick(millis(), digitalRead(board::stopPin) == LOW); cancelJog(millis()); applyOutputs(millis());
             ack.type = aham_glove::Receipt; ack.seq = state->sequence; ack.timeMs = millis();
             aham::put32(ack.payload, state->session); aham::put32(ack.payload + 4, state->boot);
@@ -166,7 +205,17 @@ void receive() {
                 output.servoSignalMask & (1 << i) ? output.reportedPulse[i] : state->home[i]);
             ack.payload[27] = output.servoSignalMask; ack.payload[28] = state->reason;
             aham_bench::sign(ack, aham_glove::ReceiptSize, benchKey);
-        } else continue;
+        } else return false;
+        return true;
+}
+void receive() {
+    for (int count = 0; count < 8; ++count) {
+        const int size = udp.parsePacket(); if (!size) break;
+        if (udp.remoteIP() != laptop || size < 2 || size > int(aham::MaxEncoded)) { udp.flush(); continue; }
+        const IPAddress sender = udp.remoteIP(); const uint16_t senderPort = udp.remotePort();
+        uint8_t bytes[aham::MaxEncoded]; const int read = udp.read(bytes, sizeof(bytes));
+        aham::Packet packet, ack;
+        if (read != size || bytes[read-1] || !aham::decode(bytes, size-1, packet) || !handlePacket(packet, ack, false)) continue;
         const size_t length = aham::encode(ack, bytes);
         if (udp.beginPacket(sender, senderPort)) { udp.write(bytes, length); udp.endPacket(); }
     }
@@ -186,6 +235,7 @@ void setup() {
     pcaReady = setupPca();
     if (!pcaReady) state->disarm(aham_bench::I2cFault);
     uint8_t keySet = 0; for (uint8_t byte : benchKey) keySet |= byte;
+    paired = keySet != 0;
     configured = keySet && laptop.fromString(AHAM_LAPTOP_IP) && strcmp(AHAM_WIFI_SSID, "SET_HOTSPOT_NAME");
     Serial.print("Verified motor mask="); Serial.print(state->allowedMotors);
     Serial.print(" servo mask="); Serial.print(state->allowedServos); Serial.print(" PCA="); Serial.println(pcaReady);
@@ -194,13 +244,15 @@ void setup() {
     WiFi.persistent(false);
     if (!configured) { WiFi.mode(WIFI_OFF); Serial.println("Configure WifiSecrets.h and run setup_wifi_bench.py --five-finger first."); return; }
     WiFi.mode(WIFI_STA); WiFi.hostname("aham-five-finger"); WiFi.setAutoReconnect(true);
+    // Keep the 250 ms actuator lease responsive; modem sleep can delay LAN packets.
+    WiFi.setSleepMode(WIFI_NONE_SLEEP);
     WiFi.begin(AHAM_WIFI_SSID, AHAM_WIFI_PASSWORD);
 }
 void loop() {
     const uint32_t now = millis();
     state->tick(now, digitalRead(board::stopPin) == LOW);
     if (!configured || WiFi.status() != WL_CONNECTED) {
-        state->lost(pcaReady ? aham_bench::LinkLost : aham_bench::I2cFault);
+        if (!usbSession) state->lost(pcaReady ? aham_bench::LinkLost : aham_bench::I2cFault);
         if (listening) { udp.stop(); listening = false; }
     } else {
         if (!listening) {
