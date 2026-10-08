@@ -26,7 +26,7 @@ class Request:
 
     @property
     def duration(self):
-        return .3 if self.kind == "motor" else .5 if self.kind == "grip" else 0
+        return 3.0 if self.kind == "motor" else 2.0 if self.kind == "grip" else 0
 
     def arrays(self):
         vibration, resistance = [0] * 5, [0] * 5
@@ -136,7 +136,7 @@ def main():
     print("AHAM WITHOUT VR: starts with zero requests; never sends Serial ARM or edits verification masks.", flush=True)
     print("Detach every finger thread. Confirm supplies/diodes; select one verified circuit in GloveConfig.h.", flush=True)
     print("Serial Monitor: COM port at 115200, newline. ARM MOTOR INDEX or ARM SERVO INDEX; STOP disarms.", flush=True)
-    print("motor: duty 95 for 300 ms. grip: request 20% for 500 ms; zero pullDeltaUs means no servo movement.", flush=True)
+    print("motor: duty 95 for 3 seconds. grip: request 20% for 2 seconds; zero pullDeltaUs means no servo movement.", flush=True)
     print("Use Serial JOG INDEX +10/-10 for detached servo checks. Pulse width is microseconds, not degrees.", flush=True)
     print("zero requests release/home but do not disarm. Close with quit; firmware link lease then expires.", flush=True)
     print(HELP, flush=True)
@@ -169,7 +169,7 @@ def main():
                 print(HELP, flush=True)
             elif isinstance(command, Request):
                 if window.start(command, receipt, started):
-                    print(f"Single {command.kind} request: {NAMES[command.finger]} for {command.duration * 1000:.0f} ms.", flush=True)
+                    print(f"Single {command.kind} request: {NAMES[command.finger]} for {command.duration:g} seconds.", flush=True)
                 else:
                     print("Test not started. Need a fresh READY receipt, ONLY that actuator armed, and a one-second pause.", flush=True)
             request = window.current(receipt, time.monotonic())

@@ -52,7 +52,7 @@ Add-Content .build/glove-control.txt STOP
 
 `STATUS` reports PCA detection, the stop loop, the last command age and transport.
 ARM requires a fresh link, open hand, zero cues and locally enabled circuits.
-INDEX selects servo channel 1 and motor-driver signal channel 9. The 300 ms JOG
+INDEX selects servo channel 1 and motor-driver signal channel 9. The 3 second JOG
 returns home and disarms automatically; `+10`, `+50`, `+100` and their negative
 equivalents stay within the enforced 1400–1600 microsecond range. Pulse width is
 not a force measurement. Choose direction and tendon travel through detached

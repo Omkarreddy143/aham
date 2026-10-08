@@ -44,7 +44,7 @@ class SerialPacketLink:
                         return frame
                 except (ValueError, UnicodeError):
                     pass
-            elif line.startswith((b'STATUS ', b'ARMED ', b'NOT ARMED:', b'300 ms JOG', b'DISARMED:', b'I2C FAULT:')):
+            elif line.startswith((b'STATUS ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'300 ms JOG', b'DISARMED:', b'I2C FAULT:')):
                 print('USB BOARD: ' + line.decode('ascii', errors='replace').strip(), flush=True)
         raise BlockingIOError()
 

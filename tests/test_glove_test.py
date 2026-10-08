@@ -66,16 +66,16 @@ class StandaloneTests(unittest.TestCase):
         req = Request("motor", 1)
         self.assertTrue(window.start(req, receipt(motor=2), 10))
         self.assertFalse(window.start(req, receipt(motor=2), 10.1))
-        self.assertEqual(window.current(receipt(now=10.29, motor=2), 10.29), req)
-        self.assertEqual(window.current(receipt(now=10.3, motor=2), 10.3), Request())
-        self.assertFalse(window.start(req, receipt(now=11, motor=2), 11))
-        self.assertTrue(window.start(req, receipt(now=11.31, motor=2), 11.31))
+        self.assertEqual(window.current(receipt(now=12.99, motor=2), 12.99), req)
+        self.assertEqual(window.current(receipt(now=13, motor=2), 13), Request())
+        self.assertFalse(window.start(req, receipt(now=13.5, motor=2), 13.5))
+        self.assertTrue(window.start(req, receipt(now=14.01, motor=2), 14.01))
 
-    def test_grip_has_half_second_window_then_zero(self):
+    def test_grip_has_two_second_window_then_zero(self):
         window = TestWindow()
         self.assertTrue(window.start(Request("grip", 1), receipt(servo=2), 10))
-        self.assertEqual(window.current(receipt(now=10.49, servo=2), 10.49), Request("grip", 1))
-        self.assertEqual(window.current(receipt(now=10.5, servo=2), 10.5), Request())
+        self.assertEqual(window.current(receipt(now=11.99, servo=2), 11.99), Request("grip", 1))
+        self.assertEqual(window.current(receipt(now=12, servo=2), 12), Request())
 
     def test_tracking_receipt_loss_disarm_or_zero_cancels_without_resuming(self):
         req = Request("motor", 1)

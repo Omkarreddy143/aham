@@ -37,6 +37,7 @@ int jogFinger = -1;
 uint16_t jogPulse = 1500;
 constexpr uint16_t port = 4212;
 constexpr uint8_t address = 0x40;
+constexpr uint32_t JogDurationMs = 3 * 1000;
 const char* names[5] = {"THUMB", "INDEX", "MIDDLE", "RING", "LITTLE"};
 
 bool writeRegister(uint8_t reg, uint8_t value) {
@@ -135,7 +136,7 @@ void commands(const char* text) {
         const int pulse = int(state->home[number]) + atoi(direction);
         if (pulse < 1400 || pulse > 1600) return;
         jogFinger = number; jogPulse = uint16_t(pulse); jogAt = now;
-        applyOutputs(now); Serial.print("300 ms JOG "); Serial.print(names[number]);
+        applyOutputs(now); Serial.print("3 s JOG "); Serial.print(names[number]);
         Serial.print(" pulse us="); Serial.println(pulse); return;
     }
     Serial.println("STATUS; ARM MOTOR|SERVO|BOTH THUMB|INDEX|MIDDLE|RING|LITTLE|ALL; JOG INDEX +/-10|50|100; STOP; HOME. Send newline.");
@@ -181,7 +182,7 @@ void serialCommands() {
 }
 void cancelJog(uint32_t now) {
     if (jogFinger >= 0 && (!(state->armedServos & (1 << jogFinger)) || (state->flags & 2) ||
-        uint32_t(now - jogAt) >= 300)) {
+        uint32_t(now - jogAt) >= JogDurationMs)) {
         jogFinger = -1;
         if (state->armedMotors | state->armedServos) state->disarm(aham_bench::ManualStop);
     }

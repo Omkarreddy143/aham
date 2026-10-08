@@ -74,7 +74,7 @@ When `M_ARM=2 S_ARM=0 READY` appears, type in the **tester terminal**:
 motor INDEX
 ```
 
-It requests duty **95/255** on the index channel for **300 ms**, then returns to zeros. Actual delivery depends on the network and firmware lease; this is not a guaranteed exact physical pulse duration. The controller's 50 Hz PWM can make the vibration pulsed. Check current, starting and transistor heating before repeating. A motor not starting does not justify removing its diode/base resistor or increasing its voltage. The tester refuses a new pulse during an active test or the following one-second pause.
+It requests duty **95/255** on the index channel for **3 seconds**, then returns to zeros. Actual delivery depends on the network and firmware lease; this is not a guaranteed exact physical pulse duration. The controller's 50 Hz PWM can make the vibration pulsed. Check current, starting and transistor heating before repeating. A motor not starting does not justify removing its diode/base resistor or increasing its voltage. The tester refuses a new pulse during an active test or the following one-second pause.
 
 In Serial Monitor, send `STOP` to disarm. Confirm the motor stops. Use the physical power disconnect if required.
 
@@ -96,7 +96,7 @@ ARM SERVO INDEX
 JOG INDEX +10
 ```
 
-Arming initially commands its detached home (example 1500 us). JOG requests home +10 us for 300 ms, returns home, then disarms. Re-arm before trying `JOG INDEX -10`. These are **microseconds, not degrees**; motion may be very small. Keep the tester running to provide zero-request heartbeats; JOG does not need VR.
+Arming initially commands its detached home (example 1500 us). JOG requests home +10 us for 3 seconds, returns home, then disarms. Re-arm before trying `JOG INDEX -10`. These are **microseconds, not degrees**; motion may be very small. Keep the tester running to provide zero-request heartbeats; JOG does not need VR.
 
 After verifying unloaded direction and a measured slack home, configure a small per-index pull delta (+20 or -20 us according to direction), rebuild/upload and re-arm only that servo. Then type **in the tester terminal**:
 
@@ -104,7 +104,7 @@ After verifying unloaded direction and a measured slack home, configure a small 
 grip INDEX
 ```
 
-This requests RES=20/80 for 500 ms, then zero/home. With delta +/-20 us the target differs from home by only +/-5 us; zero delta produces no pull. This verifies mapping/direction, not calibrated resistance or wearer safety. It is intentionally a small detached test.
+This requests RES=20/80 for 2 seconds, then zero/home. With delta +/-20 us the target differs from home by only +/-5 us; zero delta produces no pull. This verifies mapping/direction, not calibrated resistance or wearer safety. It is intentionally a small detached test.
 
 ## 5. Remaining fingers and stopping
 

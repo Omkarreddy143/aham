@@ -31,7 +31,7 @@ def main():
             with control.open('ab') as destination:
                 destination.write((command + '\n').encode('ascii'))
             print('Requested locally: ' + command, flush=True)
-            expected = ('ARMED ', 'NOT ARMED:') if command.startswith('ARM ') else ('300 ms JOG', 'JOG needs') if command.startswith('JOG ') else ('STATUS ',) if command == 'STATUS' else ('DISARMED:',)
+            expected = ('ARMED ', 'NOT ARMED:') if command.startswith('ARM ') else ('3 s JOG', '300 ms JOG', 'JOG needs') if command.startswith('JOG ') else ('STATUS ',) if command == 'STATUS' else ('DISARMED:',)
             deadline = time.monotonic() + 2
             buffer = b''
             while time.monotonic() < deadline:
