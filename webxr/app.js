@@ -49,6 +49,9 @@ function createHandRig() {
 }
 const rigs={left:createHandRig(),right:createHandRig()};
 const yAxis=new THREE.Vector3(0,1,0), direction=new THREE.Vector3();
+const boneStart=new THREE.Vector3(),boneEnd=new THREE.Vector3(),palmWrist=new THREE.Vector3(),
+  palmIndex=new THREE.Vector3(),palmLittle=new THREE.Vector3(),palmCenter=new THREE.Vector3(),
+  palmX=new THREE.Vector3(),palmY=new THREE.Vector3(),palmZ=new THREE.Vector3(),palmBasis=new THREE.Matrix4();
 
 function drawHand(poses,rig) {
   const {group,joints,bones,palm}=rig;
@@ -65,7 +68,7 @@ function drawHand(poses,rig) {
     const a=poses.get(bone.a), b=poses.get(bone.b);
     bone.mesh.visible=!!a && !!b;
     if(!a || !b) continue;
-    const start=new THREE.Vector3(a.x,a.y,a.z), end=new THREE.Vector3(b.x,b.y,b.z);
+    const start=boneStart.set(a.x,a.y,a.z), end=boneEnd.set(b.x,b.y,b.z);
     direction.subVectors(end,start);
     const length=direction.length();
     if(length<0.0001){bone.mesh.visible=false;continue;}
@@ -78,16 +81,16 @@ function drawHand(poses,rig) {
     little=poses.get('pinky-finger-phalanx-proximal');
   palm.visible=!!wrist && !!index && !!little;
   if(palm.visible) {
-    const w=new THREE.Vector3(wrist.x,wrist.y,wrist.z);
-    const a=new THREE.Vector3(index.x,index.y,index.z), b=new THREE.Vector3(little.x,little.y,little.z);
-    const center=a.clone().add(b).multiplyScalar(0.5);
-    const z=w.clone().sub(center), x=a.clone().sub(b);
+    const w=palmWrist.set(wrist.x,wrist.y,wrist.z);
+    const a=palmIndex.set(index.x,index.y,index.z), b=palmLittle.set(little.x,little.y,little.z);
+    const center=palmCenter.copy(a).add(b).multiplyScalar(0.5);
+    const z=palmZ.copy(w).sub(center), x=palmX.copy(a).sub(b);
     const length=z.length(), width=x.length();
     if(length<0.001 || width<0.001) {palm.visible=false;return;}
     z.normalize();x.addScaledVector(z,-x.dot(z)).normalize();
-    const y=new THREE.Vector3().crossVectors(z,x).normalize();
+    const y=palmY.crossVectors(z,x).normalize();
     palm.position.copy(w).add(center).multiplyScalar(0.5);
-    palm.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+    palm.quaternion.setFromRotationMatrix(palmBasis.makeBasis(x,y,z));
     palm.scale.set(width+0.018,0.018,length);
   }
 }
@@ -129,21 +132,22 @@ function previewPoses(hand) {
 
 // The panel is part of the XR scene; normal HTML is not visible inside immersive VR.
 const panelCanvas=document.createElement('canvas');
-panelCanvas.width=1280; panelCanvas.height=640;
+panelCanvas.width=1280; panelCanvas.height=420;
 const panelContext=panelCanvas.getContext('2d');
 const panelTexture=new THREE.CanvasTexture(panelCanvas);
 panelTexture.colorSpace=THREE.SRGBColorSpace;
-const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.76,0.38),
-  new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,side:THREE.DoubleSide}));
-panel.position.set(0,0.32,-0.43); panel.visible=false; stage.add(panel);
+const panel=new THREE.Mesh(new THREE.PlaneGeometry(0.72,0.236),
+  new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,side:THREE.DoubleSide,depthWrite:false}));
+panel.position.set(0,0.30,-0.51); panel.visible=false; stage.add(panel);
 
 let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new Map(),
   calculated=handCue(new Map(),[],[]), fingers=fingerStates(new Map()),
   accepted=null, status={received:null,board:null}, lastPost=0,
-  postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,
+  postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,lastUI=0,
   xrSupported=false, gameTracked=false, lastAnimation=null, restartTouch=0, restartLatched=false,
   gripBusy=false, gripZeroQueued=false, lastGripPost=0;
 const inverseStage=new THREE.Matrix4();
+const localPoint=new THREE.Vector3(),localRotation=new THREE.Quaternion(),restartPoint=new THREE.Vector3();
 const selectedHand=() => $('hand').value;
 
 function readXR(frame) {
@@ -170,9 +174,10 @@ function readXR(frame) {
 function localHand(input) {
   const result=new Map(), inverseRotation=stage.quaternion.clone().invert();
   for(const [name,pose] of input) {
-    const p=new THREE.Vector3(pose.x,pose.y,pose.z).applyMatrix4(inverseStage);
+    const p=localPoint.set(pose.x,pose.y,pose.z).applyMatrix4(inverseStage);
     const q=pose.orientation;
-    const orientation=q?inverseRotation.clone().multiply(new THREE.Quaternion(q.x,q.y,q.z,q.w)):null;
+    // Only the wrist orientation is needed by grasping. Drawing uses raw poses.
+    const orientation=q && name==='wrist'?inverseRotation.clone().multiply(localRotation.set(q.x,q.y,q.z,q.w)):null;
     result.set(name,{x:p.x,y:p.y,z:p.z,radius:pose.radius,orientation});
   }
   return result;
@@ -186,19 +191,19 @@ function calculate(delta,time) {
   if(source==='webxr' && ((previouslyTracked && !trackingValid) || previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i]))) sendCue(true);
   stage.updateMatrixWorld(true);
   inverseStage.copy(stage.matrixWorld).invert();
-  const localPoses=localHand(poses), right=localHand(hands.right), input=graspInput(right);
+  const right=localHand(hands.right),localPoses=selectedHand()==='right'?right:localHand(poses),input=graspInput(right);
   const wasTracked=gameTracked;gameTracked=!!input.valid;
   const hadResistance=game.resistance.some(Boolean);
   game.step(delta,input);world.update(game,time);
   if(source==='webxr' && ((wasTracked && !gameTracked) || (hadResistance && !game.resistance.some(Boolean)))) sendGrip(true);
   // Reachable inside VR: hold the right index tip on the illuminated button.
   const index=right.get('index-finger-tip');
-  const touchingRestart=input.valid && index && new THREE.Vector3(index.x,index.y,index.z).distanceTo(world.restart.position)<.043 && !game.held;
+  const touchingRestart=input.valid && index && restartPoint.set(index.x,index.y,index.z).distanceTo(world.restart.position)<.043 && !game.held;
   restartTouch=touchingRestart?restartTouch+Math.min(delta,.04):0;
   if(!touchingRestart)restartLatched=false;
   if(restartTouch>.7 && !restartLatched){resetGame();restartLatched=true;}
-  world.button.material.emissiveIntensity=.15+Math.min(1,restartTouch/.7)*.7;
-  calculated=handCue(localPoses,targets.filter((_,i)=>game.objects[i].state!=='delivered'),fingers.valid);
+  world.updateRestart(Math.min(1,restartTouch/.7),touchingRestart);
+  calculated=handCue(localPoses,targets.filter((_,i)=>game.objects[i].state!=='delivered'),fingers.valid,calculated.contacts,.003);
   if(game.held && selectedHand()==='right' && game.resistance.some(Boolean)) {
     // Grasp contact is inferred from the gesture, rather than five tip overlaps.
     calculated={duties:fingers.valid.map(valid=>valid?game.held.duty:0),patterns:fingers.valid.map(valid=>valid?game.held.pattern:0),contacts:fingers.valid.map(valid=>valid?game.held.name+' grip':null)};
@@ -251,7 +256,8 @@ async function pollStatus() {
     statusAt=requestedAt;
   } catch {status={received:null,board:null};} finally {pollBusy=false;}
 }
-setInterval(pollStatus,200);
+// Receipts are diagnostics, independent of the full-rate render/gesture loop.
+setInterval(pollStatus,500);
 
 function zeroTracking() {
   hands=emptyHands();poses=new Map();trackingValid=false;fingers=fingerStates(poses);
@@ -266,6 +272,10 @@ setInterval(()=>{
 },100);
 
 function updateUI() {
+  const now=performance.now();
+  // HTML is invisible in an immersive session. Keep work on the XR scene.
+  if(renderer.xr.isPresenting || now-lastUI<100) return;
+  lastUI=now;
   $('game-score').textContent=game.score.toLocaleString();$('game-time').textContent=Math.ceil(game.remaining)+'s';
   $('game-combo').textContent=game.combo?'×'+(1+Math.min(4,game.combo-1)*.25).toFixed(2):'×1';
   $('game-best').textContent=game.best.toLocaleString();
@@ -304,27 +314,46 @@ function updateUI() {
   $('applied-value').textContent=board?board.vibration.join(' / ')+' · mask '+board.motor_mask:'No fresh telemetry';
   const grip=status.resistance && status.resistance.ageMs+statusAge<500?status.resistance:null;
   $('grip-received').textContent=grip?grip.resistance.join(' / ')+'% · output OFF':'No fresh preview receipt';
-  const now=performance.now();
-  if(now-lastPanel>150) {
-    lastPanel=now;
-    panelContext.clearRect(0,0,1280,640);
-    panelContext.fillStyle='rgba(8,24,39,.97)'; panelContext.fillRect(0,0,1280,640);
-    panelContext.fillStyle='#69e8ce'; panelContext.font='600 36px Segoe UI';
-    panelContext.fillText('AHAM / ORBIT FOUNDRY v3',45,60);
-    panelContext.fillStyle='#f1f3e8';panelContext.font='600 65px Segoe UI';
-    panelContext.fillText(game.score+' PTS',45,145);panelContext.fillText(Math.ceil(game.remaining)+'s',640,145);
-    panelContext.font='29px Segoe UI';
-    const lines=[game.message,'Close around a core OR pinch. Lift 8 cm. Open over matching dock.',
-      'RIGHT: '+hands.right.size+'/25 joints · '+game.deliveries+' delivered · Best '+game.best,
-      'Finger order: Thumb / Index / Middle / Ring / Little',
-      'Resistance request %: '+game.resistance.join(' / '),
-      'Vibration cue /255: '+calculated.duties.join(' / '),
-      'Bridge: '+$('received-value').textContent,
-      'Laptop resistance: '+$('grip-received').textContent,
-      'SERVO OUTPUT OFF · Touch NEW SHIFT for 0.7s to restart'];
-    lines.forEach((line,i)=>panelContext.fillText(line,45,210+i*46,1190));
-    panelTexture.needsUpdate=true;
+}
+
+function nextAction() {
+  if(game.phase==='over')return ['SHIFT COMPLETE','Touch NEW SHIFT to play again.'];
+  if(!gameTracked)return ['SHOW YOUR RIGHT HAND','Keep your hand in front of the headset.'];
+  if(game.paused || (!game.held && !game.canGrab))return ['OPEN YOUR HAND','Then reach for a core.'];
+  if(game.held) {
+    if(!game.held.lifted)return ['LIFT THE CORE','Raise it 8 cm above the cradle.'];
+    return game.dockAligned?['OPEN HERE','Release over the glowing matching dock.']:
+      ['MATCH THE DOCK','Carry '+game.held.name+' to its matching color.'];
   }
+  if(game.hovered)return ['GRAB '+game.hovered.name.toUpperCase(),'Pinch or close your hand around it.'];
+  return ['REACH FOR A CORE','Grab · lift · match · release.'];
+}
+
+function updatePanel(time) {
+  if(!panel.visible || time-lastPanel<125)return;
+  lastPanel=time;
+  const ctx=panelContext,[action,hint]=nextAction();
+  ctx.clearRect(0,0,1280,420);
+  ctx.fillStyle='rgba(9,24,35,.96)';ctx.beginPath();ctx.roundRect(0,0,1280,420,32);ctx.fill();
+  ctx.strokeStyle='#70d9c344';ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#8be6cd';ctx.font='600 24px Segoe UI';ctx.fillText('AHAM / ORBIT FOUNDRY',40,43);
+  ctx.textAlign='right';ctx.fillStyle=gameTracked?'#b8f2dd':'#ffd49b';
+  ctx.fillText(gameTracked?'RIGHT HAND READY':'TRACKING PAUSED',1240,43);ctx.textAlign='left';
+  ctx.fillStyle='#f1fff9';ctx.font='600 62px Segoe UI';ctx.fillText(game.score+' PTS',40,124);
+  ctx.fillStyle=game.remaining<15?'#ffc28f':'#f1fff9';ctx.fillText(Math.ceil(game.remaining)+'s',510,124);
+  ctx.fillStyle='#99b6bf';ctx.font='30px Segoe UI';ctx.fillText(game.deliveries+' DELIVERED',830,119);
+  ctx.fillStyle='#5bcdb1';ctx.fillRect(40,151,1200*(game.remaining/75),4);
+  ctx.fillStyle='#f1fff9';ctx.font='600 43px Segoe UI';ctx.fillText(action,40,218);
+  ctx.fillStyle='#bad0d7';ctx.font='30px Segoe UI';ctx.fillText(hint,40,267);
+  ctx.fillStyle='#809fa9';ctx.font='23px Segoe UI';ctx.fillText(game.held?game.held.name.toUpperCase()+' / '+game.held.mass+' kg virtual':'3 CORES / 75 SECONDS',40,323);
+  ctx.fillText('BEST '+game.best+'  /  COMBO ×'+(1+Math.min(4,Math.max(0,game.combo-1))*.25).toFixed(2),40,374);
+  FINGER_LABELS.forEach((name,i)=>{
+    const x=785+i*88;ctx.fillStyle='#203c48';ctx.fillRect(x,309,62,8);
+    ctx.fillStyle='#8be6cd';ctx.fillRect(x,309,62*game.resistance[i]/80,8);
+    ctx.fillStyle='#a5c1cb';ctx.font='19px Segoe UI';ctx.fillText(name,x,346);
+  });
+  ctx.fillStyle='#809fa9';ctx.font='19px Segoe UI';ctx.fillText('HAPTIC PREVIEW',785,374);
+  panelTexture.needsUpdate=true;
 }
 
 async function checkXR() {
@@ -352,6 +381,7 @@ $('enter-vr').addEventListener('click',async()=>{
     session.addEventListener('visibilitychange',()=>{if(session.visibilityState!=='visible')zeroTracking();});
     session.addEventListener('end',()=>{
       zeroTracking(); source='desktop-preview'; positioned=false; panel.visible=false;
+      canvas.parentElement.classList.remove('hud-visible');$('hud-preview').textContent='Preview VR panel';
       stage.position.set(0,0,0); stage.rotation.set(0,0,0);
       camera.position.copy(desktopCamera.position);camera.quaternion.copy(desktopCamera.quaternion);
       camera.fov=desktopCamera.fov;camera.near=desktopCamera.near;camera.far=desktopCamera.far;
@@ -362,6 +392,7 @@ $('enter-vr').addEventListener('click',async()=>{
       $('xr-status').textContent='VR ended. Desktop preview sends zero output.';
     });
     await renderer.xr.setSession(session);
+    $('hand').value='right';canvas.parentElement.classList.remove('hud-visible');
     source='webxr';zeroTracking();resetGame();positioned=false;panel.visible=true;lastAnimation=null;
     $('enter-vr').textContent='Exit VR';$('enter-vr').disabled=false;
     $('xr-status').textContent='VR active. Open your right hand first, then grab, lift and deliver cores. The first grab starts the shift.';
@@ -378,6 +409,14 @@ $('lift-core').addEventListener('click',()=>{previewLift=.18;});
 $('move-dock').addEventListener('click',()=>{previewDock=true;});
 $('release-core').addEventListener('click',()=>{for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';});
 $('reset-game').addEventListener('click',resetGame);
+$('hud-preview').addEventListener('click',()=>{
+  if(renderer.xr.isPresenting)return;
+  panel.visible=!panel.visible;
+  $('hud-preview').textContent=panel.visible?'Hide VR panel':'Preview VR panel';
+  canvas.parentElement.classList.toggle('hud-visible',panel.visible);
+  if(panel.visible){camera.position.set(0,.27,1.05);camera.lookAt(0,.09,-.08);}
+  else {camera.position.copy(desktopCamera.position);camera.quaternion.copy(desktopCamera.quaternion);}
+});
 document.querySelectorAll('[data-target]').forEach(button=>button.addEventListener('click',()=>{
   previewTarget=Number(button.dataset.target);
   previewLift=0;previewDock=false;
@@ -397,6 +436,6 @@ renderer.setAnimationLoop((time,frame)=>{
   } else if(!renderer.xr.isPresenting) {
     source='desktop-preview';hands={left:previewPoses('left'),right:previewPoses('right')};
   }
-  calculate(delta,time);drawHands();updateUI();sendCue();sendGrip();renderer.render(scene,camera);
+  calculate(delta,time);drawHands();updateUI();updatePanel(time);sendCue();sendGrip();renderer.render(scene,camera);
 });
 checkXR();pollStatus();

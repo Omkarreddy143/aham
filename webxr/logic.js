@@ -44,18 +44,44 @@ export function sphereTouchesBox(point, radius, box) {
   return distance2 <= radius*radius;
 }
 
+// Contact follows the core body; its decorative rings are not touch surfaces.
+export function sphereTouchesTarget(point, radius, target) {
+  if (!finitePoint(point) || !Number.isFinite(radius) || radius < 0) return false;
+  if (target.sphere && !target.orientedBox) {
+    const {center, radius:bodyRadius}=target.sphere;
+    return finitePoint(center) && Number.isFinite(bodyRadius) && bodyRadius>=0 &&
+      Math.hypot(point.x-center.x,point.y-center.y,point.z-center.z)<=radius+bodyRadius;
+  }
+  if (target.orientedBox) {
+    const {center,quaternion:q,halfSize:h}=target.orientedBox;
+    if(!finitePoint(center) || !finitePoint(h) || !q ||
+       ![q.x,q.y,q.z,q.w].every(Number.isFinite) || Math.min(h.x,h.y,h.z)<0) return false;
+    const norm=q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w;
+    if(norm<0.5) return false;
+    const x=point.x-center.x,y=point.y-center.y,z=point.z-center.z;
+    // Inverse quaternion rotation; normalization also handles harmless XR rounding.
+    const tx=2*(-q.y*z+q.z*y),ty=2*(-q.z*x+q.x*z),tz=2*(-q.x*y+q.y*x);
+    const p={x:x+(q.w*tx-q.y*tz+q.z*ty)/norm,
+      y:y+(q.w*ty-q.z*tx+q.x*tz)/norm,z:z+(q.w*tz-q.x*ty+q.y*tx)/norm};
+    return sphereTouchesBox(p,radius,{min:{x:-h.x,y:-h.y,z:-h.z},max:h});
+  }
+  return !!target.box && sphereTouchesBox(point,radius,target.box);
+}
+
 export function fingerStates(poses) {
   const valid=CHAINS.map(chain => chain.every(name => finitePoint(poses?.get(name))));
   return {valid, curls:CHAINS.map((chain,i) => valid[i] ? curl(chain.slice(1).map(name=>poses.get(name))) : null)};
 }
 
-export function handCue(poses, targets, fingerValid) {
+export function handCue(poses, targets, fingerValid, previousContacts=[], exitMargin=0) {
   const duties = [0,0,0,0,0], patterns = [0,0,0,0,0];
   const contacts = [null,null,null,null,null];
   CHAINS.forEach((chain,i) => {
     const tip=poses?.get(chain.at(-1));
     if(!fingerValid?.[i] || !tip) return;
-    const contact=targets.find(target=>sphereTouchesBox(tip,tip.radius ?? 0.008,target.box));
+    const retained=targets.find(target=>target.name===previousContacts[i] &&
+      sphereTouchesTarget(tip,(tip.radius ?? 0.008)+exitMargin,target));
+    const contact=retained || targets.find(target=>sphereTouchesTarget(tip,tip.radius ?? 0.008,target));
     if(contact) {duties[i]=contact.duty;patterns[i]=contact.pattern;contacts[i]=contact.name;}
   });
   return {duties, patterns, contacts};

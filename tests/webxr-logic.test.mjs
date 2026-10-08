@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CHAINS,JOINTS,curl,sphereTouchesBox,fingerStates,handCue,cueRequest} from '../webxr/logic.js';
+import {CHAINS,JOINTS,curl,sphereTouchesBox,sphereTouchesTarget,fingerStates,handCue,cueRequest} from '../webxr/logic.js';
 import {readHandPoses} from '../webxr/tracking.js';
 
 test('curl uses bone angles, including degenerate and missing joints',()=>{
@@ -61,4 +61,32 @@ test('only real tracked WebXR contact can send a nonzero monitor cue',()=>{
   assert.deepEqual(cueRequest(cue,'webxr','right',true).duties,cue.duties);
   assert.deepEqual(cueRequest(cue,'webxr','right',false).duties,[0,0,0,0,0]);
   assert.deepEqual(cueRequest(cue,'desktop-preview','right',true).duties,[0,0,0,0,0]);
+});
+
+test('rounded contact excludes empty bounding-box corners and cube follows rotation',()=>{
+  const sphere={sphere:{center:{x:0,y:0,z:0},radius:.043}};
+  assert.equal(sphereTouchesTarget({x:.039,y:.039,z:.039},.008,sphere),false);
+  assert.equal(sphereTouchesTarget({x:.05,y:0,z:0},.008,sphere),true);
+  const q={x:0,y:0,z:Math.sin(Math.PI/8),w:Math.cos(Math.PI/8)};
+  const rotated={sphere:{center:{x:1,y:2,z:3},radius:.043},
+    orientedBox:{center:{x:1,y:2,z:3},quaternion:q,halfSize:{x:.0375,y:.0375,z:.0375}}};
+  assert.equal(sphereTouchesTarget({x:1.055,y:2,z:3},.004,rotated),true);
+  assert.equal(sphereTouchesTarget({x:1.04,y:2.04,z:3},.004,rotated),false);
+  assert.equal(sphereTouchesTarget({x:1,y:2,z:3},.004,{orientedBox:{...rotated.orientedBox,quaternion:{x:0,y:0,z:0,w:0}}}),false);
+});
+
+test('contact hysteresis retains only an existing near contact and clears invalid or removed poses immediately',()=>{
+  const target={name:'Ion',duty:95,pattern:1,sphere:{center:{x:0,y:0,z:0},radius:.043}};
+  const poses=new Map([['index-finger-tip',{x:.05,y:0,z:0,radius:.008}]]);
+  const valid=[false,true,false,false,false];
+  let cue=handCue(poses,[target],valid,[],.003);
+  assert.equal(cue.duties[1],95);
+  poses.get('index-finger-tip').x=.053;
+  assert.equal(handCue(poses,[target],valid,[],.003).duties[1],0);
+  assert.equal(handCue(poses,[target],valid,cue.contacts,.003).duties[1],95);
+  poses.get('index-finger-tip').x=.057;
+  assert.equal(handCue(poses,[target],valid,cue.contacts,.003).duties[1],0);
+  assert.equal(handCue(poses,[target],[false,false,false,false,false],cue.contacts,.003).duties[1],0);
+  assert.equal(handCue(new Map(),[target],valid,cue.contacts,.003).duties[1],0);
+  assert.equal(handCue(poses,[],valid,cue.contacts,.003).duties[1],0);
 });

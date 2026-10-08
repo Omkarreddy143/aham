@@ -8,9 +8,10 @@ output.parent.mkdir(exist_ok=True)
 paths = [root / "README.md", root / "docs/webxr-quickstart.md",
          root / "docs/webxr-architecture.md", root / "docs/protocol.md",
          root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",
-         root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md"]
+         root / "tests/webxr-game.test.mjs", root / "docs/servo-resistance-plan.md",
+         root / "docs/verification.md", root / "docs/images/webxr-v4.jpg"]
 paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py"])
-for folder in ("webxr", "host"):
+for folder in ("webxr", "host", "docs/images"):
     paths.extend(path for path in (root / folder).rglob("*")
                  if path.is_file() and "__pycache__" not in path.parts)
 with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:

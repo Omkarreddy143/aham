@@ -1,6 +1,6 @@
 # Quest 3 WebXR quickstart
 
-The selected approach uses **Quest Browser over a wireless connection**. Unity is not required. **Orbit Foundry v3** tracks both hands and adds right-hand grabbing, lifting and delivery gameplay. The laptop receives five vibration cues and a separate five-finger resistance preview. This prototype is **monitor only**: physical motor and servo output remain disabled.
+The selected approach uses **Quest Browser over a wireless connection**. Unity is not required. **Orbit Foundry v4** tracks both hands and adds right-hand grabbing, lifting and delivery gameplay with a compact scoreboard and clear grab/lift/drop cues. The team has confirmed changing five-channel requests reach the ESP over Wi-Fi. This prototype is **monitor only**: physical motor and servo output remain disabled.
 
 ```text
 Quest Browser: hand joints -> virtual contact -> calculated cues
@@ -47,20 +47,22 @@ Copy the printed `https://…trycloudflare.com` address exactly, **without a tra
 
 Only one process may own COM7. Stop an old bridge or Serial Monitor before opening a new one. This companion echoes monitor cues back to the relay; it never forwards those cues to USB. Keep the motor disconnected and do not arm the board.
 
-Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both hands render; select **Feedback hand** before entering VR to choose which hand's five channels appear in the monitor. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
+Open the copied **HTTPS address in Quest Browser**, press **Enter VR**, allow hand tracking, and put down the controllers. Both hands render; entering the game selects right-hand feedback. Both the laptop and headset need Internet access. If you restart the tunnel, copy its new address and restart the relay with that address.
 
-After updating, **exit VR, reload the page, check for ORBIT FOUNDRY v3, then Enter VR again**. Reload laptop pages too: old preview tabs can still submit zeros. The page reports right/left joint counts and separate thumb, index, middle, ring and little finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
+After updating, **exit VR, reload the page, check for ORBIT FOUNDRY v4, then Enter VR again**. The current laptop preview submits no cues. Close any older v1/v2 preview tabs that may still submit zeros. Expand **Tracking & connection details** on the laptop for joint counts and five independent finger curls/cues. Hidden hands or missing finger poses remain unavailable rather than moving synthetically.
 
 ## Play Orbit Foundry
 
 1. Keep **Feedback hand = Right hand** for the game. Enter VR with bare hands, controllers put down. Open your right hand first.
-2. Reach for a glowing core. Close your fingers around it, or pinch thumb and index near it. The first successful grab starts a 75-second shift.
+2. Reach for a glowing core; its halo shows which one you can grab. Close your fingers around it, or pinch thumb and index near it. The first successful grab starts a 75-second shift.
 3. Lift the core at least **8 cm**, carry it over the matching color dock at the back of the bench, and open your hand. The core falls onto the dock and earns points. A delivered core returns to its cradle.
 4. Ion/mint is light (0.25 kg virtual), Flux/amber is medium (1 kg), Nova/violet is heavy (3 kg). Heavy cores earn more points and request more finger resistance. Consecutive correct deliveries build a combo.
-5. Watch **Resistance request %** and five vibration cues in the floating VR panel. Percentages are software requests, not force or servo angles. The laptop's **grip preview** confirms the requests reached the relay; physical servo output remains OFF.
+5. Follow the floating panel's next action. Lift progress appears beside the held core; the matching dock glows and says **OPEN HERE** when aligned after lifting. Five small bars show the haptic preview. Raw percentages and vibration values are on the laptop; they are software requests, not force or servo angles. The Wi-Fi sender terminal's **ESP RECEIVED** confirms the board receipt; physical output remains OFF.
 6. Touch the illuminated **NEW SHIFT** button at the right edge of the bench with your right index fingertip for **0.7 seconds** to restart. If tracking disappears, the core releases and requests clear; open your hand before picking up again.
 
 On the laptop, use **Ion/Flux/Nova → Grab core → Lift 18 cm → Matching dock → Release core** for a synthetic rehearsal. The desktop page submits no commands, so it can also display live Quest receipts without replacing them. Use one live VR session at a time. The best score lasts for the current page visit.
+
+Use **Preview VR panel** on the laptop to inspect the immersive scoreboard. It shows one action at a time rather than connection/debug arrays. Gesture and contact calculations still run every render frame; desktop readouts update at 10 Hz, the visible VR panel at up to 8 Hz. These are display refresh rates, not measurements of end-to-end Wi-Fi or actuator latency.
 
 Plain `http://<laptop-IP>:8890/` is insufficient for WebXR. HTTPS is required for this wireless route; HTTP localhost is a special development exception. [MDN secure contexts](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)
 

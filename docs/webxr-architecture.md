@@ -9,7 +9,7 @@ The selected revision replaces Unity, flex sensors and MPU6050 as primary tracki
 | Quest tracking | Estimated wrist orientation and 25 hand-joint poses | Team confirmed both-hand tracking and cue receipt on Quest |
 | Hand view | Render joint positions and connecting bones | Independent left/right Three.js rigs; 25 joints each |
 | Curl estimate | Display bending from adjacent bone angles | Approximate visual curl; no flex calibration required |
-| Orbit Foundry | Grasp/pinch, palm-relative carry, lift, drop, match and score | Pure game state, 75-second shift, three core masses, combos, in-world restart |
+| Orbit Foundry | Grasp/pinch, gesture-anchor carry, lift, drop, match and score | Pure game state, 75-second shift, three core masses, combos, in-world restart |
 | Contact cues | Tip-to-core boxes or inferred grasp contact | Ion 95/1; Flux 130/2; Nova 155/3; five channels for the selected feedback hand |
 | Resistance preview | Five normalized right-finger requests and captured curl | Separate strict `/api/grip-preview`; expires after 500 ms; no board output |
 | HTTPS link | Carry wireless headset requests | Temporary Cloudflare tunnel to a loopback HTTP server |

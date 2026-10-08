@@ -37,8 +37,93 @@ test('held core follows hand translation and rotation without changing the input
   const game=new FoundryGame(),hand=grab(game),offset=game.offset.clone();
   hand.palm.set(.15,.2,-.15);hand.quaternion.setFromAxisAngle(new Vector3(0,1,0),Math.PI/2);
   const expected=offset.applyQuaternion(hand.quaternion).add(hand.palm);advance(game,hand,1);
-  assert.ok(game.held.position.distanceTo(expected)<1e-9);
+  assert.ok(game.held.position.distanceTo(expected)<.012,'fast motion follows within 12 mm on its first 20 ms frame');
+  advance(game,hand,4);assert.ok(game.held.position.distanceTo(expected)<.0002);
   assert.deepEqual(hand.curls,Array(5).fill(.5));assert.deepEqual(game.referenceCurl,Array(5).fill(50));
+});
+
+test('pinch attachment follows the fingertip midpoint, independently of palm movement',()=>{
+  const game=new FoundryGame(),hand=input();advance(game,hand,2);
+  hand.pinchPoint.copy(game.objects[0].position);hand.pinchDistance=.018;
+  advance(game,hand);assert.equal(game.gripMode,'pinch');
+  const before=game.held.position.clone();
+  hand.palm.add(new Vector3(.18,.05,.06));hand.quaternion.setFromAxisAngle(new Vector3(0,0,1),Math.PI/2);
+  advance(game,hand,8);
+  assert.ok(game.held.position.distanceTo(before)<1e-9,'moving/rotating the wrist cannot orbit a pinched core around the palm');
+  hand.pinchPoint.add(new Vector3(0,.1,0));advance(game,hand,5);
+  assert.ok(game.held.position.distanceTo(hand.pinchPoint)<.0002);
+});
+
+test('open-hand arming and candidate dwell reject a one-frame gesture or nearby-core change',()=>{
+  const game=new FoundryGame(),hand=input();game.step(1/90,hand);
+  hand.curls.fill(.5);advance(game,hand);assert.equal(game.held,null);
+  hand.curls.fill(0);advance(game,hand,2);assert.equal(game.hovered.id,'mint');
+  hand.curls.fill(.5);game.step(.02,hand);assert.ok(game.grabProgress>0 && game.grabProgress<1);
+  hand.palm.x=CORES[1].x;game.step(.02,hand);assert.equal(game.held,null);
+  assert.equal(game.hovered.id,'amber');advance(game,hand,2);assert.equal(game.held.id,'amber');
+});
+
+test('a relaxed grip remains held; clear opening immediately zeros requests before visual release',()=>{
+  const game=new FoundryGame(),hand=grab(game);hand.curls.fill(.14);advance(game,hand,20);
+  assert.ok(game.held);assert.ok(game.resistance.every(value=>value>0));
+  hand.curls.fill(0);game.step(.01,hand);
+  assert.ok(game.held);assert.deepEqual(game.intent('webxr').resistance,[0,0,0,0,0]);
+  assert.ok(game.releaseProgress>0 && game.releaseProgress<1);
+  // One noisy opening does not drop the core, and cannot keep a stale request.
+  hand.curls.fill(.5);game.step(.01,hand);assert.ok(game.held);assert.equal(game.releaseProgress,0);
+  hand.curls.fill(0);advance(game,hand,3);assert.equal(game.held,null);
+});
+
+test('small position and curl jitter are reduced without moving the tracked hand',()=>{
+  const game=new FoundryGame(),hand=grab(game),dt=1/90;
+  const origin=hand.palm.clone(),target=game.held.position.clone();let largestMotion=0;
+  const requests=[];
+  for(let frame=0;frame<90;frame++) {
+    hand.palm.x=origin.x+(frame%2?.001:-.001);hand.curls.fill(frame%2?.55:.45);
+    const originalPalm=hand.palm.clone();game.step(dt,hand);
+    assert.ok(hand.palm.equals(originalPalm));assert.ok(game.held);
+    if(frame>20){largestMotion=Math.max(largestMotion,Math.abs(game.held.position.x-target.x));requests.push(game.resistance[0]);}
+  }
+  assert.ok(largestMotion<.0007,'a 1 mm alternating tracking jitter is reduced');
+  assert.ok(Math.max(...requests)-Math.min(...requests)<=1,'active resistance does not chatter with small curl noise');
+});
+
+test('grab, release, active requests and delivery remain consistent across headset frame rates',()=>{
+  const results=[];
+  for(const fps of [20,30,72,90,120]) {
+    const dt=1/fps,game=new FoundryGame(),hand=input();
+    for(let t=0;t<.08;t+=dt)game.step(dt,hand);
+    hand.curls.fill(.5);let graspDuration=0;
+    while(!game.held && graspDuration<.2){game.step(dt,hand);graspDuration+=dt;}
+    assert.ok(game.held);assert.ok(graspDuration>=.055 && graspDuration<.055+dt+.0001);
+    const start=hand.palm.clone();
+    for(let t=dt;t<=.3+dt/2;t+=dt){hand.palm.y=start.y+.18*Math.min(1,t/.3);game.step(dt,hand);}
+    for(let t=0;t<.12;t+=dt)game.step(dt,hand);
+    assert.ok(game.held.lifted);assert.equal(game.liftProgress,1);
+    hand.palm.z=DOCK_Z;for(let t=0;t<.18;t+=dt)game.step(dt,hand);
+    assert.equal(game.dockAligned,true);
+    const request=game.resistance[0];hand.curls.fill(0);let releaseDuration=0;
+    while(game.held && releaseDuration<.2){game.step(dt,hand);releaseDuration+=dt;assert.deepEqual(game.resistance,[0,0,0,0,0]);}
+    assert.equal(game.held,null);assert.ok(releaseDuration>=.06 && releaseDuration<.06+dt+.0001);
+    for(let t=0;t<1;t+=dt)game.step(dt,hand);
+    assert.equal(game.score,80);results.push(request);
+  }
+  assert.ok(Math.max(...results)-Math.min(...results)<=1);
+});
+
+test('paused tracking waits for a stable open hand before restarting the timer',()=>{
+  const game=new FoundryGame(),hand=grab(game);game.step(.02,{valid:false});const remaining=game.remaining;
+  advance(game,hand,30);assert.equal(game.remaining,remaining);
+  hand.curls.fill(0);advance(game,hand,3);assert.equal(game.paused,false);
+  game.step(.02,hand);assert.ok(game.remaining<remaining);
+});
+
+test('nonfinite pose, quaternion or curl samples immediately release and clear requests',()=>{
+  for(const corrupt of [hand=>hand.palm.x=NaN,hand=>hand.quaternion.w=Infinity,hand=>hand.curls[2]=NaN,hand=>hand.pinchDistance=NaN]) {
+    const game=new FoundryGame(),hand=grab(game);corrupt(hand);game.step(.02,hand);
+    assert.equal(game.held,null);assert.equal(game.hovered,null);assert.equal(game.grabProgress,0);
+    assert.deepEqual(game.resistance,[0,0,0,0,0]);assert.deepEqual(game.referenceCurl,[0,0,0,0,0]);
+  }
 });
 test('only a lifted core landed in its matching dock scores, once per delivery',()=>{
   const game=new FoundryGame();let hand=grab(game);deliver(game,hand,0,.15,1);assert.equal(game.score,0);

@@ -95,7 +95,7 @@ The sender targets only the supplied private ESP IP at UDP port 4210. It polls t
 
 ## 6. Test from Quest
 
-Reload the Quest scene, enter Orbit Foundry v3, open the right hand, and grab a core. Watch the ESP's Serial Monitor:
+Reload the Quest scene, enter Orbit Foundry v4, open the right hand, and grab a core. Watch the ESP's Serial Monitor:
 
 ```text
 LINK=LIVE VIB=[155,155,155,155,155] RES%=[50,55,58,52,48] CURL%=[30,50,60,45,35] HOLD=1 OUTPUT=OFF
@@ -113,4 +113,4 @@ Types 5/6 are separate observation packets, using the existing version-1 CRC/COB
 
 The CRC detects corruption, not a malicious sender. Peer IP filtering is not authentication. This is a data monitor on your hotspot, not a validated wearable actuator-control protocol. Physical output needs authenticated/local control, explicit arming, measured mechanical limits, an independent watchdog and release. The public HTTPS tunnel remains a demo/monitor route.
 
-Software build, Python UDP tests and native firmware interoperability tests pass. Actual hotspot joining, client reachability, packet timing and the flashed ESP's receipt remain to be verified by the steps above.
+Software build, Python UDP tests and native firmware interoperability tests pass. On 8 October the team confirmed actual ESP receipts with changing vibration/resistance values and HOLD state on the chosen hotspot. The submitted screenshot reports OUTPUT=OFF. This verifies data delivery; packet timing and physical actuator response are still unmeasured.

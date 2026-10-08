@@ -2,16 +2,16 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-The Quest estimates hand orientation and finger joints. **Orbit Foundry v3** adds a 75-second right-hand grab, lift and delivery game: three energy cores, matching docks, score and combo bonuses. The browser calculates five vibration cues and five weight-dependent resistance requests. A laptop relay monitors both; physical servo output is disabled. The NodeMCU can remain connected to the laptop by USB while the Quest connects wirelessly.
+The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** adds a 75-second right-hand grab, lift and delivery game with a compact VR scoreboard, highlighted grab targets and matching docks. The browser calculates five vibration cues and five weight-dependent resistance requests. A laptop relay sends observation data over hotspot Wi-Fi; the team has confirmed actual ESP receipts. Physical motor and servo output remain disabled.
 
 **Start with the [WebXR quickstart](docs/webxr-quickstart.md).** The browser scene and observation relay are implemented. Physical vibration and servo resistance require separate bring-up.
 
 ```text
 Quest hand tracking → WebXR hand → virtual contact → cue
-  → HTTPS → laptop relay → cue monitor
+  → HTTPS → laptop relay → hotspot Wi-Fi → NodeMCU receive-only monitor
 
 Later verified output path:
-  laptop → USB → actuator-only NodeMCU firmware → driver / servo controller
+  actuator-only NodeMCU firmware → driver / servo controller → glove
 ```
 
 ## What works now
@@ -19,11 +19,11 @@ Later verified output path:
 | Part | Status |
 |---|---|
 | WebXR scene | Team confirmed both-hand tracking and live cue receipt; 25 joints per hand and five independent curls/contact cues |
-| Orbit Foundry game | Right-hand grasp/pinch, palm-relative carry, lift, release, matching-dock scoring, combos and an in-world restart; headset gameplay trial next |
+| Orbit Foundry game | Right-hand grasp/pinch, lift/release, matching-dock scoring and combos; v4 improves attachment, gesture stability, contact geometry and VR guidance; updated headset trial next |
 | Desktop preview | Synthetic grab/lift/delivery rehearsal; submits no cues and can monitor Quest |
 | Feedback monitor | Calculated cue, HTTP acceptance, matching bridge echo and board telemetry shown separately |
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |
-| Wi-Fi to NodeMCU | Receive-only UDP companion + PlatformIO receiver compiled; actual hotspot upload/receipt trial next |
+| Wi-Fi to NodeMCU | Team confirmed ESP receipts with changing vibration/resistance requests and HOLD state; OUTPUT remains OFF |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
 | Vibration motor | Driver and diode bring-up incomplete; no physical vibration verified |
 | Servo resistance | Five software requests and expiring laptop receipt implemented; physical control pending supply, measured mechanics, release and firmware |
