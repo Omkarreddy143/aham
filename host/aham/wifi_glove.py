@@ -9,6 +9,7 @@ from urllib.error import URLError
 from urllib.request import ProxyHandler, build_opener
 
 from .protocol import crc16, decode
+from .auto_feedback import AutoFeedback
 from .wifi_monitor import NoRedirect, fresh, lan_ip, port_number, preview_packet, preview_values
 from .wifi_bench import (HELLO, HELLO_BODY, HELLO_ACK, HELLO_RECEIPT, REASONS, WirelessBench,
                         authenticated, read_key, signed)
@@ -166,7 +167,10 @@ def main():
     parser.add_argument("--esp-port", type=port_number, default=4212)
     parser.add_argument("--relay-port", type=port_number, default=8890)
     parser.add_argument("--key-file", type=Path, required=True)
+    parser.add_argument("--auto-arm", choices=('INDEX','ALL'), help="Enable automatic USB feedback; starts waiting for neutral Quest data")
     args = parser.parse_args()
+    if args.auto_arm and not args.serial_port:
+        parser.error('--auto-arm requires the USB transport for local ARM/STOP commands')
     try:
         key = read_key(args.key_file)
     except ValueError as error:
@@ -187,6 +191,10 @@ def main():
     url = f"http://127.0.0.1:{args.relay_port}/api/wifi-preview"
     preview = PreviewReader(url)
     preview.start()
+    automatic = AutoFeedback()
+    if args.auto_arm:
+        for command in automatic.local_commands('AUTO ARM BOTH ' + args.auto_arm):
+            glove.socket.send_command(command)
     print("AHAM FIVE-FINGER BENCH: T/I/M/R/L; PCA servo 0..4, motor SIGNAL 8..12. ESP boots DISARMED.", flush=True)
     print("Use verified circuits, detached tendons, suitable supplies and local Serial ARM commands at 115200 baud.", flush=True)
     print("PWM/SERVO_US are commanded outputs, not measured motion or force. STOP parks/disarms.", flush=True)
@@ -197,11 +205,19 @@ def main():
             snapshot, elapsed = preview.get()
             try:
                 if control:
-                    control.poll(glove.socket)
+                    control.poll(glove.socket, automatic.local_commands)
                 glove.send(snapshot, elapsed); receipt = glove.poll()
             except OSError:
                 receipt = None
             now = time.monotonic()
+            if args.serial_port:
+                commands = automatic.step(snapshot, elapsed + now-started, receipt,
+                                          glove.socket.board_status, glove.boot, now)
+                try:
+                    for command in commands:
+                        glove.socket.send_command(command)
+                except OSError:
+                    receipt = None
             if now-last_print >= .5:
                 last_print = now
                 if receipt:
@@ -210,7 +226,7 @@ def main():
                           f"VIB={receipt['vibration']} RES%={receipt['resistance']} "
                           f"HOLD={receipt['holding']} M_ARM={receipt['motorMask']} S_ARM={receipt['servoMask']} "
                           f"PWM={receipt['pwm']} SERVO_US={receipt['servoUs']} "
-                          f"S_SIGNAL={receipt['servoSignalMask']} LAST_REASON={receipt['reason']}", flush=True)
+                          f"S_SIGNAL={receipt['servoSignalMask']} LAST_REASON={receipt['reason']} AUTO={automatic.phase}", flush=True)
                 else:
                     print("NO FRESH FIVE-FINGER RECEIPT: check nodemcu_wifi_glove, UDP 4212, IPs and pairing key.", flush=True)
                 if snapshot is None:
@@ -220,6 +236,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        if args.serial_port:
+            try:glove.socket.send_command('STOP')
+            except OSError:pass
         preview.close()
         if control:
             control.close()

@@ -37,6 +37,12 @@ companion owns the port.
 
 ## Check and test the index channel
 
+For automatic arming/disarming from live Quest data, see
+[automatic feedback](automatic-feedback.md). The updated USB companion accepts
+`AUTO ARM BOTH INDEX` or `AUTO ARM BOTH ALL`; **Automatic VR Feedback.cmd**
+selects ALL. A two-second neutral-data check precedes arming. Missing data
+disarms; STOP cancels the mode. Firmware limits and verification masks remain.
+
 For connection checks without enabling outputs, double-click **Check Orbit
 Foundry.cmd**. It verifies the current game URL, Quest uploads and new ESP
 receipts, and requests only STATUS through this running companion. Use

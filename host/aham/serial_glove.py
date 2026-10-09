@@ -2,8 +2,28 @@
 from pathlib import Path
 import re
 import serial
+import time
 
 COMMAND = re.compile(r'(?:STATUS|PCA STATUS|PWM PROBE|STOP|HOME|ARM (?:MOTOR|SERVO|BOTH) (?:THUMB|INDEX|MIDDLE|RING|LITTLE|ALL)|SWEEP (?:THUMB|INDEX|MIDDLE|RING|LITTLE)|JOG (?:THUMB|INDEX|MIDDLE|RING|LITTLE) [+-](?:10|50|100)(?: (?:3|10|15))?)\Z')
+LOCAL_COMMAND = re.compile(r'(?:AUTO ARM BOTH (?:INDEX|ALL)|AUTO OFF)\Z')
+
+
+def board_status(line):
+    if not line.startswith(b'STATUS '):
+        return None
+    text = line.decode('ascii', errors='replace')
+    try:
+        values = {name:int(value) for name,value in re.findall(
+            r'\b(PCA|STOP_CLOSED|LIVE|M_ALLOWED|S_ALLOWED)=(\d+)\b', text)}
+    except ValueError:
+        return None
+    if not {'PCA','STOP_CLOSED','LIVE','M_ALLOWED','S_ALLOWED'} <= values.keys():
+        return None
+    if any(values[name] > 1 for name in ('PCA','STOP_CLOSED','LIVE')):
+        return None
+    if values['M_ALLOWED'] > 31 or values['S_ALLOWED'] > 31:
+        return None
+    return dict(values, receivedAt=time.monotonic())
 
 
 class SerialPacketLink:
@@ -16,6 +36,7 @@ class SerialPacketLink:
             self.device.port = port
             self.device.open()
         self.buffer = bytearray()
+        self.board_status = None
 
     def send(self, frame):
         if not 2 <= len(frame) <= 66 or frame[-1] != 0:
@@ -45,6 +66,9 @@ class SerialPacketLink:
                 except (ValueError, UnicodeError):
                     pass
             elif line.startswith((b'STATUS ', b'PCA DIAG ', b'PWM PROBE ', b'ARMED ', b'NOT ARMED:', b'3 s JOG', b'10 s JOG', b'15 s JOG', b'10 s SWEEP', b'SWEEP refused:', b'300 ms JOG', b'JOG needs', b'DISARMED:', b'I2C FAULT:')):
+                parsed = board_status(line)
+                if parsed is not None:
+                    self.board_status = parsed
                 print('USB BOARD: ' + line.decode('ascii', errors='replace').strip(), flush=True)
         raise BlockingIOError()
 
@@ -61,7 +85,7 @@ class LocalCommandFile:
         self.file.seek(0, 2)
         self.buffer = b''
 
-    def poll(self, link):
+    def poll(self, link, handler=None):
         self.buffer += self.file.read(4096)
         if len(self.buffer) > 4096:
             self.buffer = b''
@@ -70,8 +94,9 @@ class LocalCommandFile:
             line, _, self.buffer = self.buffer.partition(b'\n')
             try:
                 command = line.rstrip(b'\r').decode('ascii')
-                if COMMAND.fullmatch(command):
-                    link.send_command(command)
+                if COMMAND.fullmatch(command) or (handler and LOCAL_COMMAND.fullmatch(command)):
+                    for board_command in handler(command) if handler else [command]:
+                        link.send_command(board_command)
             except UnicodeError:
                 pass
 

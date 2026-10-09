@@ -1,5 +1,28 @@
 # Starter verification — 7 October 2026
 
+## Automatic USB feedback (9 October 2026)
+
+- Added an explicit local automatic mode to the USB companion, without firmware
+  or scene changes. It arms configured channels after two seconds of fresh
+  neutral right-hand Quest data plus fresh ESP/PCA/D6 confirmation. Invalid or
+  stale Quest data, or missing ESP replies, requests STOP. Data recovery needs
+  neutral data again. Local STOP/manual commands cancel the mode; PCA/D6 faults,
+  restart and the existing 60-second arm / three-second pull limits block it.
+- Twenty automatic-control tests passed, covering startup with no headset,
+  real/preview/lost/stale inputs, stable-neutral duration, single confirmed ARM,
+  rejected ARM, stop/recovery, receipt loss, firmware masks, board diagnostics,
+  cancellation, limits and skipped historical control lines. Existing USB
+  command tests (6) and authenticated transport/source tests (11) passed.
+- The identified managed USB companion was stopped after a confirmed disarm
+  and reloaded with the updated code. Automatic mode acknowledged WAITING_DATA
+  while Quest was unavailable. New ESP receipts confirmed both masks zero,
+  zero motor PWM, PCA detected and closed D6. Local STOP was exercised: AUTO
+  became OFF with masks/PWM still zero, then the requested waiting mode was
+  restored. No vibrator pulse, servo jog or live Quest-driven output was tested.
+- The public Orbit link became unverified during the final status check;
+  the local relay and ESP remained responsive. Use Open/Refresh VR Link before
+  the next headset trial. Witness Garden remains a separate static experience.
+
 ## Orbit connection checker (9 October 2026)
 
 - Added **Check Orbit Foundry.cmd**, with a one-shot or `--watch` report of the

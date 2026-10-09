@@ -98,10 +98,12 @@ def parse_receipt(line):
         holding=re.search(r'\bHOLD=(True|False)\b',line)
         if not holding:raise ValueError()
         reason=re.search(r'\bLAST_REASON=([A-Z_]+)\b',line)
+        automatic=re.search(r'\bAUTO=(OFF|WAITING_DATA|WAITING_NEUTRAL|ARMING|ACTIVE|BLOCKED)\b',line)
         return dict(sequence=integer('seq',65535),vibration=array('VIB',160),resistance=array('RES%',80),
                     motorMask=integer('M_ARM',31),servoMask=integer('S_ARM',31),pwm=array('PWM',160),
                     servoUs=array('SERVO_US',4095),servoSignalMask=integer('S_SIGNAL',31),
-                    holding=holding[1]=='True',reason=reason[1] if reason else 'UNKNOWN')
+                    holding=holding[1]=='True',reason=reason[1] if reason else 'UNKNOWN',
+                    automatic=automatic[1] if automatic else 'OFF')
     except (ValueError,TypeError,SyntaxError):return None
 
 
@@ -234,9 +236,21 @@ def make_report(settings, local, public, game, preview, connection, companion, p
                 'OUTPUT ARM MASKS: motors='+str(receipt['motorMask'])+' servos='+str(receipt['servoMask']),
                 'COMMANDED OUTPUTS: PWM='+str(receipt['pwm'])+'  SERVO_US='+str(receipt['servoUs'])+'  SERVO_SIGNAL_MASK='+str(receipt['servoSignalMask']),
                 'Last board stop reason (may be historical): '+receipt['reason']]
+        automatic=receipt.get('automatic','OFF')
+        lines+=['AUTOMATIC FEEDBACK: '+automatic]
         if not receipt['motorMask'] and not receipt['servoMask']:
-            lines+=['OUTPUTS: DISARMED. Receiving data does not automatically enable hardware.']
-            fixes.append('If preparing an index output test, first verify power, glove off/threads slack and an open VR hand away from objects, then use "Enable Index Feedback.cmd". "Stop Glove.cmd" stops/disarms outputs.')
+            if automatic in ('WAITING_DATA','WAITING_NEUTRAL','ARMING'):
+                lines+=['OUTPUTS: DISARMED. Automatic mode is waiting for confirmed neutral Quest data.']
+            elif automatic=='BLOCKED':
+                lines+=['OUTPUTS: DISARMED. Automatic mode was cancelled by a fault or limit.']
+            else:
+                lines+=['OUTPUTS: DISARMED. Manual mode requires a local ARM command.']
+            if automatic in ('WAITING_DATA','WAITING_NEUTRAL','ARMING'):
+                fixes.append('Automatic mode is waiting. Use the live Orbit link and keep the right hand clear of objects for two seconds. Fresh neutral cues, PCA/D6 and enabled firmware channels are required. "Stop Glove.cmd" cancels automatic mode.')
+            elif automatic=='BLOCKED':
+                fixes.append('Automatic mode cancelled after a fault/limit. Check the companion log and correct the cause before using "Automatic VR Feedback.cmd" again. STOP always cancels automatic mode.')
+            else:
+                fixes.append('For automatic feedback use "Automatic VR Feedback.cmd" with verified power, glove off/threads slack. For manual index feedback use "Enable Index Feedback.cmd". "Stop Glove.cmd" stops/disarms and cancels automatic mode.')
         else:lines+=['OUTPUTS: ARM mask present. Physical vibration/movement is not measured by this check.']
     ready=working and quest=='LIVE' and live_receipt
     lines+=['','DATA PATH: '+('READY - Quest -> laptop -> ESP is responding' if ready else 'INCOMPLETE - follow the connection steps below'),

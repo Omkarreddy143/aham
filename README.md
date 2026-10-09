@@ -14,6 +14,8 @@ Windows shortcut: double-click **Open VR Link.cmd** to reuse or repair the HTTPS
 
 Double-click **Check Orbit Foundry.cmd** to show the verified current game link, Quest uploads, USB/Wi-Fi companion, fresh ESP replies, PCA/D6 status and received feedback values, with specific recovery steps. Use `& '.\Check Orbit Foundry.cmd' --watch` in PowerShell for repeated checks. It never arms hardware or restarts services. See the [connection-check guide](docs/orbit-connection-check.md); the latest report is saved locally in **ORBIT-STATUS.txt**.
 
+For the USB glove companion, **Automatic VR Feedback.cmd** enables [automatic feedback](docs/automatic-feedback.md): fresh neutral Quest data for two seconds arms the configured channels; missing/stale tracking or ESP replies disarms them. Reconnecting requires neutral data again. STOP cancels automatic mode, and hardware faults or arm/pull time limits require a new local start. No firmware or scene change is needed.
+
 ```text
 Quest hand tracking → WebXR hand → virtual contact → cue
   → HTTPS → laptop relay → hotspot Wi-Fi → NodeMCU receive-only monitor

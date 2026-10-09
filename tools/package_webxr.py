@@ -10,6 +10,7 @@ paths = [root / "README.md", root / "docs/webxr-quickstart.md", root / "docs/fin
          root / "tools/check_wireless.py", root / "tests/test_vr_link.py", root / "tests/test_wifi_discovery.py",
          root / "Check Orbit Foundry.cmd", root / "tools/orbit_status.py", root / "tests/test_orbit_status.py",
          root / "docs/orbit-connection-check.md",
+         root / "Automatic VR Feedback.cmd", root / "docs/automatic-feedback.md", root / "tests/test_auto_feedback.py",
          root / "docs/technical-judging.md",
          root / "docs/webxr-architecture.md", root / "docs/protocol.md",
          root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",

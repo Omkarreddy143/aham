@@ -69,6 +69,14 @@ class StatusTests(unittest.TestCase):
         self.assertIn('Last saved link (not confirmed working)', text)
         self.assertIn('Refresh VR Link.cmd', text)
 
+    def test_automatic_waiting_state_has_neutral_data_guidance(self):
+        ack=status.parse_receipt(RECEIPT+' AUTO=WAITING_DATA')
+        text,_=self.report(companion={'alive':True,'receipt':ack,'receiptAgeMs':0})
+        self.assertIn('AUTOMATIC FEEDBACK: WAITING_DATA',text)
+        self.assertIn('Automatic mode is waiting',text)
+        self.assertIn('two seconds',text)
+        self.assertNotIn('Manual mode requires',text)
+
     def test_old_receipt_and_board_status_are_not_live(self):
         companion={'alive':True,'receipt':status.parse_receipt(RECEIPT),'receiptAgeMs':0,
                    'board':status.parse_board(BOARD),'boardAgeMs':0,'sampledAt':time.monotonic()-10}

@@ -52,6 +52,11 @@ commanded outputs, not measured vibration, tension or motion. `M_ARM`/`S_ARM`
 masks use thumb=1, index=2, middle=4, ring=8, little=16; 0 means none, 31 all five.
 The board's last stop reason can be historical even when fresh replies arrive.
 
+`AUTOMATIC FEEDBACK` reports OFF, WAITING_DATA, WAITING_NEUTRAL, ARMING,
+ACTIVE or BLOCKED. When waiting, keep the right hand clear of objects for two
+seconds. See [automatic feedback](automatic-feedback.md). **Stop Glove.cmd**
+cancels automatic mode; the checker itself never enables it.
+
 **DATA PATH: READY** means the game link, Quest input and ESP replies are
 working together. PCA/stop/arming are reported separately. The Python command
 returns exit code 0 for a ready data path and 1 while a connection is missing;
