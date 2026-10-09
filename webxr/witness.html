@@ -6,7 +6,7 @@
   <main class="journey-layout">
     <section class="garden-stage">
       <canvas id="garden" aria-label="Witness Garden: natural wooded lake, soft sunlight and articulated hands"></canvas>
-      <div class="scene-heading"><p class="eyebrow">TATTVA 5 · THREE-MINUTE JOURNEY</p><h1>Witness Garden</h1><p>The hand changes. The experience changes. Notice.</p></div>
+      <div class="scene-heading"><p class="eyebrow">TATTVA 5 · TWO-MINUTE JOURNEY</p><h1>Witness Garden</h1><p>The hand changes. The experience changes. Notice.</p></div>
       <div class="scene-caption"><strong id="phase-title">A moment to arrive.</strong><p id="phase-action">Enter VR, or rehearse on this screen. Your journey begins with a button press.</p></div>
     </section>
     <aside class="journey-aside">
@@ -15,13 +15,13 @@
       <p>Grow a flower from an intention. Draw a trace of movement. Shape a mandala with both hands. Notice what calls the experience “mine”.</p>
       <button class="primary" id="enter-garden" disabled>Checking VR support…</button>
       <p id="garden-status" class="status" role="status">Loading the garden…</p>
-      <div class="clock"><strong id="journey-time">3:00</strong><span>GUIDED EXPERIENCE</span></div><div class="progress"><i id="journey-progress"></i></div>
+      <div class="clock"><strong id="journey-time">2:00</strong><span>GUIDED EXPERIENCE</span></div><div class="progress"><i id="journey-progress"></i></div>
       <div class="chapters"><div class="chapter" data-phase="0"><b>01</b><span>Agency · I act</span></div><div class="chapter" data-phase="1"><b>02</b><span>Ownership · Is this mine?</span></div><div class="chapter" data-phase="2"><b>03</b><span>Identity · The form changes</span></div><div class="chapter" data-phase="3"><b>04</b><span>Awareness · I notice</span></div></div>
       <div class="button-row"><button id="restart-journey">Start / restart</button><button id="next-phase">Next chapter</button></div>
       <p class="activity" id="activity-status" role="status">Pinch a seed, carry it over the bowl, then open your fingers.</p>
       <div class="sound"><button id="mute-music" aria-pressed="false">Music on</button><label for="music-volume">Music</label><input id="music-volume" aria-label="Music volume" type="range" min="0" max="100" value="70"></div>
       <div class="sound"><button id="mute-guide" aria-pressed="false">Voice on</button><label for="guide-volume">Guide</label><input id="guide-volume" aria-label="Guide volume" type="range" min="0" max="100" value="95"></div>
-      <div class="voice-card"><span>AI VOICE GUIDE · ENGLISH</span><p id="voice-caption" aria-live="polite">The guide connects each gesture to agency, ownership and awareness.</p><small id="voice-status">AI voice starts with Start or Enter VR</small><button id="replay-guide">Replay chapter guide</button></div>
+      <div class="voice-card"><span>AI VOICE GUIDE · ENGLISH</span><p id="voice-caption" aria-live="polite">A short instruction and one question per chapter. Time to act and reflect.</p><small id="voice-status">AI voice starts with Start or Enter VR</small><button id="replay-guide">Replay chapter guide</button></div>
       <label class="tone-label" for="skin-tone">Hand appearance<select id="skin-tone" aria-label="Hand appearance"><option value="warm">Warm skin</option><option value="light">Light skin</option><option value="deep">Deep skin</option></select></label>
       <div class="rehearsal" id="garden-rehearsal"><p>Desktop rehearsal uses simulated hands. These buttons preview the reactions to Quest gestures.</p><button id="preview-plant">Plant a seed · preview</button><button id="preview-draw">Draw light · preview</button><button id="preview-join">Form mandala · preview</button><button id="inspect-hands">Inspect hands</button><div class="button-row"><button id="hands-open">Open hands</button><button id="hands-close">Close hands</button></div><button id="preview-touch">Touch a light · preview</button><button id="preview-form">Change hand appearance</button><button id="preview-panel">Show VR prompts</button></div>
       <p class="note">Music and chimes are synthesized locally. The bundled AI voice guide has captions in VR. Music softens while it speaks. After loading, the garden uses local Quest tracking and sends no actuator commands.</p>

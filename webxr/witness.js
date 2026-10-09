@@ -59,7 +59,7 @@ const ripples=Array.from({length:12},()=>{
   const material=basic(0xf0cf90,{transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
   const object=flat(mesh(rippleGeometry,material),0,world.waterLevel+.006,0);object.visible=false;return {object,life:0};
 });
-let rippleIndex=0,formIndex=0,burst=0,nextFormAt=103;
+let rippleIndex=0,formIndex=0,burst=0,nextFormAt=PHASES[2].start+8;
 
 const audio=new GardenAudio();
 async function unlockAudio(){try{await audio.start();}catch{ $('garden-status').textContent='The garden is ready. Audio could not start; the visual journey still works.';}}
@@ -86,7 +86,7 @@ let hands=emptyHands(),anchored=false,lastTime=0,lastUI=0,activePhase=-1,preview
 let activity='Pinch a seed, carry it over the bowl, then open your fingers.',lastCaption='',narratedPhase=-1;
 const viewerRotation=new THREE.Quaternion(),forward=new THREE.Vector3();
 const inverseRoot=new THREE.Matrix4(),localPoint=new THREE.Vector3();
-function begin(){audio.stop();narratedPhase=-1;journey.start();activePhase=-1;formIndex=0;nextFormAt=103;touchCount=0;burst=0;interaction.reset();play.reset();activity=PHASES[0].action;for(const orb of orbs)orb.touching=false;}
+function begin(){audio.stop();narratedPhase=-1;journey.start();activePhase=-1;formIndex=0;nextFormAt=PHASES[2].start+8;touchCount=0;burst=0;interaction.reset();play.reset();activity=PHASES[0].action;for(const orb of orbs)orb.touching=false;}
 function activateOrb(index){
   const orb=orbs[index];orb.pulse=1;burst=1;touchCount++;
   const ripple=ripples[rippleIndex++%ripples.length];ripple.life=1;ripple.object.visible=true;ripple.object.position.set(orb.group.position.x,world.waterLevel+.006,orb.group.position.z-.5);ripple.object.material.color.setHex(orb.color);
@@ -128,7 +128,7 @@ function updatePanel(){
 function updateUI(){
   const phase=PHASES[journey.phase];$('journey-time').textContent=clockText();$('journey-progress').style.width=`${journey.elapsed/DURATION*100}%`;
   $('phase-title').textContent=journey.finished?'The journey ends. The question remains.':journey.running?phase.title:'A moment to arrive.';
-  $('phase-action').textContent=journey.finished?'The hand and the thought “mine” are both noticed. Reflect on the awareness of both.':journey.running?phase.action:'Enter VR, or press Start to rehearse the three-minute journey.';
+  $('phase-action').textContent=journey.finished?'The hand and the thought “mine” are both noticed. Reflect on the awareness of both.':journey.running?phase.action:'Enter VR, or press Start to rehearse the two-minute journey.';
   document.querySelectorAll('[data-phase]').forEach(element=>element.classList.toggle('active',Number(element.dataset.phase)===journey.phase));
   $('tracking-source').textContent=renderer.xr.isPresenting?`LIVE QUEST · L ${hands.left.size} / R ${hands.right.size} JOINTS`:'DESKTOP · SIMULATED HANDS';
   $('activity-status').textContent=activity;$('voice-status').textContent=audio.status();
@@ -139,7 +139,7 @@ new ResizeObserver(resize).observe(canvas.parentElement);resize();
 $('restart-journey').addEventListener('click',async()=>{await unlockAudio();begin();});
 $('next-phase').addEventListener('click',()=>{unlockAudio();journey.next();});
 $('preview-touch').addEventListener('click',()=>{unlockAudio();if(!journey.running&&!journey.finished)begin();activateOrb(touchCount%3);});
-$('preview-form').addEventListener('click',()=>{unlockAudio();journey.elapsed=95;journey.running=true;activePhase=2;formIndex=(formIndex+1)%3;});
+$('preview-form').addEventListener('click',()=>{unlockAudio();journey.elapsed=PHASES[2].start;journey.running=true;activePhase=2;formIndex=(formIndex+1)%3;});
 $('skin-tone').addEventListener('change',event=>{skinTone=SKIN_TONES[event.target.value]??SKIN_TONES.warm;});
 $('hands-open').addEventListener('click',()=>{handPreviewCurl=0;});
 $('hands-close').addEventListener('click',()=>{handPreviewCurl=.95;});
@@ -159,8 +159,8 @@ function onActivity(event){
   if(event.type==='mandala'){play.join(event.point);formIndex=(formIndex+1)%3;nextFormAt=journey.elapsed+8;burst=1;audio.chime(392,.16,3);audio.chime(587,.10,3);activity='The form changed. Separate your hands, then bring them together again.';}
 }
 $('preview-plant').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=0;updateStyle();interaction.flowers++;onActivity({type:'plant',point:{x:BOWL.x,y:BOWL.y+.10,z:BOWL.z}});});
-$('preview-draw').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=45;updateStyle();play.previewTrail();activity='Desktop preview · a ribbon follows the pointing gesture.';});
-$('preview-join').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=95;updateStyle();onActivity({type:'mandala',point:{x:0,y:.07,z:-.07}});});
+$('preview-draw').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=PHASES[1].start;updateStyle();play.previewTrail();activity='Desktop preview · a ribbon follows the pointing gesture.';});
+$('preview-join').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=PHASES[2].start;updateStyle();onActivity({type:'mandala',point:{x:0,y:.07,z:-.07}});});
 $('music-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value)/100;audio.applyVolume();});
 $('mute-music').addEventListener('click',()=>{audio.muted=!audio.muted;audio.applyVolume();$('mute-music').textContent=audio.muted?'Music off':'Music on';$('mute-music').setAttribute('aria-pressed',String(audio.muted));if(!audio.muted)unlockAudio();});
 $('guide-volume').addEventListener('input',event=>{audio.voiceVolume=Number(event.target.value)/100;audio.applyVolume();});

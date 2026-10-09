@@ -2,6 +2,9 @@
 
 ## Final submission — Witness Garden (9 October 2026)
 
+- **Short demo revision:** reduced the timeline to 120 seconds (35 seconds planting, 30 drawing, 35 mandala, 20 reflection). Replaced the spoken explanation with four short instructions/questions totaling about 40 seconds. Presenter explanation stays outside the AI guide. Existing interaction logic, music level and Orbit Foundry are unchanged.
+- The revised 120-second timeline and short-guide constraints pass with all 39 JavaScript tests. Desktop browser confirmed the 2:00 starting clock, shortened voice playback, chapter advancement/replay and updated prompts without console warnings/errors. [Two-minute scene](images/witness-garden-2min.jpg). Quest rehearsal remains pending.
+
 - **Guided interaction update:** raised ambient music defaults from 30% to 70% and increased the pad/melody mix. Added four bundled English AI narration clips, sentence-timed captions in the headset, separate voice/music controls, replay and automatic music ducking. A stalled speech download cannot block the visual journey; failed clips can be retried.
 - Added pinch/carry/release seed planting with growing flowers, tracked index-finger light drawing, and a stable two-open-hand mandala gesture with hand-form changes. Seeds require an observed open hand before a pinch; tracking loss cancels a carry without planting. Drawing skips implausible jumps and clears on loss. Visual pools are bounded to seven flowers, 180 trail segments and 48 petals.
 - **39 JavaScript tests passed.** Tests cover seed ownership, release location, pinch jitter, tracking loss, phase changes, stable two-hand gestures, trail discontinuities, narration timing, cancellation of pending clips and retry after failed downloads, plus all prior game/hand/network tests. **Relay: 21 passed, one Windows symlink-permission skip**, including audio MIME/confinement coverage.

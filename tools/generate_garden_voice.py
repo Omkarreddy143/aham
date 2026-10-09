@@ -13,10 +13,10 @@ sys.path.insert(0, str(ROOT / '.build/voice-tools'))
 import edge_tts
 
 CHAPTERS = [
-    "Welcome to Aham, the Witness Garden. Our theme asks us to explore the sense of self in body and mind. Move your hands. This digital hand follows your intention. Pinch a floating seed between thumb and index finger. Carry it over the glowing bowl, then open your fingers. Watch a flower grow. You chose an action, and the world answered. This is agency: the feeling that I act. Does control alone make this hand yours?",
-    "Now point with your index finger and move it slowly. A ribbon of light follows your movement. We often say, my hand, my action, my thought. Agency means I control it. Body ownership means it feels like part of me. They are related, but they are different experiences. Follow your light trail. Notice the hand you see, the intention to move, and the thought that calls it mine. Which of these can you observe?",
-    "Bring both open hands close together, with a little space between them. Hold for a moment. A mandala forms between your palms. Your virtual hands change their appearance, yet you can still guide them. Is the sense of mine attached to the colour, the shape, or the movement? This scene invites a question about identity. When the representation changes, what remains familiar? Separate your hands, and try the gesture again.",
-    "Let your hands open and rest. The petals settle. Notice a sensation. Now notice a thought about that sensation. In the Bhagavad Gita, the body is described as the field, and the one who knows it as the knower. Our Tattva invites reflection on awareness beyond identification with body and mind. This prototype does not prove a theory of consciousness. It makes a changing body and a changing experience visible. What is aware of both?",
+    "Pinch a seed. Carry it over the glowing bowl, then open your fingers to plant it. Does controlling this hand make it yours?",
+    "Point your index finger and draw a ribbon of light. Does this feel like your hand, or something you control?",
+    "Bring both open hands close together and hold. Watch the mandala and your changing hands. When the form changes, does the sense of mine change?",
+    "Let your hands rest. Notice your hand, then the thought, my hand. What is aware of both?",
 ]
 
 async def main():

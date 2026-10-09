@@ -57,11 +57,11 @@ test('only deliberate pointing movement draws; tracking jumps and loss do not br
   assert.deepEqual(step(state,straight(1),empty,1),[]);step(state,empty,empty,1);
   assert.deepEqual(step(state,straight(1.02),empty,1),[]);
 });
-test('bundled captions fit their chapters and address the Tattva without claiming proof',()=>{
+test('brief guide gives instructions and one question per chapter, leaving time to present',()=>{
   const guide=JSON.parse(fs.readFileSync(new URL('../webxr/assets/narration/guide.json',import.meta.url)));
   assert.equal(guide.chapters.length,4);
-  guide.chapters.forEach((chapter,i)=>{assert.ok(chapter.captions.length>3);assert.ok(chapter.captions.at(-1).end<[45,50,45,40][i]);assert.equal(captionAt(chapter.captions,chapter.captions[0].start),chapter.captions[0].text);assert.equal(captionAt(chapter.captions,NaN),'');assert.ok(fs.statSync(new URL('../webxr/'+chapter.file,import.meta.url)).size>50000);});
-  assert.match(guide.chapters[3].text,/does not prove a theory of consciousness/);
+  guide.chapters.forEach(chapter=>{assert.ok(chapter.captions.length>=2);assert.ok(chapter.captions.at(-1).end<16);assert.equal(chapter.text.match(/\?/g)?.length,1);assert.ok(chapter.text.split(/\s+/).length<=30);assert.equal(captionAt(chapter.captions,chapter.captions[0].start),chapter.captions[0].text);assert.equal(captionAt(chapter.captions,NaN),'');assert.ok(fs.statSync(new URL('../webxr/'+chapter.file,import.meta.url)).size>1000);});
+  assert.ok(guide.chapters.reduce((sum,c)=>sum+c.captions.at(-1).end,0)<60);
 });
 test('chapter switch cancels a pending voice load and stops the earlier clip',async()=>{
   // Use a fake context rather than browser playback to test the async race.

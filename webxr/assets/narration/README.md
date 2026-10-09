@@ -1,9 +1,9 @@
 # Witness Garden AI voice guide
 
 Four English narration clips use Microsoft's `en-IN-NeerjaNeural` synthesized
-voice. No person's voice is cloned or represented as a live speaker. Narration
-is original AHAM text explaining agency, body ownership, identity and the
-organizers' Tattva through reflective prompts. The Gita wording is a paraphrase.
+voice. No person's voice is cloned or represented as a live speaker. Original
+AHAM text gives only brief activity instructions and one reflective question
+per chapter. The two-minute demo leaves the Tattva explanation to the presenters.
 
 Generated at build time using [edge-tts](https://github.com/rany2/edge-tts).
 The generation script is `tools/generate_garden_voice.py`. `guide.json` stores

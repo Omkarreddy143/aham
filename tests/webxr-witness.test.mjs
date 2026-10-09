@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Journey,phaseAt,touchesLight} from '../webxr/witness-logic.js';
-test('guided chapters cover precisely three minutes and finish without replay',()=>{
+test('guided chapters cover precisely two minutes and finish without replay',()=>{
   const journey=new Journey();journey.start();
-  assert.deepEqual([0,44.9,45,94.9,95,139.9,140,180].map(phaseAt),[0,0,1,1,2,2,3,3]);
-  for(let i=0;i<720;i++)journey.advance(.25);
-  assert.equal(journey.elapsed,180);assert.equal(journey.finished,true);assert.equal(journey.running,false);
-  journey.advance(.25);assert.equal(journey.elapsed,180);
+  assert.deepEqual([0,34.9,35,64.9,65,99.9,100,120].map(phaseAt),[0,0,1,1,2,2,3,3]);
+  for(let i=0;i<480;i++)journey.advance(.25);
+  assert.equal(journey.elapsed,120);assert.equal(journey.finished,true);assert.equal(journey.running,false);
+  journey.advance(.25);assert.equal(journey.elapsed,120);
   journey.start();assert.equal(journey.elapsed,0);
 });
 test('background pauses and invalid times do not consume the demo',()=>{
@@ -14,7 +14,7 @@ test('background pauses and invalid times do not consume the demo',()=>{
   journey.advance(120,false);journey.advance(NaN);journey.advance(-1);
   assert.equal(journey.elapsed,0);
   journey.advance(120);assert.equal(journey.elapsed,.25);
-  journey.next();assert.equal(journey.elapsed,45);
+  journey.next();assert.equal(journey.elapsed,35);
   journey.next();journey.next();journey.next();assert.equal(journey.finished,true);assert.equal(journey.running,false);
 });
 test('only finite tracked fingertips create contact; missing hands never do',()=>{

@@ -3,204 +3,79 @@
   "chapters": [
     {
       "file": "./assets/narration/chapter-0.mp3",
-      "text": "Welcome to Aham, the Witness Garden. Our theme asks us to explore the sense of self in body and mind. Move your hands. This digital hand follows your intention. Pinch a floating seed between thumb and index finger. Carry it over the glowing bowl, then open your fingers. Watch a flower grow. You chose an action, and the world answered. This is agency: the feeling that I act. Does control alone make this hand yours?",
+      "text": "Pinch a seed. Carry it over the glowing bowl, then open your fingers to plant it. Does controlling this hand make it yours?",
       "captions": [
         {
           "start": 0.1,
-          "end": 3.5765625,
-          "text": "Welcome to Aham, the Witness Garden."
+          "end": 1.9619792,
+          "text": "Pinch a seed."
         },
         {
-          "start": 3.5265625,
-          "end": 8.8000001,
-          "text": "Our theme asks us to explore the sense of self in body and mind."
+          "start": 1.9119792,
+          "end": 7.0421876,
+          "text": "Carry it over the glowing bowl, then open your fingers to plant it."
         },
         {
-          "start": 8.8000001,
-          "end": 10.8442709,
-          "text": "Move your hands."
-        },
-        {
-          "start": 10.844271,
-          "end": 14.3208335,
-          "text": "This digital hand follows your intention."
-        },
-        {
-          "start": 14.3208336,
-          "end": 18.5265628,
-          "text": "Pinch a floating seed between thumb and index finger."
-        },
-        {
-          "start": 18.5265629,
-          "end": 22.8755213,
-          "text": "Carry it over the glowing bowl, then open your fingers."
-        },
-        {
-          "start": 22.8755213,
-          "end": 25.0369796,
-          "text": "Watch a flower grow."
-        },
-        {
-          "start": 25.0369797,
-          "end": 28.8000006,
-          "text": "You chose an action, and the world answered."
-        },
-        {
-          "start": 28.8000006,
-          "end": 32.6541673,
-          "text": "This is agency: the feeling that I act."
-        },
-        {
-          "start": 32.6541673,
-          "end": 36.1567715,
-          "text": "Does control alone make this hand yours?"
+          "start": 7.0421876,
+          "end": 10.3364585,
+          "text": "Does controlling this hand make it yours?"
         }
       ]
     },
     {
       "file": "./assets/narration/chapter-1.mp3",
-      "text": "Now point with your index finger and move it slowly. A ribbon of light follows your movement. We often say, my hand, my action, my thought. Agency means I control it. Body ownership means it feels like part of me. They are related, but they are different experiences. Follow your light trail. Notice the hand you see, the intention to move, and the thought that calls it mine. Which of these can you observe?",
+      "text": "Point your index finger and draw a ribbon of light. Does this feel like your hand, or something you control?",
       "captions": [
         {
           "start": 0.1,
-          "end": 4.3578125,
-          "text": "Now point with your index finger and move it slowly."
+          "end": 4.1104167,
+          "text": "Point your index finger and draw a ribbon of light."
         },
         {
-          "start": 4.3078125,
-          "end": 7.6020834,
-          "text": "A ribbon of light follows your movement."
-        },
-        {
-          "start": 7.6020835,
-          "end": 12.3807294,
-          "text": "We often say, my hand, my action, my thought."
-        },
-        {
-          "start": 12.3807294,
-          "end": 15.4796878,
-          "text": "Agency means I control it."
-        },
-        {
-          "start": 15.4796878,
-          "end": 19.6333337,
-          "text": "Body ownership means it feels like part of me."
-        },
-        {
-          "start": 19.6333337,
-          "end": 23.8390629,
-          "text": "They are related, but they are different experiences."
-        },
-        {
-          "start": 23.839063,
-          "end": 26.260938,
-          "text": "Follow your light trail."
-        },
-        {
-          "start": 26.260938,
-          "end": 32.1072922,
-          "text": "Notice the hand you see, the intention to move, and the thought that calls it mine."
-        },
-        {
-          "start": 32.1072923,
-          "end": 34.8156256,
-          "text": "Which of these can you observe?"
+          "start": 4.0604167,
+          "end": 8.5005209,
+          "text": "Does this feel like your hand, or something you control?"
         }
       ]
     },
     {
       "file": "./assets/narration/chapter-2.mp3",
-      "text": "Bring both open hands close together, with a little space between them. Hold for a moment. A mandala forms between your palms. Your virtual hands change their appearance, yet you can still guide them. Is the sense of mine attached to the colour, the shape, or the movement? This scene invites a question about identity. When the representation changes, what remains familiar? Separate your hands, and try the gesture again.",
+      "text": "Bring both open hands close together and hold. Watch the mandala and your changing hands. When the form changes, does the sense of mine change?",
       "captions": [
         {
           "start": 0.1,
-          "end": 5.8031251,
-          "text": "Bring both open hands close together, with a little space between them."
+          "end": 4.2666667,
+          "text": "Bring both open hands close together and hold."
         },
         {
-          "start": 5.7531251,
-          "end": 7.9666668,
-          "text": "Hold for a moment."
+          "start": 4.2166667,
+          "end": 7.7453126,
+          "text": "Watch the mandala and your changing hands."
         },
         {
-          "start": 7.9666668,
-          "end": 11.3651043,
-          "text": "A mandala forms between your palms."
-        },
-        {
-          "start": 11.3651044,
-          "end": 16.7427086,
-          "text": "Your virtual hands change their appearance, yet you can still guide them."
-        },
-        {
-          "start": 16.7427087,
-          "end": 22.0421879,
-          "text": "Is the sense of mine attached to the colour, the shape, or the movement?"
-        },
-        {
-          "start": 22.0421879,
-          "end": 25.8963546,
-          "text": "This scene invites a question about identity."
-        },
-        {
-          "start": 25.8963547,
-          "end": 30.3364589,
-          "text": "When the representation changes, what remains familiar?"
-        },
-        {
-          "start": 30.336459,
-          "end": 34.398959,
-          "text": "Separate your hands, and try the gesture again."
+          "start": 7.7453126,
+          "end": 12.0812501,
+          "text": "When the form changes, does the sense of mine change?"
         }
       ]
     },
     {
       "file": "./assets/narration/chapter-3.mp3",
-      "text": "Let your hands open and rest. The petals settle. Notice a sensation. Now notice a thought about that sensation. In the Bhagavad Gita, the body is described as the field, and the one who knows it as the knower. Our Tattva invites reflection on awareness beyond identification with body and mind. This prototype does not prove a theory of consciousness. It makes a changing body and a changing experience visible. What is aware of both?",
+      "text": "Let your hands rest. Notice your hand, then the thought, my hand. What is aware of both?",
       "captions": [
         {
           "start": 0.1,
-          "end": 2.990625,
-          "text": "Let your hands open and rest."
+          "end": 2.3916667,
+          "text": "Let your hands rest."
         },
         {
-          "start": 2.940625,
-          "end": 5.0239583,
-          "text": "The petals settle."
+          "start": 2.3416667,
+          "end": 6.3000001,
+          "text": "Notice your hand, then the thought, my hand."
         },
         {
-          "start": 5.0239584,
-          "end": 7.4067709,
-          "text": "Notice a sensation."
-        },
-        {
-          "start": 7.4067709,
-          "end": 10.9614584,
-          "text": "Now notice a thought about that sensation."
-        },
-        {
-          "start": 10.9614585,
-          "end": 17.8885419,
-          "text": "In the Bhagavad Gita, the body is described as the field, and the one who knows it as the knower."
-        },
-        {
-          "start": 17.888542,
-          "end": 24.6593754,
-          "text": "Our Tattva invites reflection on awareness beyond identification with body and mind."
-        },
-        {
-          "start": 24.6593755,
-          "end": 29.2817714,
-          "text": "This prototype does not prove a theory of consciousness."
-        },
-        {
-          "start": 29.2817714,
-          "end": 33.9562506,
-          "text": "It makes a changing body and a changing experience visible."
-        },
-        {
-          "start": 33.9562507,
-          "end": 36.430209,
+          "start": 6.3000001,
+          "end": 8.7739584,
           "text": "What is aware of both?"
         }
       ]

@@ -1,9 +1,9 @@
-export const DURATION = 180;
+export const DURATION = 120;
 export const PHASES = [
-  {start:0, end:45, title:'I act.', label:'AGENCY', action:'Pinch a seed. Carry it above the bowl, then open to plant.', question:'You cause the movement. Does control make this hand yours?', color:0xa9e5d5},
-  {start:45, end:95, title:'Is this mine?', label:'BODY OWNERSHIP', action:'Point your index finger and move it to draw a ribbon of light.', question:'Do you feel “I control it”, “it is mine”, both, or neither?', color:0xf0cf90},
-  {start:95, end:140, title:'The form changes.', label:'IDENTITY', action:'Bring two open hands close together. Hold to form a mandala.', question:'The appearance changes. What happens to the sense of “mine”?', color:0xbab3ed},
-  {start:140, end:180, title:'I notice.', label:'THE WITNESS', action:'Let your hands rest. Notice the hand, then the thought “my hand”.', question:'Both can be observed. What is aware of the experience?', color:0xe6d8b6},
+  {start:0, end:35, title:'I act.', label:'AGENCY', action:'Pinch a seed. Carry it above the bowl, then open to plant.', question:'Does controlling this hand make it yours?', color:0xa9e5d5},
+  {start:35, end:65, title:'Is this mine?', label:'BODY OWNERSHIP', action:'Point your index finger and move it to draw a ribbon of light.', question:'Does this feel like your hand, or something you control?', color:0xf0cf90},
+  {start:65, end:100, title:'The form changes.', label:'IDENTITY', action:'Bring two open hands close together. Hold to form a mandala.', question:'When the form changes, does the sense of “mine” change?', color:0xbab3ed},
+  {start:100, end:120, title:'I notice.', label:'THE WITNESS', action:'Let your hands rest. Notice your hand, then the thought “my hand”.', question:'What is aware of both?', color:0xe6d8b6},
 ];
 export function phaseAt(seconds) {
   const safe=Number.isFinite(seconds)?Math.max(0,seconds):0;
