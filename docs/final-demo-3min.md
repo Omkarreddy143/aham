@@ -2,7 +2,7 @@
 
 **Choose Witness Garden on the dashboard.** Orbit Foundry remains available as the second option. The garden is a guided exploration of Tattva 5: agency, body ownership, identity and awareness of body and mind.
 
-**Final-demo fallback, verified in the desktop browser:** [open the fixed Witness Garden build](https://rawcdn.githack.com/Omkarreddy143/aham/6c86d47ba8d798922f62a5dcbff712d50487d21b/webxr/witness.html). This serves the public repository version independently of the laptop tunnel. If the hosting service shows its source notice, check that the destination is `Omkarreddy143/aham` and select **Open the page**. Then select **Enter VR** on Quest. The shortcut **Open Final Demo.cmd** opens this address on the laptop. The [static dashboard](https://rawcdn.githack.com/Omkarreddy143/aham/6c86d47ba8d798922f62a5dcbff712d50487d21b/webxr/index.html) also offers both scenes, but the original game's ESP relay requires the laptop-hosted URL. The static copy has no laptop feedback API.
+**Final-demo fallback:** [open the fixed Witness Garden build](https://rawcdn.githack.com/Omkarreddy143/aham/a6a62029d04cd8a23a72ab4965a4021613491652/webxr/witness.html). This serves the public repository version independently of the laptop tunnel. If the hosting service shows its source notice, check that the destination is `Omkarreddy143/aham` and select **Open the page**. Then select **Enter VR** on Quest. The shortcut **Open Final Demo.cmd** opens this address on the laptop. The [static dashboard](https://rawcdn.githack.com/Omkarreddy143/aham/a6a62029d04cd8a23a72ab4965a4021613491652/webxr/index.html) also offers both scenes, but the original game's ESP relay requires the laptop-hosted URL. The static copy has no laptop feedback API.
 
 ## Before the judges arrive
 
