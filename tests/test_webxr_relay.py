@@ -27,6 +27,7 @@ class WebXRRelayTests(unittest.TestCase):
         (self.root / "app.js").write_text("console.log('monitor');", encoding="utf-8")
         (self.root / "notes.py").write_text("private = True", encoding="utf-8")
         (self.root / "hand.glb").write_bytes(b"glTF-binary-fixture")
+        (self.root / "guide.mp3").write_bytes(b"mp3-fixture")
         (Path(self.directory.name) / "secret.html").write_text("outside", encoding="utf-8")
         # Patch the fixed observation target only in tests, so every listener can
         # use an ephemeral port without touching an existing bridge on 8767.
@@ -305,6 +306,9 @@ class WebXRRelayTests(unittest.TestCase):
         status,body,headers=self.request("GET", "/hand.glb")
         self.assertEqual((status,body),(200,b"glTF-binary-fixture"))
         self.assertEqual(headers["Content-Type"],"model/gltf-binary")
+        status,body,headers=self.request("GET", "/guide.mp3")
+        self.assertEqual((status,body),(200,b"mp3-fixture"))
+        self.assertEqual(headers["Content-Type"],"audio/mpeg")
         for path in ("/../secret.html", "/%2e%2e/secret.html", "/%2e%2e%2fsecret.html",
                      "/..%5csecret.html", "/%00index.html", "/C:/secret.html", "/notes.py",
                      "/missing.js", "/api/unknown", "/webxr/"):

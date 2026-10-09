@@ -3,6 +3,9 @@ import {emptyHands,readHandPoses} from './tracking.js';
 import {Journey,PHASES,DURATION,touchesLight} from './witness-logic.js';
 import {TrackedHand,SKIN_TONES} from './realistic-hand.js';
 import {createNaturalGarden} from './witness-world.js';
+import {GardenAudio} from './witness-audio.js';
+import {GardenInteractions,BOWL} from './witness-interactions.js';
+import {GardenPlay} from './witness-play.js';
 
 // This experience deliberately has no relay, serial or actuator transport.
 const $=id=>document.getElementById(id);
@@ -32,6 +35,7 @@ const glowTexture=new THREE.CanvasTexture(glowCanvas);
 function glow(parent,color,size){const object=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture,color,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));object.scale.set(size,size,1);parent.add(object);return object;}
 
 const world=createNaturalGarden(root);
+const interaction=new GardenInteractions(),play=new GardenPlay(root);
 
 function label(text,width=.19,height=.045,color='#e7d9bc'){
   const c=document.createElement('canvas');c.width=640;c.height=128;
@@ -57,36 +61,6 @@ const ripples=Array.from({length:12},()=>{
 });
 let rippleIndex=0,formIndex=0,burst=0,nextFormAt=103;
 
-class GardenAudio {
-  constructor(){this.context=null;this.volume=.3;this.muted=false;this.step=0;}
-  async start(){
-    const AudioContext=window.AudioContext||window.webkitAudioContext;
-    if(!AudioContext)return;
-    if(!this.context){
-      this.context=new AudioContext();this.master=this.context.createGain();this.master.gain.value=0;this.master.connect(this.context.destination);
-      const filter=this.context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=850;filter.connect(this.master);
-      [130.81,196,261.63].forEach((frequency,i)=>{
-        const oscillator=this.context.createOscillator(),gain=this.context.createGain();
-        oscillator.type='sine';oscillator.frequency.value=frequency;gain.gain.value=[.085,.035,.025][i];oscillator.connect(gain);gain.connect(filter);oscillator.start();
-      });
-      this.timer=setInterval(()=>{
-        if(this.context.state==='running' && journey.running)this.chime([261.63,329.63,392,440,523.25,440,392,329.63][this.step++%8],.055,3.5);
-      },2800);
-    }
-    await this.context.resume();this.applyVolume();
-  }
-  applyVolume(){if(this.master)this.master.gain.setTargetAtTime(this.muted?0:this.volume,this.context.currentTime,.12);}
-  chime(frequency=523.25,strength=.18,duration=1.8){
-    if(!this.context || this.context.state!=='running')return;
-    const now=this.context.currentTime;
-    [1,2.004].forEach((harmonic,i)=>{
-      const oscillator=this.context.createOscillator(),gain=this.context.createGain();
-      oscillator.type='sine';oscillator.frequency.value=frequency*harmonic;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(strength/(i+1),now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
-      oscillator.connect(gain);gain.connect(this.master);oscillator.start(now);oscillator.stop(now+duration+.05);
-      oscillator.onended=()=>{oscillator.disconnect();gain.disconnect();};
-    });
-  }
-}
 const audio=new GardenAudio();
 async function unlockAudio(){try{await audio.start();}catch{ $('garden-status').textContent='The garden is ready. Audio could not start; the visual journey still works.';}}
 
@@ -99,6 +73,9 @@ function previewHand(side,time){return rigs[side].preview(time,{curl:handPreview
 const panelCanvas=document.createElement('canvas');panelCanvas.width=1400;panelCanvas.height=430;
 const panelContext=panelCanvas.getContext('2d'),panelTexture=new THREE.CanvasTexture(panelCanvas);panelTexture.colorSpace=THREE.SRGBColorSpace;
 const panel=mesh(new THREE.PlaneGeometry(1.02,.313),new THREE.MeshBasicMaterial({map:panelTexture,transparent:true,side:THREE.DoubleSide,depthWrite:false}));panel.position.set(0,.42,-.65);panel.visible=false;
+const captionCanvas=document.createElement('canvas');captionCanvas.width=1400;captionCanvas.height=155;
+const captionContext=captionCanvas.getContext('2d'),captionTexture=new THREE.CanvasTexture(captionCanvas);captionTexture.colorSpace=THREE.SRGBColorSpace;
+const captionPanel=mesh(new THREE.PlaneGeometry(1.02,.113),new THREE.MeshBasicMaterial({map:captionTexture,transparent:true,side:THREE.DoubleSide,depthWrite:false}));captionPanel.position.set(0,.20,-.65);captionPanel.visible=false;
 const nextLabel=label('NEXT',.10,.028),restartLabel=label('RESTART',.13,.028);
 const controls=[{name:'next',x:.13,object:nextLabel},{name:'restart',x:-.13,object:restartLabel}].map(item=>{
   item.object.position.set(item.x,.145,.012);
@@ -106,8 +83,10 @@ const controls=[{name:'next',x:.13,object:nextLabel},{name:'restart',x:-.13,obje
   return {...item,body,world:new THREE.Vector3(),touching:false};
 });
 let hands=emptyHands(),anchored=false,lastTime=0,lastUI=0,activePhase=-1,previewPanel=false,touchCount=0;
+let activity='Pinch a seed, carry it over the bowl, then open your fingers.',lastCaption='',narratedPhase=-1;
 const viewerRotation=new THREE.Quaternion(),forward=new THREE.Vector3();
-function begin(){journey.start();activePhase=-1;formIndex=0;nextFormAt=103;touchCount=0;burst=0;for(const orb of orbs)orb.touching=false;}
+const inverseRoot=new THREE.Matrix4(),localPoint=new THREE.Vector3();
+function begin(){audio.stop();narratedPhase=-1;journey.start();activePhase=-1;formIndex=0;nextFormAt=103;touchCount=0;burst=0;interaction.reset();play.reset();activity=PHASES[0].action;for(const orb of orbs)orb.touching=false;}
 function activateOrb(index){
   const orb=orbs[index];orb.pulse=1;burst=1;touchCount++;
   const ripple=ripples[rippleIndex++%ripples.length];ripple.life=1;ripple.object.visible=true;ripple.object.position.set(orb.group.position.x,world.waterLevel+.006,orb.group.position.z-.5);ripple.object.material.color.setHex(orb.color);
@@ -116,7 +95,8 @@ function activateOrb(index){
 }
 function updateStyle(){
   const phase=journey.phase;
-  if(phase!==activePhase){activePhase=phase;formIndex=0;nextFormAt=journey.elapsed+8;audio.chime([261.63,329.63,392,261.63][phase],.10,3);}
+  if(phase!==activePhase){activePhase=phase;formIndex=0;nextFormAt=journey.elapsed+8;activity=PHASES[phase].action;audio.chime([261.63,329.63,392,261.63][phase],.10,3);if(phase===3&&journey.running){play.petalOrigin.set(0,.06,-.18);play.petalLife=1;}}
+  if(journey.running&&phase!==narratedPhase&&audio.context){narratedPhase=phase;audio.narrate(phase);}
   if(phase===2 && journey.running && journey.elapsed>=nextFormAt){formIndex=(formIndex+1)%3;nextFormAt=journey.elapsed+8;}
   const form=phase===2?formIndex:0;
   for(const rig of Object.values(rigs))rig.setAppearance({phase,form,skin:skinTone,burst});
@@ -133,7 +113,17 @@ function updatePanel(){
   const live=renderer.xr.isPresenting,tracked=hands.left.size+hands.right.size;
   panelContext.font='23px Segoe UI, sans-serif';panelContext.fillStyle='#a9c9c1';panelContext.fillText(live?(tracked?`LIVE QUEST / L ${hands.left.size} · R ${hands.right.size} JOINTS`:'HANDS LOST / BRING HANDS INTO VIEW'):'DESKTOP REHEARSAL / SIMULATED HANDS',45,327);
   panelContext.fillStyle='#f0dfba';panelContext.font='35px Segoe UI, sans-serif';panelContext.textAlign='right';panelContext.fillText(clockText(),1355,52);panelContext.textAlign='left';
-  panelContext.font='23px Segoe UI, sans-serif';panelContext.fillStyle='#99b9b2';panelContext.fillText(journey.phase===3?'“The body is the field; the one who knows it is the knower.” · Gita 13.2':'Touch NEXT below to advance · RESTART to begin again',45,384);panelTexture.needsUpdate=true;
+  panelContext.font='23px Segoe UI, sans-serif';panelContext.fillStyle='#e0c992';panelContext.fillText(activity,45,384);panelTexture.needsUpdate=true;
+  const caption=audio.caption()||phase.question;
+  if(caption!==lastCaption){
+    lastCaption=caption;$('voice-caption').textContent=caption;
+    captionContext.clearRect(0,0,1400,155);captionContext.fillStyle='#0b2531ef';captionContext.fillRect(0,0,1400,155);
+    captionContext.fillStyle='#b9cbbd';captionContext.font='19px Segoe UI, sans-serif';captionContext.fillText('AI VOICE GUIDE',35,31);
+    captionContext.fillStyle='#f4ead2';captionContext.font='30px Segoe UI, sans-serif';
+    const words=caption.split(' ');let line='',y=77;
+    for(const word of words){if(captionContext.measureText(line+word).width>1310){captionContext.fillText(line,35,y);line='';y+=39;}line+=word+' ';}captionContext.fillText(line,35,y);captionTexture.needsUpdate=true;
+  }
+  captionPanel.visible=panel.visible;
 }
 function updateUI(){
   const phase=PHASES[journey.phase];$('journey-time').textContent=clockText();$('journey-progress').style.width=`${journey.elapsed/DURATION*100}%`;
@@ -141,11 +131,12 @@ function updateUI(){
   $('phase-action').textContent=journey.finished?'The hand and the thought “mine” are both noticed. Reflect on the awareness of both.':journey.running?phase.action:'Enter VR, or press Start to rehearse the three-minute journey.';
   document.querySelectorAll('[data-phase]').forEach(element=>element.classList.toggle('active',Number(element.dataset.phase)===journey.phase));
   $('tracking-source').textContent=renderer.xr.isPresenting?`LIVE QUEST · L ${hands.left.size} / R ${hands.right.size} JOINTS`:'DESKTOP · SIMULATED HANDS';
+  $('activity-status').textContent=activity;$('voice-status').textContent=audio.status();
   updatePanel();
 }
 function resize(){if(renderer.xr.isPresenting)return;const bounds=canvas.parentElement.getBoundingClientRect();renderer.setSize(bounds.width,bounds.height,false);camera.aspect=bounds.width/bounds.height;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(canvas.parentElement);resize();
-$('restart-journey').addEventListener('click',()=>{unlockAudio();begin();});
+$('restart-journey').addEventListener('click',async()=>{await unlockAudio();begin();});
 $('next-phase').addEventListener('click',()=>{unlockAudio();journey.next();});
 $('preview-touch').addEventListener('click',()=>{unlockAudio();if(!journey.running&&!journey.finished)begin();activateOrb(touchCount%3);});
 $('preview-form').addEventListener('click',()=>{unlockAudio();journey.elapsed=95;journey.running=true;activePhase=2;formIndex=(formIndex+1)%3;});
@@ -159,9 +150,24 @@ $('inspect-hands').addEventListener('click',()=>{
   $('inspect-hands').textContent=handCameraClose?'View the landscape':'Inspect hands';
 });
 $('preview-panel').addEventListener('click',()=>{previewPanel=!previewPanel;panel.visible=previewPanel;});
+function onActivity(event){
+  if(event.type==='grab'){activity='Seed held · move above the bowl and open your fingers.';activateOrb(event.seed);}
+  if(event.type==='plant'){play.plant(event.point);burst=1;audio.chime(659,.20,2.5);activity=`A flower grew from your action · ${interaction.flowers} planted.`;}
+  if(event.type==='release')activity='Try releasing above the glowing bowl.';
+  if(event.type==='cancel')activity='Hand tracking lost · seed returned. Open your hand to begin again.';
+  if(event.type==='paint'){play.paint(event.from,event.to);activity='Your intention leaves a trace. Notice the thought “mine”.';}
+  if(event.type==='mandala'){play.join(event.point);formIndex=(formIndex+1)%3;nextFormAt=journey.elapsed+8;burst=1;audio.chime(392,.16,3);audio.chime(587,.10,3);activity='The form changed. Separate your hands, then bring them together again.';}
+}
+$('preview-plant').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=0;updateStyle();interaction.flowers++;onActivity({type:'plant',point:{x:BOWL.x,y:BOWL.y+.10,z:BOWL.z}});});
+$('preview-draw').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=45;updateStyle();play.previewTrail();activity='Desktop preview · a ribbon follows the pointing gesture.';});
+$('preview-join').addEventListener('click',()=>{unlockAudio();if(!journey.running)begin();journey.elapsed=95;updateStyle();onActivity({type:'mandala',point:{x:0,y:.07,z:-.07}});});
 $('music-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value)/100;audio.applyVolume();});
-$('mute-music').addEventListener('click',()=>{audio.muted=!audio.muted;audio.applyVolume();$('mute-music').textContent=audio.muted?'Sound off':'Sound on';$('mute-music').setAttribute('aria-pressed',String(audio.muted));if(!audio.muted)unlockAudio();});
+$('mute-music').addEventListener('click',()=>{audio.muted=!audio.muted;audio.applyVolume();$('mute-music').textContent=audio.muted?'Music off':'Music on';$('mute-music').setAttribute('aria-pressed',String(audio.muted));if(!audio.muted)unlockAudio();});
+$('guide-volume').addEventListener('input',event=>{audio.voiceVolume=Number(event.target.value)/100;audio.applyVolume();});
+$('mute-guide').addEventListener('click',()=>{audio.voiceEnabled=!audio.voiceEnabled;audio.applyVolume();$('mute-guide').textContent=audio.voiceEnabled?'Voice on':'Voice off';$('mute-guide').setAttribute('aria-pressed',String(!audio.voiceEnabled));});
+$('replay-guide').addEventListener('click',async()=>{await unlockAudio();if(!audio.guide)audio.ready=audio.loadGuide();narratedPhase=journey.phase;audio.narrate(journey.phase);});
 renderer.xr.addEventListener('sessionend',()=>{
+  audio.stop();interaction.reset();
   journey.running=false;anchored=false;hands=emptyHands();root.position.set(0,0,0);root.rotation.set(0,0,0);panel.visible=previewPanel;$('garden-rehearsal').hidden=false;
   camera.position.copy(previewCamera.position);camera.quaternion.copy(previewCamera.quaternion);$('enter-garden').disabled=false;$('garden-status').textContent='VR ended. Select Enter VR to begin a fresh journey.';resize();
 });
@@ -177,7 +183,7 @@ $('enter-garden').addEventListener('click',async()=>{
   unlockAudio();$('enter-garden').disabled=true;
   try{
     const session=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['hand-tracking']});
-    await renderer.xr.setSession(session);anchored=false;lastTime=0;begin();panel.visible=true;$('garden-rehearsal').hidden=true;$('garden-status').textContent='Journey running in Quest. Touch the floating lights with either hand.';
+    await renderer.xr.setSession(session);anchored=false;lastTime=0;begin();panel.visible=true;$('garden-rehearsal').hidden=true;$('garden-status').textContent='Journey running. Pinch seeds, draw with an index finger, and bring open hands together.';
   }catch(error){$('enter-garden').disabled=false;$('garden-status').textContent=`Could not enter VR: ${error.message}. Check Quest hand tracking, then try again.`;}
 });
 checkVR();
@@ -185,6 +191,7 @@ renderer.setAnimationLoop((time,frame)=>{
   const seconds=time/1000,delta=lastTime?Math.max(0,seconds-lastTime):0;lastTime=seconds;
   const session=renderer.xr.getSession(),live=renderer.xr.isPresenting;
   const visible=!document.hidden&&(!live||session?.visibilityState==='visible');
+  audio.setPaused(!visible);
   journey.advance(delta,visible);
   if(live){
     hands=emptyHands();
@@ -199,6 +206,11 @@ renderer.setAnimationLoop((time,frame)=>{
   }else hands={left:previewHand('left',seconds),right:previewHand('right',seconds)};
   updateStyle();for(const side of ['left','right'])drawHand(hands[side],rigs[side]);
   root.updateMatrixWorld(true);
+  const localHands={left:new Map(),right:new Map()};
+  if(live&&visible){inverseRoot.copy(root.matrixWorld).invert();for(const side of ['left','right'])for(const [name,p] of hands[side]){localPoint.set(p.x,p.y,p.z).applyMatrix4(inverseRoot);localHands[side].set(name,{...p,x:localPoint.x,y:localPoint.y,z:localPoint.z});}}
+  for(const event of interaction.update(localHands,delta,journey.phase,live&&visible&&journey.running))onActivity(event);
+  if(interaction.charge>0&&!interaction.joined)activity=`Hold both open hands here · ${Math.round(interaction.charge*100)}%`;
+  orbs.forEach((orb,index)=>{const seed=interaction.seeds[index];orb.group.position.set(seed.position.x,seed.position.y,seed.position.z);orb.group.visible=seed.cooldown<=0;});
   for(const orb of orbs){
     orb.group.getWorldPosition(orb.world);
     const touching=live&&visible&&['left','right'].some(side=>touchesLight(hands[side],orb.world,.045,orb.touching?.012:0));
@@ -215,8 +227,8 @@ renderer.setAnimationLoop((time,frame)=>{
     ripple.life=Math.max(0,ripple.life-delta*.32);ripple.object.visible=ripple.life>0;
     if(ripple.life>0){ripple.object.scale.setScalar(.045+(1-ripple.life)*.8);ripple.object.material.opacity=ripple.life*.55;}
   }
-  burst=Math.max(0,burst-delta*.6);world.update(seconds,burst);
+  burst=Math.max(0,burst-delta*.6);world.update(seconds,burst);play.update(delta,seconds,interaction,journey.phase);
   if(time-lastUI>150){updateUI();lastUI=time;}
   renderer.render(scene,camera);
 });
-window.addEventListener('pagehide',()=>{if(audio.timer)clearInterval(audio.timer);audio.context?.close();},{once:true});
+window.addEventListener('pagehide',()=>audio.close(),{once:true});

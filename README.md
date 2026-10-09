@@ -2,7 +2,7 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-**Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience beside a wooded lake, with articulated skin-shaded hands, fingertip light/chime interactions and synthesized ambient music, plus the original **Orbit Foundry** game. Both hand meshes follow all 25 Quest joints; choose warm, light or deep skin before entering VR. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
+**Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience beside a wooded lake with articulated hands, louder ambient music and a bundled **AI voice guide with captions**. Pinch and plant seeds to grow flowers, draw ribbons with an index finger, and bring two open hands together to form a mandala and change the hand's appearance. The original **Orbit Foundry** game remains the other dashboard option. Both hand meshes follow all 25 Quest joints; choose warm, light or deep skin before entering VR. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
 
 For the final presentation, **Open Final Demo.cmd** opens a fixed repository-hosted copy of the garden, avoiding the laptop's temporary tunnel. The original game's live feedback relay still uses the laptop-hosted URL.
 
@@ -31,7 +31,7 @@ Later verified output path:
 | Wireless access | Temporary Cloudflare HTTPS tunnel supported; see quickstart |
 | Wi-Fi to NodeMCU | Team confirmed ESP receipts with changing vibration/resistance requests and HOLD state; OUTPUT remains OFF |
 | Real flex sensing | Previously demonstrated in Unity; retained as a fallback |
-| Witness Garden | Three-minute local Tattva journey, scenery, original ambient audio, fingertip reactions and in-world prompts; desktop checked, final headset rehearsal pending |
+| Witness Garden | Three-minute Tattva journey; bundled AI narration/captions, independent voice/music volumes, seed planting, light drawing and two-hand mandala; desktop checked, final headset rehearsal pending |
 | Vibration motors | Team confirmed all five physically vibrated in separate bench tests |
 | Servo resistance | Team confirmed all five servo horns moved in detached bench tests; live VR-driven resistance and calibrated mechanics remain unverified |
 

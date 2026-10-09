@@ -4,7 +4,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 root = Path(__file__).resolve().parents[1]
 output = root / 'artifacts/AHAM-Judging-Pack.zip'
-names = ['docs/final-demo-3min.md', 'docs/images/witness-garden.jpg', 'docs/images/witness-garden-natural.jpg', 'docs/images/witness-hands-natural.jpg', 'Open Final Demo.cmd',
+names = ['docs/final-demo-3min.md', 'docs/images/witness-garden.jpg', 'docs/images/witness-garden-natural.jpg', 'docs/images/witness-hands-natural.jpg', 'docs/images/witness-garden-guided.jpg', 'Open Final Demo.cmd',
          'docs/judging-preparation.md', 'docs/judging-talk.md',
          'docs/tattva-explanation.md', 'docs/judging-cards.html',
          'docs/judging-observations.csv', 'docs/verification.md']
