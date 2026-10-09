@@ -1,5 +1,23 @@
 # Starter verification — 7 October 2026
 
+## Orbit connection checker (9 October 2026)
+
+- Added **Check Orbit Foundry.cmd**, with a one-shot or `--watch` report of the
+  verified game URL, Quest input freshness, configured USB/Wi-Fi transport,
+  companion identity, new ESP receipts, PCA/D6 STATUS, arming and feedback
+  values. Each missing connection has recovery instructions; reports are local
+  and ignored by Git. The check never arms hardware, opens a serial port,
+  sends UDP session probes or restarts services. Its only optional board query
+  is STATUS through the running USB companion.
+- Twelve diagnostic tests passed, covering stale/synthetic/lost tracking,
+  rejected uploads, failed public links, PID reuse and the local runner,
+  bounded receipt parsing, old-log suppression, STATUS-only control, USB/Wi-Fi
+  guidance and no serial opening or recovery calls.
+- Live read-only check verified the current public Orbit game and relay,
+  fresh authenticated ESP replies on USB COM7, PCA detection and closed D6.
+  Both output masks were zero. No fresh Quest upload was present while the
+  headset was disconnected. No physical output was enabled or tested.
+
 ## Final submission — Witness Garden (9 October 2026)
 
 - **Short demo revision:** reduced the timeline to 120 seconds (35 seconds planting, 30 drawing, 35 mandala, 20 reflection). Replaced the spoken explanation with four short instructions/questions totaling about 40 seconds. Presenter explanation stays outside the AI guide. Existing interaction logic, music level and Orbit Foundry are unchanged.

@@ -14,6 +14,13 @@ Meta supports WebXR hand tracking with 25 joints per hand, including position an
 
 ## Start the wireless demo
 
+To inspect the current game link and every connection without restarting
+anything, double-click **Check Orbit Foundry.cmd**. It checks the public game,
+Quest uploads, the selected USB/Wi-Fi companion and fresh ESP receipts, and
+prints recovery steps. For repeated checks, run
+`& '.\Check Orbit Foundry.cmd' --watch` in PowerShell. Read the
+[connection-check guide](orbit-connection-check.md).
+
 On this Windows laptop, double-click **Open VR Link.cmd** in the Makethon folder. It checks the existing URL and reuses it when healthy. If it is unavailable, it creates a new tunnel, updates the relay's exact HTTPS origin, verifies the public relay, copies the URL to the clipboard, opens the browser and saves **VR-LINK.txt**. Double-click **Refresh VR Link.cmd** to force a new URL immediately. Wait for **READY** before sharing it; Internet/DNS registration can take several seconds. Close old AHAM tabs on Quest, open the new URL and Enter VR again.
 
 This laptop also has **AHAM Refresh VR** on the desktop with **Ctrl+Alt+V** assigned. It opens the same refresh command in a visible window. Fresh downloads can use the two `.cmd` files directly; the desktop shortcut is a local convenience and is not inside the ZIP.

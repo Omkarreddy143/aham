@@ -37,6 +37,12 @@ companion owns the port.
 
 ## Check and test the index channel
 
+For connection checks without enabling outputs, double-click **Check Orbit
+Foundry.cmd**. It verifies the current game URL, Quest uploads and new ESP
+receipts, and requests only STATUS through this running companion. Use
+`& '.\Check Orbit Foundry.cmd' --watch` for repeated checks. The report includes
+PCA/D6 status and specific fixes; see the [connection-check guide](orbit-connection-check.md).
+
 Keep the glove off your hand and all threads detached or slack for the initial
 test. Confirm actuator power and common ground. D6 connects to GND through the
 normally closed stop connection; PCA OE connects to D7.

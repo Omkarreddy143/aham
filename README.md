@@ -12,6 +12,8 @@ The Quest estimates hand orientation and finger joints. **Orbit Foundry v4** add
 
 Windows shortcut: double-click **Open VR Link.cmd** to reuse or repair the HTTPS link; **Refresh VR Link.cmd** forces a new one. The verified URL is copied to the clipboard and saved in **VR-LINK.txt**. The shortcuts update the relay origin together with the tunnel and preserve ESP settings.
 
+Double-click **Check Orbit Foundry.cmd** to show the verified current game link, Quest uploads, USB/Wi-Fi companion, fresh ESP replies, PCA/D6 status and received feedback values, with specific recovery steps. Use `& '.\Check Orbit Foundry.cmd' --watch` in PowerShell for repeated checks. It never arms hardware or restarts services. See the [connection-check guide](docs/orbit-connection-check.md); the latest report is saved locally in **ORBIT-STATUS.txt**.
+
 ```text
 Quest hand tracking → WebXR hand → virtual contact → cue
   → HTTPS → laptop relay → hotspot Wi-Fi → NodeMCU receive-only monitor

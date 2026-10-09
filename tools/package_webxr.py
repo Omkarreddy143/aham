@@ -8,6 +8,8 @@ output.parent.mkdir(exist_ok=True)
 paths = [root / "README.md", root / "docs/webxr-quickstart.md", root / "docs/final-demo-3min.md", root / "Open Final Demo.cmd",
          root / "Open VR Link.cmd", root / "Refresh VR Link.cmd", root / "tools/vr_link.py", root / "tools/generate_garden_voice.py",
          root / "tools/check_wireless.py", root / "tests/test_vr_link.py", root / "tests/test_wifi_discovery.py",
+         root / "Check Orbit Foundry.cmd", root / "tools/orbit_status.py", root / "tests/test_orbit_status.py",
+         root / "docs/orbit-connection-check.md",
          root / "docs/technical-judging.md",
          root / "docs/webxr-architecture.md", root / "docs/protocol.md",
          root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",
