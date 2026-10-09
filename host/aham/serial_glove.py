@@ -100,5 +100,10 @@ class LocalCommandFile:
             except UnicodeError:
                 pass
 
+    def discard_pending(self):
+        """A repaired USB connection must not replay commands queued while offline."""
+        self.file.seek(0, 2)
+        self.buffer = b''
+
     def close(self):
         self.file.close()

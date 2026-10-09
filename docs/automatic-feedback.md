@@ -68,6 +68,10 @@ companion keeps manual arming.
 
 Automatic mode is not saved across companion restarts and old AUTO/ARM lines
 are skipped. Restarting a service cannot replay a previous session's start.
+If USB disconnects, the companion closes its stale handle and retries the
+selected port every half second. It clears old authenticated receipts and
+queued commands, sends STOP first after reopening, and leaves automatic mode
+OFF. Start the automatic-feedback shortcut again after USB is restored.
 Use **Check Orbit Foundry.cmd** to verify the game URL, Quest uploads, current
 automatic state, fresh ESP replies and output masks. A mode acknowledgement
 such as `AUTO FEEDBACK: WAITING_DATA` confirms the local mode request; an

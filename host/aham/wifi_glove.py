@@ -17,6 +17,57 @@ from .wifi_bench import (HELLO, HELLO_BODY, HELLO_ACK, HELLO_RECEIPT, REASONS, W
 COMMAND, RECEIPT = 11, 12
 BODY = struct.Struct("<IIHB5B5B5B")
 ACK = struct.Struct("<IIHBB5B5HBB")
+USB_RETRY_SECONDS = .5
+
+
+class USBRecovery:
+    """Reopen a lost USB handle without replaying local arming commands."""
+    def __init__(self, port, link_factory, emit=None):
+        self.port, self.link_factory = port, link_factory
+        self.emit = emit or (lambda value: print(value, flush=True))
+        self.retry_at = None
+
+    def failed(self, glove, automatic, control, now):
+        if self.retry_at is not None:
+            return
+        automatic.cancel('USB disconnected; restart automatic feedback locally after reconnection')
+        glove.boot = 0
+        glove.last_receipt = None
+        glove.pending.clear()
+        glove.last_hello = -10.0
+        try:
+            glove.socket.close()
+        except OSError:
+            pass
+        if control:
+            control.discard_pending()
+        self.retry_at = now + USB_RETRY_SECONDS
+        self.emit(f'USB DISCONNECTED: retrying {self.port}; outputs remain disarmed.')
+
+    def ready(self, glove, control, now):
+        if self.retry_at is None:
+            return True
+        if now < self.retry_at:
+            return False
+        link = None
+        try:
+            link = self.link_factory(self.port)
+            # STOP precedes any authenticated handshake or local control polling.
+            link.send_command('STOP')
+        except OSError:
+            if link is not None:
+                try:
+                    link.close()
+                except OSError:
+                    pass
+            self.retry_at = now + USB_RETRY_SECONDS
+            return False
+        if control:
+            control.discard_pending()
+        glove.socket = link
+        self.retry_at = None
+        self.emit(f'USB RECONNECTED: {self.port}; STOP sent, automatic feedback is OFF.')
+        return True
 
 
 def valid_servo_receipt(sent, motors, servos, signal, pwm, pulses, reason):
@@ -175,12 +226,13 @@ def main():
         key = read_key(args.key_file)
     except ValueError as error:
         parser.error(str(error))
-    control = None
+    control = recovery = None
     if args.serial_port:
         from .serial_glove import SerialPacketLink, LocalCommandFile
         glove = WirelessGlove(("127.0.0.1", 9), key)
         glove.socket.close()
         glove.socket = SerialPacketLink(args.serial_port)
+        recovery = USBRecovery(args.serial_port, SerialPacketLink)
         if args.control_file:
             control = LocalCommandFile(args.control_file)
         print(f"ESP TRANSPORT=USB PORT={args.serial_port} BAUD=115200; Quest stays wireless.", flush=True)
@@ -202,6 +254,9 @@ def main():
     try:
         while True:
             started = time.monotonic()
+            if recovery and not recovery.ready(glove, control, started):
+                time.sleep(.05)
+                continue
             snapshot, elapsed = preview.get()
             try:
                 if control:
@@ -209,8 +264,10 @@ def main():
                 glove.send(snapshot, elapsed); receipt = glove.poll()
             except OSError:
                 receipt = None
+                if recovery:
+                    recovery.failed(glove, automatic, control, time.monotonic())
             now = time.monotonic()
-            if args.serial_port:
+            if args.serial_port and recovery.retry_at is None:
                 commands = automatic.step(snapshot, elapsed + now-started, receipt,
                                           glove.socket.board_status, glove.boot, now)
                 try:
@@ -218,6 +275,7 @@ def main():
                         glove.socket.send_command(command)
                 except OSError:
                     receipt = None
+                    recovery.failed(glove, automatic, control, time.monotonic())
             if now-last_print >= .5:
                 last_print = now
                 if receipt:
@@ -228,7 +286,10 @@ def main():
                           f"PWM={receipt['pwm']} SERVO_US={receipt['servoUs']} "
                           f"S_SIGNAL={receipt['servoSignalMask']} LAST_REASON={receipt['reason']} AUTO={automatic.phase}", flush=True)
                 else:
-                    print("NO FRESH FIVE-FINGER RECEIPT: check nodemcu_wifi_glove, UDP 4212, IPs and pairing key.", flush=True)
+                    if args.serial_port:
+                        print(f"NO FRESH FIVE-FINGER RECEIPT: check USB data cable, board power and {args.serial_port}; close Serial Monitor.", flush=True)
+                    else:
+                        print("NO FRESH FIVE-FINGER RECEIPT: check nodemcu_wifi_glove, UDP 4212, IPs and pairing key.", flush=True)
                 if snapshot is None:
                     print("Relay unavailable: sending zeros.", flush=True)
             interval = .05 if args.serial_port else .02

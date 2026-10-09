@@ -155,6 +155,11 @@ const selectedHand=() => $('hand').value;
 // bounds the HTTP request; relay freshness and ESP output leases stay unchanged.
 const FEEDBACK_REQUEST_TIMEOUT_MS=3000;
 const feedback=new FeedbackUploader({
+  resample:()=>{
+    const session=renderer.xr.getSession();
+    return source==='webxr' && session?.visibilityState==='visible' && !document.hidden &&
+      performance.now()-lastFrame<=150?feedbackPayload():null;
+  },
   onResult:(result,value,timing)=>{
     accepted=result.ok && value.accepted?{sequence:value.sequence,...timing}:null;
     connectionError=result.ok?'':String(value.error || 'HTTP '+result.status).slice(0,80);
@@ -203,14 +208,15 @@ function calculate(delta,time) {
   poses=hands[selectedHand()];
   fingers=fingerStates(poses);
   trackingValid=source==='webxr' && fingers.valid.some(Boolean);
-  if(source==='webxr' && ((previouslyTracked && !trackingValid) || previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i]))) sendCue(true);
+  const lostHand=previouslyTracked && !trackingValid;
+  const lostFinger=previousFingerValidity.some((valid,i)=>valid && !fingers.valid[i]);
   stage.updateMatrixWorld(true);
   inverseStage.copy(stage.matrixWorld).invert();
   const right=localHand(hands.right),localPoses=selectedHand()==='right'?right:localHand(poses),input=graspInput(right);
   const wasTracked=gameTracked;gameTracked=!!input.valid;
   const hadResistance=game.resistance.some(Boolean);
   game.step(delta,input);world.update(game,time);
-  if(source==='webxr' && ((wasTracked && !gameTracked) || (hadResistance && !game.resistance.some(Boolean)))) sendGrip(true);
+  const releasedGrip=(wasTracked && !gameTracked) || (hadResistance && !game.resistance.some(Boolean));
   // Reachable inside VR: hold the right index tip on the illuminated button.
   const index=right.get('index-finger-tip');
   const touchingRestart=input.valid && index && restartPoint.set(index.x,index.y,index.z).distanceTo(world.restart.position)<.043 && !game.held;
@@ -223,13 +229,24 @@ function calculate(delta,time) {
     // Grasp contact is inferred from the gesture, rather than five tip overlaps.
     calculated={duties:fingers.valid.map(valid=>valid?game.held.duty:0),patterns:fingers.valid.map(valid=>valid?game.held.pattern:0),contacts:fingers.valid.map(valid=>valid?game.held.name+' grip':null)};
   }
+  if(source==='webxr') {
+    if(lostHand)sendCue(true);
+    else if(releasedGrip)sendGrip(true);
+    else if(lostFinger)sendFeedback(false,false,true);
+  }
 }
 
+function feedbackPayload(zeroCue=false,zeroGrip=false) {
+  const cue=cueRequest(calculated,source,selectedHand(),!zeroCue && trackingValid);
+  let grip=game.intent(source,!zeroCue && gameTracked);
+  if(zeroGrip)grip={...grip,holding:false,objectId:null,gripMode:'none',resistance:[0,0,0,0,0],referenceCurl:[0,0,0,0,0]};
+  return {cue,grip};
+}
 function sendFeedback(zeroCue=false,zeroGrip=false,urgent=false) {
   // Desktop viewers never overwrite a live Quest sample.
   if(source!=='webxr' && !urgent)return;
-  feedback.submit(cueRequest(calculated,source,selectedHand(),!zeroCue && trackingValid),
-    game.intent(source,!zeroCue && !zeroGrip && gameTracked),urgent);
+  const {cue,grip}=feedbackPayload(zeroCue,zeroGrip);
+  feedback.submit(cue,grip,urgent,zeroCue?'stop':zeroGrip?'grip-release':'sample');
 }
 function sendGrip(forceZero=false){sendFeedback(false,forceZero,forceZero);}
 function resetGame(){game.reset();previewLift=0;previewDock=false;for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';if(source==='webxr')sendGrip(true);}
@@ -255,7 +272,7 @@ function zeroTracking() {
   hands=emptyHands();poses=new Map();trackingValid=false;fingers=fingerStates(poses);
   calculated=handCue(poses,[],[]);
   game.suspend();gameTracked=false;restartTouch=0;
-  if(source==='webxr'){sendGrip(true);sendCue(true);}
+  if(source==='webxr')sendCue(true);
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)zeroTracking();});
 // A stopped XR frame cannot refresh a calculated contact indefinitely.
