@@ -1,7 +1,8 @@
 import * as THREE from './vendor/three/three.module.min.js';
-import {CHAINS,JOINTS} from './logic.js';
 import {emptyHands,readHandPoses} from './tracking.js';
 import {Journey,PHASES,DURATION,touchesLight} from './witness-logic.js';
+import {TrackedHand,SKIN_TONES} from './realistic-hand.js';
+import {createNaturalGarden} from './witness-world.js';
 
 // This experience deliberately has no relay, serial or actuator transport.
 const $=id=>document.getElementById(id);
@@ -11,12 +12,12 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x173b49,.024);
+const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xb1c1b5,.024);
 const camera=new THREE.PerspectiveCamera(48,1,.01,65);
-camera.position.set(.85,.6,1.75);camera.lookAt(0,.08,-.8);
+camera.position.set(.44,.28,1.05);camera.lookAt(0,.04,-.9);
 const previewCamera=camera.clone();
-scene.add(new THREE.HemisphereLight(0xc4e8e4,0x193c47,2.3));
-const sun=new THREE.DirectionalLight(0xffdfaa,3.1);sun.position.set(-3,6,1);scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xe6eee1,0x586047,1.7));
+const sun=new THREE.DirectionalLight(0xffe2b8,2.5);sun.position.set(-9,7,-16);scene.add(sun);
 const root=new THREE.Group();scene.add(root);
 const mat=(color,options={})=>new THREE.MeshStandardMaterial({color,roughness:.65,...options});
 const basic=(color,options={})=>new THREE.MeshBasicMaterial({color,...options});
@@ -30,53 +31,7 @@ glowContext.fillStyle=glowGradient;glowContext.fillRect(0,0,128,128);
 const glowTexture=new THREE.CanvasTexture(glowCanvas);
 function glow(parent,color,size){const object=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTexture,color,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));object.scale.set(size,size,1);parent.add(object);return object;}
 
-// Original, procedural scenery: no external images, streaming media or CDN.
-const skyCanvas=document.createElement('canvas');skyCanvas.width=16;skyCanvas.height=256;
-const skyContext=skyCanvas.getContext('2d'),gradient=skyContext.createLinearGradient(0,0,0,256);
-gradient.addColorStop(0,'#080f29');gradient.addColorStop(.45,'#24536b');gradient.addColorStop(.68,'#719d9d');gradient.addColorStop(.8,'#d9ba88');gradient.addColorStop(1,'#254c58');
-skyContext.fillStyle=gradient;skyContext.fillRect(0,0,16,256);
-const skyTexture=new THREE.CanvasTexture(skyCanvas);skyTexture.colorSpace=THREE.SRGBColorSpace;
-mesh(new THREE.SphereGeometry(48,32,20),new THREE.MeshBasicMaterial({map:skyTexture,side:THREE.BackSide,depthWrite:false}));
-const lake=flat(mesh(new THREE.CircleGeometry(37,64),mat(0x346b75,{metalness:.5,roughness:.28})),0,-.87,0);
-const island=mesh(new THREE.CylinderGeometry(1.02,1.14,.12,64),mat(0x183e44,{metalness:.25}));island.position.set(0,-.79,-.13);
-const inlay=flat(mesh(new THREE.RingGeometry(.86,.868,96),basic(0xd8bb7e)),0,-.726,-.13);
-for(let i=0;i<5;i++)flat(mesh(new THREE.RingGeometry(1.4+i*.75,1.406+i*.75,96),basic(0xa4c8c4,{transparent:true,opacity:.16})),0,-.858,-.13);
-
-const arch=mesh(new THREE.TorusGeometry(1.24,.022,8,96),mat(0xe2c992,{metalness:.7,emissive:0x806b35,emissiveIntensity:.45}));
-arch.position.set(0,.44,-3.65);
-const innerArch=mesh(new THREE.TorusGeometry(1.10,.007,6,96),basic(0xb6d7c9,{transparent:true,opacity:.5}));innerArch.position.copy(arch.position);
-const moon=mesh(new THREE.SphereGeometry(.23,24,16),basic(0xffe6b8));moon.position.set(0,.71,-4.12);
-const moonGlow=glow(root,0xffd29a,1.65);moonGlow.position.copy(moon.position);
-const moonHalo=mesh(new THREE.SphereGeometry(.3,20,12),basic(0xffdca0,{transparent:true,opacity:.10,depthWrite:false}));moonHalo.position.copy(moon.position);
-const mountainMat=mat(0x244856),mountainBack=mat(0x355e69);
-for(let i=0;i<20;i++){
-  const angle=i/20*Math.PI*2, distance=15+(i%3)*3,height=2+(i%5)*.9;
-  const m=mesh(new THREE.ConeGeometry(2.8,height,5),i%2?mountainMat:mountainBack);
-  m.position.set(Math.sin(angle)*distance,-.88+height/2,Math.cos(angle)*distance);m.rotation.y=i*.7;
-}
-const lotusMat=mat(0x819dad,{metalness:.3}),lotusCenter=basic(0xe5c38a);
-const petalGeometry=new THREE.SphereGeometry(1,10,6);
-for(let i=0;i<12;i++){
-  const a=i*2.3999,r=2.3+(i%4)*.48,cx=Math.sin(a)*r,cz=Math.cos(a)*r;
-  for(let j=0;j<5;j++){
-    const p=mesh(petalGeometry,lotusMat),v=j/5*Math.PI*2;
-    p.scale.set(.12,.027,.06);p.position.set(cx+Math.cos(v)*.08,-.842,cz+Math.sin(v)*.08);p.rotation.y=-v;
-  }
-  const core=mesh(new THREE.SphereGeometry(.024,8,6),lotusCenter);core.position.set(cx,-.80,cz);
-}
-const starGeometry=new THREE.BufferGeometry(),starPositions=new Float32Array(420*3);
-for(let i=0;i<420;i++){
-  const a=i*2.39996,r=4+(i%23)*.8;
-  starPositions.set([Math.sin(a)*r,.3+(i%31)*.17,Math.cos(a)*r],i*3);
-}
-starGeometry.setAttribute('position',new THREE.BufferAttribute(starPositions,3));
-const stars=new THREE.Points(starGeometry,new THREE.PointsMaterial({color:0xe7d5ab,size:.024,transparent:true,opacity:.7,depthWrite:false}));root.add(stars);
-const reeds=mat(0x244c4e),reedGeometry=new THREE.CylinderGeometry(.005,.013,.5,5);
-for(let i=0;i<32;i++){
-  const sign=i%2?1:-1,x=sign*(1.8+(i%5)*.3),z=-1-(i%11)*.48;
-  const stem=mesh(reedGeometry,reeds);stem.position.set(x,-.62,z);stem.scale.y=.6+(i%4)*.25;
-  const firefly=glow(root,i%3?0x92dbcb:0xe6c88c,.09);firefly.position.set(x,-.4+stem.scale.y*.14,z);
-}
+const world=createNaturalGarden(root);
 
 function label(text,width=.19,height=.045,color='#e7d9bc'){
   const c=document.createElement('canvas');c.width=640;c.height=128;
@@ -98,7 +53,7 @@ const orbs=colors.map((color,i)=>{
 const rippleGeometry=new THREE.RingGeometry(.93,1,48);
 const ripples=Array.from({length:12},()=>{
   const material=basic(0xf0cf90,{transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false});
-  const object=flat(mesh(rippleGeometry,material),0,-.723,0);object.visible=false;return {object,life:0};
+  const object=flat(mesh(rippleGeometry,material),0,world.waterLevel+.006,0);object.visible=false;return {object,life:0};
 });
 let rippleIndex=0,formIndex=0,burst=0,nextFormAt=103;
 
@@ -135,53 +90,10 @@ class GardenAudio {
 const audio=new GardenAudio();
 async function unlockAudio(){try{await audio.start();}catch{ $('garden-status').textContent='The garden is ready. Audio could not start; the visual journey still works.';}}
 
-// Each of the 25 Quest joints remains independent; absent poses stay hidden.
-const jointGeometry=new THREE.SphereGeometry(1,10,8),boneGeometry=new THREE.CylinderGeometry(1,1,1,8);
-function handRig(){
-  const group=new THREE.Group();scene.add(group);
-  const material=mat(0xa9e5d5,{metalness:.35,roughness:.35,emissive:0x315f58,emissiveIntensity:.2,transparent:true,opacity:.95});
-  const tips=mat(0xf5dfaf,{emissive:0xa98a49,emissiveIntensity:.55});
-  const joints=new Map(JOINTS.map(name=>[name,mesh(jointGeometry,name.endsWith('tip')?tips:material,group)]));
-  const bones=CHAINS.flatMap(chain=>chain.slice(1).map((name,i)=>({a:chain[i],b:name,mesh:mesh(boneGeometry,material,group)})));
-  const palm=mesh(new THREE.BoxGeometry(1,1,1),material,group);return {group,material,tips,joints,bones,palm};
-}
-const rigs={left:handRig(),right:handRig()},up=new THREE.Vector3(0,1,0);
-const start=new THREE.Vector3(),end=new THREE.Vector3(),direction=new THREE.Vector3();
-const palmWrist=new THREE.Vector3(),palmIndex=new THREE.Vector3(),palmLittle=new THREE.Vector3(),palmCenter=new THREE.Vector3(),palmX=new THREE.Vector3(),palmY=new THREE.Vector3(),palmZ=new THREE.Vector3(),palmBasis=new THREE.Matrix4();
-function drawHand(poses,rig){
-  rig.group.visible=poses.size>0;
-  for(const [name,object] of rig.joints){
-    const pose=poses.get(name);object.visible=!!pose;
-    if(pose){object.position.set(pose.x,pose.y,pose.z);object.scale.setScalar(Math.min(.019,Math.max(.004,pose.radius||.008)));}
-  }
-  for(const bone of rig.bones){
-    const a=poses.get(bone.a),b=poses.get(bone.b);bone.mesh.visible=!!a&&!!b;if(!a||!b)continue;
-    start.set(a.x,a.y,a.z);end.set(b.x,b.y,b.z);direction.subVectors(end,start);const length=direction.length();
-    if(length<.0001){bone.mesh.visible=false;continue;}
-    bone.mesh.position.copy(start).add(end).multiplyScalar(.5);bone.mesh.quaternion.setFromUnitVectors(up,direction.normalize());
-    const radius=Math.min(a.radius||.007,b.radius||.007)*.9;bone.mesh.scale.set(radius,length,radius);
-  }
-  const w=poses.get('wrist'),a=poses.get('index-finger-phalanx-proximal'),b=poses.get('pinky-finger-phalanx-proximal');
-  rig.palm.visible=!!w&&!!a&&!!b;
-  if(w&&a&&b){
-    palmWrist.set(w.x,w.y,w.z);palmIndex.set(a.x,a.y,a.z);palmLittle.set(b.x,b.y,b.z);
-    palmCenter.copy(palmIndex).add(palmLittle).multiplyScalar(.5);palmZ.copy(palmWrist).sub(palmCenter);palmX.copy(palmIndex).sub(palmLittle);
-    const length=palmZ.length(),width=palmX.length();
-    if(length<.001||width<.001){rig.palm.visible=false;return;}
-    palmZ.normalize();palmX.addScaledVector(palmZ,-palmX.dot(palmZ)).normalize();palmY.crossVectors(palmZ,palmX).normalize();
-    rig.palm.position.copy(palmWrist).add(palmCenter).multiplyScalar(.5);rig.palm.quaternion.setFromRotationMatrix(palmBasis.makeBasis(palmX,palmY,palmZ));rig.palm.scale.set(width+.014,.017,length);
-  }
-}
-function previewHand(side,time){
-  const poses=new Map(),mirror=side==='right'?1:-1,curl=(Math.sin(time*.55)+1)*.35;
-  const put=(name,x,y,z,radius=.007)=>poses.set(name,{x:mirror*(x+.145),y:y-.03,z:z+.19,radius});
-  put('wrist',0,0,.05,.012);
-  CHAINS.slice(1).forEach((chain,i)=>{
-    const x=-.03+i*.021;put(chain[1],x,0,.022,.009);put(chain[2],x,0,-.014,.008);
-    let y=0,z=-.014;[.032,.024,.018].forEach((length,j)=>{y-=Math.sin(curl*(j+1)*.6)*length;z-=Math.cos(curl*(j+1)*.6)*length;put(chain[j+3],x,y,z,.007-j*.0007);});
-  });
-  CHAINS[0].slice(1).forEach((name,i)=>put(name,-.034-i*.012,-i*curl*.009,.014-i*.018,.008-i*.0007));return poses;
-}
+const rigs={left:new TrackedHand(scene,'left'),right:new TrackedHand(scene,'right')};
+let handPreviewCurl=null,handCameraClose=false,skinTone=SKIN_TONES.warm;
+function drawHand(poses,rig){rig.update(poses);}
+function previewHand(side,time){return rigs[side].preview(time,{curl:handPreviewCurl});}
 
 // A small, legible canvas panel is rendered in 3D: HTML is absent in immersive VR.
 const panelCanvas=document.createElement('canvas');panelCanvas.width=1400;panelCanvas.height=430;
@@ -194,11 +106,11 @@ const controls=[{name:'next',x:.13,object:nextLabel},{name:'restart',x:-.13,obje
   return {...item,body,world:new THREE.Vector3(),touching:false};
 });
 let hands=emptyHands(),anchored=false,lastTime=0,lastUI=0,activePhase=-1,previewPanel=false,touchCount=0;
-const viewerRotation=new THREE.Quaternion(),forward=new THREE.Vector3(),scratchColor=new THREE.Color();
+const viewerRotation=new THREE.Quaternion(),forward=new THREE.Vector3();
 function begin(){journey.start();activePhase=-1;formIndex=0;nextFormAt=103;touchCount=0;burst=0;for(const orb of orbs)orb.touching=false;}
 function activateOrb(index){
   const orb=orbs[index];orb.pulse=1;burst=1;touchCount++;
-  const ripple=ripples[rippleIndex++%ripples.length];ripple.life=1;ripple.object.visible=true;ripple.object.position.set(orb.group.position.x,-.72,orb.group.position.z);ripple.object.material.color.setHex(orb.color);
+  const ripple=ripples[rippleIndex++%ripples.length];ripple.life=1;ripple.object.visible=true;ripple.object.position.set(orb.group.position.x,world.waterLevel+.006,orb.group.position.z-.5);ripple.object.material.color.setHex(orb.color);
   audio.chime([392,523.25,659.25][index]);
   if(journey.phase===2){formIndex=(formIndex+1)%3;nextFormAt=journey.elapsed+8;}
 }
@@ -207,11 +119,7 @@ function updateStyle(){
   if(phase!==activePhase){activePhase=phase;formIndex=0;nextFormAt=journey.elapsed+8;audio.chime([261.63,329.63,392,261.63][phase],.10,3);}
   if(phase===2 && journey.running && journey.elapsed>=nextFormAt){formIndex=(formIndex+1)%3;nextFormAt=journey.elapsed+8;}
   const form=phase===2?formIndex:0;
-  const color=form===1?0xe4b4c9:PHASES[phase].color;
-  for(const rig of Object.values(rigs)){
-    rig.material.color.setHex(color);rig.material.opacity=(phase===3||form===2)?.22:.93;
-    rig.material.wireframe=form===2;rig.material.emissive.copy(scratchColor.setHex(color)).multiplyScalar(.14+burst*.35);
-  }
+  for(const rig of Object.values(rigs))rig.setAppearance({phase,form,skin:skinTone,burst});
 }
 function clockText(){const remaining=Math.ceil(DURATION-journey.elapsed);return `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')}`;}
 function updatePanel(){
@@ -241,6 +149,15 @@ $('restart-journey').addEventListener('click',()=>{unlockAudio();begin();});
 $('next-phase').addEventListener('click',()=>{unlockAudio();journey.next();});
 $('preview-touch').addEventListener('click',()=>{unlockAudio();if(!journey.running&&!journey.finished)begin();activateOrb(touchCount%3);});
 $('preview-form').addEventListener('click',()=>{unlockAudio();journey.elapsed=95;journey.running=true;activePhase=2;formIndex=(formIndex+1)%3;});
+$('skin-tone').addEventListener('change',event=>{skinTone=SKIN_TONES[event.target.value]??SKIN_TONES.warm;});
+$('hands-open').addEventListener('click',()=>{handPreviewCurl=0;});
+$('hands-close').addEventListener('click',()=>{handPreviewCurl=.95;});
+$('inspect-hands').addEventListener('click',()=>{
+  handCameraClose=!handCameraClose;
+  if(handCameraClose){camera.position.set(.12,.18,.62);camera.lookAt(0,-.07,.07);}
+  else{camera.position.copy(previewCamera.position);camera.quaternion.copy(previewCamera.quaternion);}
+  $('inspect-hands').textContent=handCameraClose?'View the landscape':'Inspect hands';
+});
 $('preview-panel').addEventListener('click',()=>{previewPanel=!previewPanel;panel.visible=previewPanel;});
 $('music-volume').addEventListener('input',event=>{audio.volume=Number(event.target.value)/100;audio.applyVolume();});
 $('mute-music').addEventListener('click',()=>{audio.muted=!audio.muted;audio.applyVolume();$('mute-music').textContent=audio.muted?'Sound off':'Sound on';$('mute-music').setAttribute('aria-pressed',String(audio.muted));if(!audio.muted)unlockAudio();});
@@ -250,6 +167,7 @@ renderer.xr.addEventListener('sessionend',()=>{
 });
 async function checkVR(){
   try{
+    await Promise.all(Object.values(rigs).map(rig=>rig.ready));
     const supported=!!navigator.xr&&await navigator.xr.isSessionSupported('immersive-vr');
     $('enter-garden').disabled=!supported;$('enter-garden').textContent=supported?'Enter VR · begin journey':'Open this page in Quest Browser';
     $('garden-status').textContent=supported?'Ready. Put controllers aside and use both hands.':'Desktop rehearsal is ready. Press Start to explore light, music and the story.';
@@ -288,6 +206,7 @@ renderer.setAnimationLoop((time,frame)=>{
     orb.pulse=Math.max(0,orb.pulse-delta*.9);orb.sphere.scale.setScalar(1+orb.pulse*.35);orb.halo.scale.setScalar(1+orb.pulse*1.5);orb.halo.material.opacity=.12+orb.pulse*.22;orb.ring.rotation.z=seconds*.2;
   }
   for(const control of controls){
+    control.body.visible=control.object.visible=panel.visible;
     control.body.getWorldPosition(control.world);
     const touching=live&&visible&&['left','right'].some(side=>touchesLight(hands[side],control.world,.045,control.touching?.012:0));
     if(touching&&!control.touching){if(control.name==='restart')begin();else journey.next();audio.chime(784,.08,.5);}control.touching=touching;
@@ -296,8 +215,7 @@ renderer.setAnimationLoop((time,frame)=>{
     ripple.life=Math.max(0,ripple.life-delta*.32);ripple.object.visible=ripple.life>0;
     if(ripple.life>0){ripple.object.scale.setScalar(.045+(1-ripple.life)*.8);ripple.object.material.opacity=ripple.life*.55;}
   }
-  burst=Math.max(0,burst-delta*.6);stars.rotation.y=seconds*.007;stars.material.opacity=.5+Math.sin(seconds*.35)*.1;
-  moonHalo.scale.setScalar(1+Math.sin(seconds*.4)*.07);innerArch.material.opacity=.35+burst*.35;
+  burst=Math.max(0,burst-delta*.6);world.update(seconds,burst);
   if(time-lastUI>150){updateUI();lastUI=time;}
   renderer.render(scene,camera);
 });

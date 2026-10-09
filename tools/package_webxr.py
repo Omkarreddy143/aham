@@ -11,7 +11,7 @@ paths = [root / "README.md", root / "docs/webxr-quickstart.md", root / "docs/fin
          root / "docs/technical-judging.md",
          root / "docs/webxr-architecture.md", root / "docs/protocol.md",
          root / "tests/test_webxr_relay.py", root / "tests/webxr-logic.test.mjs",
-         root / "tests/webxr-game.test.mjs", root / "tests/webxr-network.test.mjs", root / "tests/webxr-witness.test.mjs", root / "docs/servo-resistance-plan.md",
+         root / "tests/webxr-game.test.mjs", root / "tests/webxr-network.test.mjs", root / "tests/webxr-witness.test.mjs", root / "tests/webxr-hands.test.mjs", root / "docs/servo-resistance-plan.md",
          root / "docs/verification.md", root / "docs/images/webxr-v4.jpg"]
 paths.extend([root / "docs/wifi-quickstart.md", root / "tests/test_wifi_monitor.py",
               root / "docs/usb-glove-quickstart.md", root / "tools/glove_command.py", root / "tools/servo_sweep.py",

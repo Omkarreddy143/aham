@@ -2,6 +2,9 @@
 
 ## Final submission — Witness Garden (9 October 2026)
 
+- **Natural garden / articulated hand update:** replaced the geometric landscape with curved wooded banks, weathered decking, stones, grasses, lilies, clouds and birds. Water uses animated shading and sky colour, not a rendered mirror of the scene. Instancing reduces repeated scenery draw calls.
+- Both bundled generic-hand meshes load and deform from all 25 joint positions/orientations. Browser rehearsal confirmed open/closed fingers, skin-tone selection and the identity form transition, with no console warnings/errors. Missing joint data uses the partial-joint fallback; complete loss hides the hand. Desktop poses are synthetic; actual Quest fit, comfort and frame rate remain to be checked.
+- All 29 JavaScript tests passed, including loading both actual GLB assets, joint-driven deformation, anatomical preview orientation and tracking-loss handling. Relay tests: 21 passed, one Windows symlink-permission skip; hand-file MIME/confinement coverage included. [Natural scenery](images/witness-garden-natural.jpg) and [hand preview](images/witness-hands-natural.jpg).
 - Dashboard now exposes Witness Garden and preserves Orbit Foundry at `/game.html`.
 - Browser review: landscape renders; Start, chapter advancement, identity-form changes, light preview, restart and the in-world prompt panel work. No browser console errors were observed.
 - All 27 JavaScript tests passed, including the 180-second timeline, visibility pauses, missing/invalid fingertip rejection and existing game/tracking/network regressions.

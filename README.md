@@ -2,7 +2,7 @@
 
 **Selected build: a WebXR app in Meta Quest 3 Browser, with a feedback glove. Unity is no longer required for this path.**
 
-**Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience with both tracked hands, an original procedural landscape, fingertip light/chime interactions and synthesized ambient music, plus the original **Orbit Foundry** game. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
+**Final submission:** the dashboard offers **Witness Garden**, a three-minute Tattva experience beside a wooded lake, with articulated skin-shaded hands, fingertip light/chime interactions and synthesized ambient music, plus the original **Orbit Foundry** game. Both hand meshes follow all 25 Quest joints; choose warm, light or deep skin before entering VR. Read the [timed judging script](docs/final-demo-3min.md). Witness Garden works locally after loading and sends no actuator commands. Its four chapters explore agency, ownership, changing identity and awareness; they do not claim to measure consciousness or guarantee ownership.
 
 For the final presentation, **Open Final Demo.cmd** opens a fixed repository-hosted copy of the garden, avoiding the laptop's temporary tunnel. The original game's live feedback relay still uses the laptop-hosted URL.
 

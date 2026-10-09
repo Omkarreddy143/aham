@@ -7,12 +7,14 @@
 ## Before the judges arrive
 
 1. Prefer the fixed garden link above for this presentation. Alternatively, keep the laptop server/tunnel running long enough for Quest Browser to load the page and open the current HTTPS address saved in `VR-LINK.txt`. The latter exposes the live feedback relay for the original game.
-2. Choose **Witness Garden**, enable Quest hand tracking, put controllers aside, and select **Enter VR · begin journey**. Sound starts with this press. Set a comfortable headset volume before the presentation.
+2. Choose **Witness Garden**, optionally select **Hand appearance** (warm, light or deep skin), enable Quest hand tracking, put controllers aside, and select **Enter VR · begin journey**. Sound starts with this press. Set a comfortable headset volume before the presentation.
 3. Start facing forward. The garden positions itself once relative to the initial headset pose. Hold either hand in view; the three lights sit within reaching distance. Touch them with a fingertip.
 4. For spectators, use the Quest's existing casting setup if available. The laptop's garden page is a separate **simulated desktop rehearsal**, not a mirror of the headset. Label it accordingly if used as a fallback.
 5. Let one teammate narrate while one participant uses the headset. The four chapters advance automatically over **180 visible seconds**. NEXT and RESTART are also fingertip buttons inside VR. The desktop controls affect only that browser's own journey.
 
 The experience, scenery and original synthesized audio operate locally after loading. There is no streaming music, external CDN or actuator command in this mode. Physical feedback is not needed for this presentation. The firmware and original game remain separate.
+
+The updated garden includes curved banks, trees, rocks, grasses, lilies, gently shaded water, clouds and birds. Its continuous left/right hand meshes follow Quest's 25 joint positions and orientations. **Inspect hands**, **Open hands** and **Close hands** are desktop rehearsal controls; Quest hands always follow actual tracking. The assets are bundled with the scene and carry their MIT license.
 
 ## Timed narration — speak while the participant acts
 
