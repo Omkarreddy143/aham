@@ -16,7 +16,16 @@ For repeated checks while a teammate plays:
 & '.\Check Orbit Foundry.cmd' --watch
 ```
 
-Each check takes a few seconds, followed by a five-second pause in watch mode.
+Watch mode refreshes the local Quest input and ESP receipts about once a second.
+The **LIVE WATCH** counter and **ESP RECEIPT: sequence / age** show whether
+the display and board replies are advancing, even when all values stay zero.
+Slow public-link and process checks run in the background every 15 seconds;
+their verification age is displayed. Old ESP receipts never count as live.
+The terminal refreshes in place with the values and data-path status first.
+It shows the first recovery step; the saved report contains every recovery step.
+
+After updating the checker, press **Ctrl+C** in an existing watch window and
+run the command above again to load the new code.
 Press **Ctrl+C** to stop. The latest report is saved as **ORBIT-STATUS.txt** in
 the same folder; it is local and excluded from Git. For a single check without
 the shortcut's final pause:

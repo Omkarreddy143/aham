@@ -1,5 +1,20 @@
 # Starter verification — 7 October 2026
 
+## Responsive Orbit watch (9 October 2026)
+
+- Watch mode now follows new ESP log bytes continuously and polls local Quest
+  input about once a second. Slow HTTPS/process checks run in the background
+  every 15 seconds, with their age shown. Runtime/link changes invalidate the
+  cached verification. The compact terminal shows the refresh counter, receipt
+  sequence/age, requests, commanded outputs and connection status; the full
+  recovery report remains in ORBIT-STATUS.txt.
+- All 17 checker tests passed, including continuous log following, startup
+  history rejection, truncation, stale receipts, background checks and changed
+  links. Live read-only observation confirmed 14 refreshes and advancing ESP
+  sequences from 18711 to 18841, PCA detected and D6 closed. The current game
+  link responded, but Quest uploads were absent; zero values and an incomplete
+  data path correctly reflected that gap. No output test or ARM was issued.
+
 ## Automatic USB feedback (9 October 2026)
 
 - Added an explicit local automatic mode to the USB companion, without firmware

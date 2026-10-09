@@ -25,6 +25,8 @@ from aham.webxr_relay import validate_external_origin
 
 REPORT = ROOT / 'ORBIT-STATUS.txt'
 FRESH_MS = 250
+WATCH_INTERVAL = .75
+INFRA_INTERVAL = 15
 
 
 def http_probe(url, kind='json', timeout=4):
@@ -147,6 +149,111 @@ def sample_companion(settings, alive, seconds=2.2):
     return result
 
 
+class CompanionTail:
+    """Follow new log bytes across watch ticks; never replay startup history."""
+    def __init__(self):
+        self.path=None;self.identity=None;self.offset=0;self.buffer=b''
+        self.receipt=None;self.board=None;self.received_at=None;self.board_at=None
+        self.last_status=-float('inf')
+
+    def read(self, settings, alive):
+        now=time.monotonic()
+        result={'alive':alive,'receipt':None,'board':None,'sampledAt':now}
+        path=confined_log(settings)
+        if not alive or path is None:return result
+        try:
+            info=path.stat();identity=(info.st_dev,info.st_ino)
+            if path!=self.path or identity!=self.identity:
+                self.__init__();self.path=path;self.identity=identity
+                self.offset=info.st_size  # Existing receipts are historical.
+            elif info.st_size<self.offset:
+                self.offset=0;self.buffer=b''
+                self.receipt=self.board=None;self.received_at=self.board_at=None
+            with path.open('rb') as stream:
+                # Bound memory if a watcher was suspended while logs grew.
+                if info.st_size-self.offset>65536:
+                    self.offset=info.st_size-65536;self.buffer=b''
+                    stream.seek(self.offset);stream.readline()
+                else:stream.seek(self.offset)
+                self.buffer+=stream.read(65536);self.offset=stream.tell()
+            # A newly observed line in an old file must not become a fresh reply.
+            observed_at=now-max(0,time.time()-info.st_mtime)
+            while b'\n' in self.buffer:
+                line,_,self.buffer=self.buffer.partition(b'\n')
+                text=line.decode('ascii',errors='replace').strip()
+                receipt=parse_receipt(text);board=parse_board(text)
+                if receipt is not None:self.receipt=receipt;self.received_at=observed_at
+                if board is not None:self.board=board;self.board_at=observed_at
+            if len(self.buffer)>65536:self.buffer=b''
+            control=ROOT / '.build/glove-control.txt'
+            if settings.get('gloveSerialPort') and control.is_file() and now-self.last_status>=2:
+                with control.open('ab') as output:output.write(b'STATUS\n')
+                self.last_status=now
+            result.update(receipt=self.receipt,board=self.board,
+                receiptAgeMs=None if self.received_at is None else int(max(0,now-self.received_at)*1000),
+                boardAgeMs=None if self.board_at is None else int(max(0,now-self.board_at)*1000))
+        except OSError:result['error']='Cannot read the running companion log/control file'
+        return result
+
+
+def infrastructure(settings):
+    """Slow link/process checks run separately from the live watch display."""
+    origin=settings.get('origin')
+    if origin:validate_external_origin(origin)
+    missing={'ok':False,'error':'No saved link'}
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        public=pool.submit(http_probe,origin+'/api/status') if origin else None
+        game=pool.submit(http_probe,origin+'/game.html','game') if origin else None
+        inventory=pool.submit(vr_link.process_table)
+        public=public.result() if public else missing;game=game.result() if game else missing
+        try:records=inventory.result();error=None
+        except (OSError,ValueError,RuntimeError,subprocess.SubprocessError):records=[];error='Unavailable; other checks still shown'
+    try:
+        from serial.tools.list_ports import comports
+        ports=[p.device for p in comports()]
+    except (ImportError,OSError):ports=None
+    return dict(public=public,game=game,alive=companion_alive(settings,records),
+                ports=ports,inventory_error=error,checkedAt=time.monotonic())
+
+
+class WatchMonitor:
+    def __init__(self):
+        self.pool=ThreadPoolExecutor(max_workers=1)
+        self.future=None;self.future_key=None;self.key=None;self.cached=None
+        self.tail=CompanionTail();self.tick=0
+
+    def close(self):
+        self.pool.shutdown(wait=False,cancel_futures=True)
+
+    def check(self):
+        settings=vr_link.load_state()
+        key=tuple(settings.get(k) for k in ('origin','wifiGlovePid','gloveSerialPort','espIp','wifiGloveLog'))
+        if key!=self.key:
+            self.key=key;self.cached=None;self.tail=CompanionTail()
+        if self.future is not None and self.future.done():
+            result=self.future.result()
+            if self.future_key==key:self.cached=result
+            self.future=None
+        if self.future is None and (self.cached is None or time.monotonic()-self.cached['checkedAt']>=INFRA_INTERVAL):
+            self.future_key=key;self.future=self.pool.submit(infrastructure,dict(settings))
+        # Read counters first, then the freshest hand snapshot. Neither waits on
+        # Cloudflare or process inventory; do not extend the hardware data lease.
+        connection=http_probe('http://127.0.0.1:8890/api/connection-status',timeout=.6)
+        preview=http_probe('http://127.0.0.1:8890/api/wifi-preview',timeout=.6)
+        cache=self.cached
+        age=None if cache is None else time.monotonic()-cache['checkedAt']
+        if cache is None or age>=45:
+            pending={'ok':False,'error':'Verification in progress'}
+            cache=dict(public=pending,game=pending,alive=False,ports=None,inventory_error='Verification in progress')
+        companion=self.tail.read(settings,cache['alive'])
+        text,ready=make_report(settings,{'ok':preview.get('ok',False)},cache['public'],cache['game'],
+            preview,connection,companion,cache['ports'],cache['inventory_error'])
+        self.tick+=1
+        verification='pending' if age is None else f'{age:.1f}s ago'
+        header=f'LIVE WATCH #{self.tick} | {time.strftime("%H:%M:%S")} | refresh ~0.75s | link/ports verified: {verification}\n'
+        return header+text,ready
+
+
 def fresh(value, maximum=FRESH_MS, elapsed_ms=0):
     return isinstance(value,dict) and type(value.get('ageMs')) is int and 0<=value['ageMs']+elapsed_ms<maximum
 
@@ -231,7 +338,9 @@ def make_report(settings, local, public, game, preview, connection, companion, p
         lines+=['PCA / D6: not confirmed by a fresh board STATUS reply.']
         if serial and live_receipt:fixes.append('ESP data is replying, but STATUS was not received. Use tools/glove_command.py STATUS with the running USB companion to check PCA and D6.')
     if live_receipt:
-        lines+=['','REQUESTS RECEIVED BY ESP (thumb/index/middle/ring/little):',
+        age=receipt_age+max(0,(time.monotonic()-companion.get('sampledAt',time.monotonic()))*1000)
+        lines+=['',f'ESP RECEIPT: sequence={receipt["sequence"]} | age={age/1000:.2f}s',
+                'REQUESTS RECEIVED BY ESP (thumb/index/middle/ring/little):',
                 '  VIB='+str(receipt['vibration'])+'  RES%='+str(receipt['resistance'])+'  HOLD='+str(receipt['holding']),
                 'OUTPUT ARM MASKS: motors='+str(receipt['motorMask'])+' servos='+str(receipt['servoMask']),
                 'COMMANDED OUTPUTS: PWM='+str(receipt['pwm'])+'  SERVO_US='+str(receipt['servoUs'])+'  SERVO_SIGNAL_MASK='+str(receipt['servoSignalMask']),
@@ -290,22 +399,59 @@ def check_once():
     return make_report(settings,local,public,game,preview,connection,companion,ports,inventory_error)
 
 
+def watch_display(report):
+    """Keep changing values on screen; the full recovery report stays on disk."""
+    lines=report.splitlines();output=[lines[0]]
+    groups=(('DATA PATH:', 'QUEST -> LAPTOP:', 'ESP REPLIES:', 'ESP RECEIPT:'),
+            ('  VIB=', 'OUTPUT ARM MASKS:', 'COMMANDED OUTPUTS:', 'AUTOMATIC FEEDBACK:', 'OUTPUTS:'),
+            ('WORKING QUEST LINK:', 'Last saved link', 'LAPTOP WEBSITE:', 'PUBLIC HTTPS LINK:',
+             'ORBIT GAME PAGE:', 'LAPTOP -> ESP TRANSPORT:', 'GLOVE COMPANION:', 'USB PORT:',
+             'PCA9685:', 'D6 STOP LOOP:', 'PCA / D6:', 'Uploads accepted/rejected:', 'Last accepted cue:'))
+    for prefixes in groups:
+        output.append('')
+        for prefix in prefixes:
+            for line in lines:
+                if line.startswith(prefix):
+                    if prefix=='COMMANDED OUTPUTS:':
+                        pwm,_,servo=line.partition('  SERVO_US=')
+                        output.extend((pwm,'  SERVO_US='+servo))
+                    else:output.append(line)
+    fixes=[line for line in lines if re.match(r'^\d+\. ',line)]
+    output+=['','NEXT STEP: '+fixes[0][3:] if fixes else 'NEXT STEP: touch/grasp an object to observe requests.',
+             'Full status and recovery steps: ORBIT-STATUS.txt | Ctrl+C to stop.']
+    return '\n'.join(output)+'\n'
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--watch',action='store_true',help='Repeat checks until Ctrl+C; never arm hardware')
     args=parser.parse_args()
+    monitor=WatchMonitor() if args.watch else None
     try:
         while True:
-            print('Checking the current link, Quest uploads and ESP replies...',flush=True)
-            text,ready=check_once();print('\n'+text,flush=True)
+            started=time.monotonic()
+            if monitor:text,ready=monitor.check()
+            else:
+                print('Checking the current link, Quest uploads and ESP replies...',flush=True)
+                text,ready=check_once()
+            if monitor and sys.stdout.isatty():
+                # Windows Terminal/VS Code support ANSI. Enable it for classic CMD.
+                if sys.platform=='win32':
+                    import ctypes
+                    kernel=ctypes.windll.kernel32;handle=kernel.GetStdHandle(-11)
+                    mode=ctypes.c_ulong()
+                    if kernel.GetConsoleMode(handle,ctypes.byref(mode)):kernel.SetConsoleMode(handle,mode.value|4)
+                print('\x1b[2J\x1b[H',end='')
+            print(watch_display(text) if monitor else text,flush=True)
             REPORT.write_text(text,encoding='utf-8')
-            print('Saved to ORBIT-STATUS.txt.',flush=True)
             if not args.watch:return 0 if ready else 1
-            print('Next check in 5 seconds; Ctrl+C to stop.\n',flush=True);time.sleep(5)
+            time.sleep(max(0,WATCH_INTERVAL-(time.monotonic()-started)))
     except KeyboardInterrupt:return 0
     except (OSError,ValueError):
         print('Check could not finish. Run "Open VR Link.cmd", verify USB/Internet, and rerun.',flush=True)
         return 1
+    finally:
+        if monitor:monitor.close()
 
 
 if __name__=='__main__':raise SystemExit(main())

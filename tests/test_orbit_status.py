@@ -1,5 +1,6 @@
 """Connection diagnosis without a headset, a serial owner change or actuation."""
 import importlib.util
+from concurrent.futures import Future
 import json
 from pathlib import Path
 import sys
@@ -179,6 +180,92 @@ class StatusTests(unittest.TestCase):
             self.assertIn('NO FRESH REPLY',text)
             self.assertFalse(ready)
             refresh.assert_not_called();serial_open.assert_not_called()
+
+    def test_watch_tail_ignores_history_then_keeps_following_new_receipts(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / '.build') as directory:
+            root=Path(directory);build=root/'.build';build.mkdir()
+            log=build/'live.log';log.write_text(RECEIPT+'\n')
+            control=build/'glove-control.txt';control.write_bytes(b'')
+            settings={'wifiGloveLog':str(log),'gloveSerialPort':'COM7'}
+            with patch.object(status,'ROOT',root):
+                tail=status.CompanionTail()
+                self.assertIsNone(tail.read(settings,True)['receipt'])
+                with log.open('a') as output:output.write(RECEIPT.replace('seq=123','seq=124')+'\n'+BOARD+'\n')
+                first=tail.read(settings,True)
+                self.assertEqual(first['receipt']['sequence'],124)
+                self.assertEqual(first['board']['PCA'],1)
+                with log.open('a') as output:output.write(RECEIPT.replace('seq=123','seq=125')+'\n')
+                self.assertEqual(tail.read(settings,True)['receipt']['sequence'],125)
+                tail.received_at-=3
+                self.assertGreaterEqual(tail.read(settings,True)['receiptAgeMs'],3000)
+                self.assertIsNone(tail.read(settings,False)['receipt'])
+                log.write_bytes(b'')
+                self.assertIsNone(tail.read(settings,True)['receipt'])
+            self.assertEqual(control.read_bytes(),b'STATUS\n')
+
+    def test_watch_updates_live_values_without_waiting_for_link_reverification(self):
+        settings={'origin':'https://current.trycloudflare.com','wifiGlovePid':77,'gloveSerialPort':'COM7'}
+        pool=Mock();pending=Future();pool.submit.return_value=pending
+        cache=dict(public={'ok':True},game={'ok':True},alive=True,ports=['COM7'],
+                   inventory_error=None,checkedAt=time.monotonic())
+        ack=status.parse_receipt(RECEIPT)
+        sample={'alive':True,'receipt':ack,'receiptAgeMs':0,'board':status.parse_board(BOARD),'boardAgeMs':0}
+        def endpoint(url,**kwargs):
+            return probe({'cue':right_input()}) if url.endswith('wifi-preview') else probe({'accepted':12})
+        with patch.object(status,'ThreadPoolExecutor',return_value=pool), \
+             patch.object(status.vr_link,'load_state',return_value=settings), \
+             patch.object(status,'http_probe',side_effect=endpoint), \
+             patch.object(status,'check_once') as slow_check:
+            monitor=status.WatchMonitor()
+            monitor.check()  # Start background verification without blocking.
+            self.assertFalse(pending.done())
+            pending.set_result(cache)
+            monitor.tail.read=Mock(return_value=sample)
+            text,ready=monitor.check()
+            self.assertTrue(ready)
+            self.assertIn('LIVE WATCH #2',text)
+            self.assertIn('sequence=123',text)
+            monitor.cached['checkedAt']=time.monotonic()-16
+            pool.submit.return_value=Future()  # Slow recheck remains in flight.
+            sample['receipt']=dict(ack,sequence=124,vibration=[0,160,0,0,0])
+            text,ready=monitor.check()
+            self.assertTrue(ready)
+            self.assertIn('sequence=124',text)
+            self.assertIn('VIB=[0, 160, 0, 0, 0]',text)
+            self.assertFalse(monitor.future.done())
+            monitor.cached['checkedAt']=time.monotonic()-46
+            text,ready=monitor.check()
+            self.assertFalse(ready)
+            self.assertIn('WORKING QUEST LINK: not verified',text)
+            slow_check.assert_not_called()
+            monitor.close()
+
+    def test_watch_origin_change_does_not_keep_verifying_the_old_link(self):
+        settings={'origin':'https://old.trycloudflare.com'}
+        pool=Mock();pool.submit.return_value=Future()
+        with patch.object(status,'ThreadPoolExecutor',return_value=pool), \
+             patch.object(status.vr_link,'load_state',side_effect=lambda:dict(settings)), \
+             patch.object(status,'http_probe',return_value=probe({})):
+            monitor=status.WatchMonitor();monitor.check()
+            monitor.cached=dict(public={'ok':True},game={'ok':True},alive=False,ports=None,
+                                inventory_error=None,checkedAt=time.monotonic())
+            settings['origin']='https://new.trycloudflare.com'
+            text,ready=monitor.check()
+            self.assertFalse(ready)
+            self.assertIn('Last saved link (not confirmed working): https://new.trycloudflare.com/game.html',text)
+            self.assertNotIn('WORKING QUEST LINK: https://old',text)
+            monitor.close()
+
+    def test_watch_display_places_values_and_path_before_long_recovery_guidance(self):
+        report,_=self.report()
+        compact=status.watch_display('LIVE WATCH #3\n'+report)
+        self.assertLess(compact.index('DATA PATH:'),compact.index('WORKING QUEST LINK:'))
+        self.assertLess(compact.index('VIB='),compact.index('WORKING QUEST LINK:'))
+        self.assertIn('PWM=',compact)
+        self.assertIn('SERVO_US=',compact)
+        self.assertIn('ESP RECEIPT: sequence=123',compact)
+        self.assertIn('ORBIT-STATUS.txt',compact)
+        self.assertNotIn('Check only: no ARM',compact)
 
 
 if __name__=='__main__':unittest.main()
