@@ -2,7 +2,7 @@
 
 Choose **Witness Garden** on the dashboard. The AI voice now gives only brief activity instructions and one question per chapter. **Your team explains the Tattva.** The full journey lasts 120 visible seconds; speech totals about 40 seconds.
 
-[Open Witness Garden](https://rawcdn.githack.com/Omkarreddy143/aham/a6a62029d04cd8a23a72ab4965a4021613491652/webxr/witness.html) or the [two-experience dashboard](https://rawcdn.githack.com/Omkarreddy143/aham/a6a62029d04cd8a23a72ab4965a4021613491652/webxr/index.html). The shortcut **Open Final Demo.cmd** uses the fixed repository-hosted garden. This mode sends no actuator commands; Orbit Foundry's live glove feedback still needs the laptop relay.
+[Open Witness Garden](https://rawcdn.githack.com/Omkarreddy143/aham/7546b3b304c39839f61445f579358d13e02b8ebb/webxr/witness.html) or the [two-experience dashboard](https://rawcdn.githack.com/Omkarreddy143/aham/7546b3b304c39839f61445f579358d13e02b8ebb/webxr/index.html). The shortcut **Open Final Demo.cmd** uses the fixed repository-hosted garden. This mode sends no actuator commands; Orbit Foundry's live glove feedback still needs the laptop relay.
 
 ## Setup
 
