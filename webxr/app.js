@@ -4,6 +4,7 @@ import {emptyHands, readHandPoses} from './tracking.js';
 import {FoundryGame, graspInput, CORES, CORE_Z, DOCK_Z} from './game.js';
 import {createWorld} from './world.js';
 import {fetchJSON} from './network.js';
+import {FeedbackUploader} from './feedback.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -143,16 +144,26 @@ panel.position.set(0,0.30,-0.51); panel.visible=false; stage.add(panel);
 
 let source='desktop-preview', trackingValid=false, hands=emptyHands(), poses=new Map(),
   calculated=handCue(new Map(),[],[]), fingers=fingerStates(new Map()),
-  accepted=null, status={received:null,board:null}, lastPost=0,
-  postBusy=false, queuedZero=false, pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,lastUI=0,
+  accepted=null, status={received:null,board:null},
+  pollBusy=false, statusAt=0, positioned=false, lastFrame=0, lastPanel=0,lastUI=0,
   xrSupported=false, gameTracked=false, lastAnimation=null, restartTouch=0, restartLatched=false,
-  gripBusy=false, gripZeroQueued=false, lastGripPost=0, connectionError='';
+  connectionError='';
 const inverseStage=new THREE.Matrix4();
 const localPoint=new THREE.Vector3(),localRotation=new THREE.Quaternion(),restartPoint=new THREE.Vector3();
 const selectedHand=() => $('hand').value;
 // A temporary HTTPS tunnel can exceed one second per round trip. This only
 // bounds the HTTP request; relay freshness and ESP output leases stay unchanged.
 const FEEDBACK_REQUEST_TIMEOUT_MS=3000;
+const feedback=new FeedbackUploader({
+  onResult:(result,value,timing)=>{
+    accepted=result.ok && value.accepted?{sequence:value.sequence,...timing}:null;
+    connectionError=result.ok?'':String(value.error || 'HTTP '+result.status).slice(0,80);
+  },
+  onError:error=>{
+    accepted=null;
+    connectionError=error.name==='AbortError'?'Request timeout':String(error.message || error).slice(0,80);
+  }
+});
 
 function readXR(frame) {
   hands=emptyHands();
@@ -214,40 +225,16 @@ function calculate(delta,time) {
   }
 }
 
-async function sendGrip(forceZero=false) {
-  // Desktop viewers poll receipts; they must not overwrite a live Quest request.
-  // A queued live-session zero may still finish after that session has ended.
-  if(source!=='webxr' && !forceZero)return;
-  if(gripBusy){if(forceZero)gripZeroQueued=true;return;}
-  const now=performance.now();if(!forceZero && now-lastGripPost<75)return;
-  lastGripPost=now;gripBusy=true;
-  try {
-    await fetchJSON('/api/grip-preview',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(game.intent(source,!forceZero && gameTracked))},FEEDBACK_REQUEST_TIMEOUT_MS);
-  } catch {} finally {gripBusy=false;if(gripZeroQueued){gripZeroQueued=false;sendGrip(true);}}
+function sendFeedback(zeroCue=false,zeroGrip=false,urgent=false) {
+  // Desktop viewers never overwrite a live Quest sample.
+  if(source!=='webxr' && !urgent)return;
+  feedback.submit(cueRequest(calculated,source,selectedHand(),!zeroCue && trackingValid),
+    game.intent(source,!zeroCue && !zeroGrip && gameTracked),urgent);
 }
+function sendGrip(forceZero=false){sendFeedback(false,forceZero,forceZero);}
 function resetGame(){game.reset();previewLift=0;previewDock=false;for(let i=0;i<5;i++)$('preview-curl-'+i).value='0';if(source==='webxr')sendGrip(true);}
 
-async function sendCue(forceZero=false) {
-  if(source!=='webxr' && !forceZero)return;
-  const now=performance.now();
-  if(postBusy) {if(forceZero)queuedZero=true;return;}
-  if(!forceZero && now-lastPost<50) return;
-  lastPost=now; postBusy=true;
-  const request=cueRequest(calculated,source,selectedHand(),forceZero?false:trackingValid);
-  try {
-    const {response:result,value}=await fetchJSON('/api/cue',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(request)},FEEDBACK_REQUEST_TIMEOUT_MS);
-    accepted=result.ok && value.accepted ? {sequence:value.sequence,time:performance.now(),roundTripMs:performance.now()-now} : null;
-    connectionError=result.ok?'':String(value.error || 'HTTP '+result.status).slice(0,80);
-    if(!result.ok) $('accepted-value').textContent='Request rejected';
-  } catch(error) {
-    accepted=null;connectionError=error.name==='AbortError'?'Request timeout':String(error.message || error).slice(0,80);
-  } finally {
-    postBusy=false;
-    if(queuedZero) {queuedZero=false;sendCue(true);}
-  }
-}
+function sendCue(forceZero=false){sendFeedback(forceZero,forceZero,forceZero);}
 async function pollStatus() {
   if(pollBusy) return;
   pollBusy=true;
@@ -447,6 +434,6 @@ renderer.setAnimationLoop((time,frame)=>{
   } else if(!renderer.xr.isPresenting) {
     source='desktop-preview';hands={left:previewPoses('left'),right:previewPoses('right')};
   }
-  calculate(delta,time);drawHands();updateUI();updatePanel(time);sendCue();sendGrip();renderer.render(scene,camera);
+  calculate(delta,time);drawHands();updateUI();updatePanel(time);sendFeedback();renderer.render(scene,camera);
 });
 checkXR();pollStatus();

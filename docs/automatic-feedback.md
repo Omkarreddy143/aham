@@ -34,6 +34,13 @@ recovery can re-arm automatically, but only after another two seconds of
 neutral data. A static/GitHub page, desktop preview, cached data or Witness
 Garden does not qualify.
 
+Orbit uploads touch and grip together through `/api/feedback`, with a bounded
+pipeline of up to three regular requests and one reserved stop request. This
+avoids waiting for every tunnel reply before sending the next hand sample.
+The relay applies both halves together and ignores older sample numbers and
+retired page sessions; delayed requests cannot restore an earlier grip or
+extend its freshness. Reload the live Quest game after updating these files.
+
 **STOP stays off even while Quest keeps streaming.** Automatic mode does not
 re-arm past an open D6 stop, I2C fault, ESP restart, 60-second arm timeout or
 three-second continuous servo-pull timeout. It never repeatedly sends ARM to

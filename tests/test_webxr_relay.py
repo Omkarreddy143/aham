@@ -341,6 +341,58 @@ class WebXRRelayTests(unittest.TestCase):
         return self.request("POST", "/api/grip-preview", json.dumps(value),
                             {"Content-Type": "application/json", **(headers or {})})
 
+    def feedback(self, sample=0, stream='a'*32, **changes):
+        value=dict(version=1,stream=stream,sample=sample,cue=self.cue(),grip=self.grip())
+        value.update(changes)
+        return value
+
+    def post_feedback(self, value, origin=None):
+        headers={'Content-Type':'application/json'}
+        if origin is not None:headers['Origin']=origin
+        code,body,_=self.request('POST','/api/feedback',json.dumps(value),headers)
+        return code,json.loads(body)
+
+    def test_feedback_applies_cue_and_grip_at_one_timestamp(self):
+        code,result=self.post_feedback(self.feedback())
+        self.assertEqual(code,200);self.assertTrue(result['accepted'])
+        self.assertEqual(self.relay.submitted_at,self.relay.resistance_at)
+        self.assertEqual(self.relay.wifi_preview()['cue']['duties'],self.cue()['duties'])
+        self.assertEqual(self.relay.wifi_preview()['grip']['resistance'],self.grip()['resistance'])
+
+    def test_feedback_delayed_hold_cannot_replace_release_or_extend_freshness(self):
+        self.post_feedback(self.feedback(sample=2,grip=self.grip(holding=False)))
+        timestamp=self.relay.submitted_at
+        code,result=self.post_feedback(self.feedback(sample=1))
+        self.assertEqual(code,200);self.assertTrue(result['ignored'])
+        self.assertEqual(self.relay.submitted_at,timestamp)
+        self.assertFalse(self.relay.wifi_preview()['grip']['holding'])
+        self.assertTrue(self.post_feedback(self.feedback(sample=2))[1]['ignored'])
+
+    def test_feedback_invalid_half_never_partially_applies(self):
+        for changes in ({'grip':self.grip(resistance=[99]*5)}, {'sample':True},
+                        {'stream':'invalid'}, {'sample':-1}, {'extra':1}):
+            self.assertEqual(self.post_feedback(self.feedback(**changes))[0],400)
+            self.assertIsNone(self.relay.submitted)
+            self.assertIsNone(self.relay.resistance)
+        self.assertEqual(self.post_feedback(self.feedback(), 'https://other.example')[0],403)
+
+    def test_feedback_new_zero_session_retires_old_page(self):
+        self.post_feedback(self.feedback())
+        self.assertTrue(self.post_feedback(self.feedback(stream='b'*32))[1]['ignored'])
+        zero=self.feedback(stream='b'*32,cue=self.cue(trackingValid=False),
+                           grip=self.grip(trackingValid=False))
+        self.assertTrue(self.post_feedback(zero)[1]['accepted'])
+        self.assertTrue(self.post_feedback(self.feedback(sample=100))[1]['ignored'])
+        values=self.relay.wifi_preview()
+        self.assertEqual(values['cue']['duties'],[0]*5)
+        self.assertEqual(values['grip']['resistance'],[0]*5)
+
+    def test_feedback_expiry_still_removes_touch_and_grip(self):
+        self.post_feedback(self.feedback())
+        with self.relay.lock:
+            self.relay.submitted_at-=1;self.relay.resistance_at-=1
+        self.assertEqual(self.relay.wifi_preview(),{'mode':'monitor-only','cue':None,'grip':None})
+
     def test_grip_preview_is_observable_expiring_and_has_no_udp_or_actuator_output(self):
         with patch.object(self.relay, "submit", side_effect=AssertionError("Must not encode a board packet")):
             code, body, _ = self.post_grip(self.grip())

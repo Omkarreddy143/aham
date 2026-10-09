@@ -31,6 +31,7 @@ MAX_RECENT_CUES = 32
 CUE_FIELDS = {"version", "source", "hand", "trackingValid", "duties", "patterns"}
 GRIP_FIELDS = {"version", "source", "hand", "trackingValid", "holding", "objectId",
                "gripMode", "resistance", "referenceCurl"}
+FEEDBACK_FIELDS = {"version", "stream", "sample", "cue", "grip"}
 STATIC_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -162,6 +163,9 @@ class Relay:
         self.submitted_at = None
         self.last_upload = None
         self.uploads_accepted = self.uploads_rejected = 0
+        self.feedback_stream = None
+        self.feedback_sample = -1
+        self.retired_streams = deque(maxlen=32)
         self.listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -212,6 +216,52 @@ class Relay:
             self.grip_sequence = (sequence + 1) & 0xFFFF
             self.resistance = dict(preview, sequence=sequence)
             self.resistance_at = time.monotonic()
+        return sequence
+
+    def submit_feedback(self, value):
+        """Apply an ordered touch/grip sample together; delayed requests never replay a hold."""
+        if (not isinstance(value, dict) or set(value) != FEEDBACK_FIELDS
+                or type(value['version']) is not int or value['version'] != 1
+                or not isinstance(value['stream'], str)
+                or re.fullmatch(r'[0-9a-f]{32}', value['stream']) is None
+                or type(value['sample']) is not int or not 0 <= value['sample'] < 2**53):
+            raise ValueError('Invalid feedback stream/sample')
+        duties, patterns = validate_cue(value['cue'])
+        preview = validate_grip_preview(value['grip'])
+        if value['cue']['source'] != preview['source']:
+            raise ValueError('Feedback sources must match')
+        stream, sample = value['stream'], value['sample']
+        zero_start = (not value['cue']['trackingValid'] and not preview['trackingValid'])
+        with self.lock:
+            if self.done.is_set():
+                raise OSError('Relay closed')
+            now = time.monotonic()
+            if stream in self.retired_streams:
+                return None
+            if stream != self.feedback_stream:
+                if (self.feedback_stream is not None and self.submitted_at is not None
+                        and now - self.submitted_at < .250 and not zero_start):
+                    return None
+            elif sample <= self.feedback_sample:
+                return None
+            sequence = self.sequence
+            frame = haptic(sequence, int(now * 1000), duties, patterns).encode()
+            # Send before committing either half, so a failed send changes neither.
+            self.sender.sendto(frame, MONITOR_ADDRESS)
+            self._prune_recent_cues(now)
+            self.recent_cues.append((now, frame))
+            if stream != self.feedback_stream:
+                if self.feedback_stream is not None:
+                    self.retired_streams.append(self.feedback_stream)
+                self.feedback_stream = stream
+            self.feedback_sample = sample
+            self.sequence = (sequence + 1) & 0xFFFF
+            self.submitted = dict(source=value['cue']['source'], hand=value['cue']['hand'],
+                                  trackingValid=value['cue']['trackingValid'], duties=duties,
+                                  patterns=patterns, sequence=sequence)
+            self.resistance = dict(preview, sequence=self.grip_sequence)
+            self.grip_sequence = (self.grip_sequence + 1) & 0xFFFF
+            self.submitted_at = self.resistance_at = now
         return sequence
 
     def _receive(self):
@@ -384,7 +434,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         except ValueError:
             self._reply(400, {"error": "Invalid path"})
             return
-        if path not in ("/api/cue", "/api/grip-preview"):
+        if path not in ("/api/cue", "/api/grip-preview", "/api/feedback"):
             self._reply(404, {"error": "Unknown endpoint"})
             return
         if not self._same_origin():
@@ -408,8 +458,11 @@ class RelayHandler(BaseHTTPRequestHandler):
                 raise ValueError("Incomplete cue body")
             value = json.loads(body.decode("utf-8"), object_pairs_hook=_unique_object,
                                parse_constant=_reject_constant)
-            sequence = (self.server.relay.submit(value) if path == "/api/cue"
-                        else self.server.relay.submit_grip_preview(value))
+            if path == '/api/feedback':
+                sequence = self.server.relay.submit_feedback(value)
+            else:
+                sequence = (self.server.relay.submit(value) if path == "/api/cue"
+                            else self.server.relay.submit_grip_preview(value))
         except (ValueError, UnicodeError, RecursionError) as error:
             self.server.relay.note_upload(path, 400, self.headers.get("User-Agent", ""), str(error))
             self._reply(400, {"error": str(error)})
@@ -420,6 +473,8 @@ class RelayHandler(BaseHTTPRequestHandler):
             return
         self.server.relay.note_upload(path, 200, self.headers.get("User-Agent", ""))
         result = {"accepted": True, "monitorOnly": True, "sequence": sequence}
+        if path == '/api/feedback':
+            result.update(accepted=sequence is not None, ignored=sequence is None)
         if path == "/api/grip-preview":
             result["actuatorsEnabled"] = False
         self._reply(200, result)
